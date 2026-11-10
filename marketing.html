@@ -33,12 +33,13 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .highlight{color:var(--green)}
 </style></head>
 <body><main>
-<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com janelas de 7 ou 30 dias de cadastro e investimento.</p></div><span class="pill" id="status">Sincronização automática</span></header>
+<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="banner"><strong>Meta Ads + CV CRM • painel executivo</strong><span id="notice">Os números de investimento vêm da Meta Ads. Os quatro vínculos entre conta e empreendimento foram propostos pelos nomes e ainda precisam ser confirmados. Origem Facebook no CV não prova anúncio pago.</span></section>
 <section class="toolbar">
 <div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os 4 empreendimentos vinculados</option></select></div>
-<div class="field"><label for="period">Período de cadastro e investimento</label><select id="period"><option value="30">Últimos 30 dias completos</option><option value="7">Últimos 7 dias completos</option></select></div>
-<div class="field"><label>Janela de análise</label><div id="dates" style="height:41px;border:1px solid #d8e3df;border-radius:8px;padding:12px;color:#557080;font-size:12px">Aguardando dados</div></div>
+<div class="field"><label for="startDate">Data inicial</label><input type="date" id="startDate"></div>
+<div class="field"><label for="endDate">Data final</label><input type="date" id="endDate"></div>
+<button class="button" id="apply" type="button">Aplicar período</button>
 <button class="button alt" id="reload" type="button">Atualizar</button>
 </section>
 <section class="kpis">
@@ -60,7 +61,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
 </div>
 </section>
-<footer>Atualização automática por GitHub Actions. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Leads com menos de 10 registros por empreendimento podem ser suprimidos. Não se trata de ROAS ou venda atribuída.</footer>
+<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Leads com menos de 10 registros por empreendimento podem ser suprimidos. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
 <script>
 (()=>{
@@ -105,7 +106,7 @@ function render(){
   $('fImpressions').textContent=validMeta?nf(impressions):'—';
   $('fClicks').textContent=validMeta?nf(clicks):'—';
   $('fLeads').textContent=facebook===null?'—':nf(facebook);
-  $('dates').textContent=data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
+
   bars('chartSpend',metaRows.filter(x=>x.a).map(x=>({name:x.m.name,value:Number(x.a.spend)})).sort((a,b)=>b.value-a.value),v=>money(v));
   if(cvComplete){
     const cats=[{name:'Facebook/Meta (origem CV)',value:facebook},{name:'Google (origem CV)',value:cvRows.reduce((s,x)=>s+Number(x.cv.google_declarada||0),0)},{name:'Outras origens',value:cvRows.reduce((s,x)=>s+Number(x.cv.outra_ou_nao_informada||0),0)}];
@@ -126,23 +127,98 @@ function render(){
   $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos.';
   $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
 }
+let dailySource=null;
+let validatedWindows={};
+function parseISO(s){return new Date(s+'T12:00:00Z')}
+function addDays(s,n){let d=parseISO(s);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+function dailyExtract(since,until){
+  if(!dailySource)throw Error('Histórico diário ainda não sincronizado');
+  const accounts=dailySource.meta_accounts.map(a=>{
+    let spend=0,impressions=0,clicks=0;
+    for(const [date,metrics] of Object.entries(a.daily||{})){
+      if(date>=since&&date<=until){
+        spend+=Number(metrics.spend||0);impressions+=Number(metrics.impressions||0);clicks+=Number(metrics.clicks||0);
+      }
+    }
+    return {account_id:a.account_id,account_name:a.account_name,currency:a.currency,spend:String(spend),impressions,clicks};
+  });
+  const cv={};
+  for(const [project,days] of Object.entries(dailySource.cv_by_project_daily||{})){
+    let obj={leads_period:0,meta_declarada:0,google_declarada:0,outra_ou_nao_informada:0};
+    for(const [date,v] of Object.entries(days)){
+      if(date>=since&&date<=until){
+        for(const k of Object.keys(obj))obj[k]+=Number(v[k]||0);
+      }
+    }
+    if(obj.leads_period)cv[project]=obj;
+  }
+  // Public daily cells under 5 are suppressed. Never portray their sum as a complete lead count.
+  return {period:{since,until},meta_accounts:accounts,cv_by_project_normalized:cv,
+    cv_counts_validated:false,cv_more_pages_possible:true,
+    currencies_found:[...new Set(accounts.map(x=>x.currency))]};
+}
 async function load(){
-  const days=$('period').value;
-  $('status').textContent='Atualizando indicadores...';
+  $('status').textContent='Verificando histórico...';
   try{
-    let r=await fetch('data/marketing-'+days+'.json?nocache='+Date.now(),{cache:'no-store'});
-    if(!r.ok&&days==='30')r=await fetch('data/marketing-aggregated.json?nocache='+Date.now(),{cache:'no-store'});
-    if(!r.ok)throw Error('O período ainda não foi publicado no GitHub Actions');
+    const r=await fetch('data/marketing-daily.json?version='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw Error('Histórico de datas ainda não publicado');
     const obj=await r.json();
-    if(!obj||!Array.isArray(obj.meta_accounts)||!obj.cv_by_project_normalized||!obj.period||!obj.currencies_found||!obj.meta_accounts.every(x=>allids.has(String(x.account_id))&&Number.isFinite(Number(x.spend))))throw Error('Estrutura de dados inconsistente');
-    if(obj.meta_accounts.length!==8)throw Error('A consulta não contém as oito contas');
-    data=obj;
-    render();
-  }catch(e){data=null;$('status').textContent='Período indisponível';$('notice').textContent=e.message+'. A última publicação do GitHub Actions deve ser verificada.';for(const id of ['spend','leadsTotal','leadsMeta','cpl','fImpressions','fClicks','fLeads'])$(id).textContent='—';$('chartSpend').textContent='Sem dados para o período.';$('chartOrigin').textContent='Sem dados para o período.';$('projectsTable').replaceChildren();}
+    if(obj.schema_version!==2||obj.meta_accounts?.length!==8||!obj.period||!obj.meta_accounts.every(a=>allids.has(String(a.account_id))))throw Error('Histórico incompleto');
+    dailySource=obj;
+    for(const id of ['startDate','endDate']){$(id).min=obj.period.since;$(id).max=obj.period.until;}
+    $('endDate').value=obj.period.until;
+    $('startDate').value=addDays(obj.period.until,-29)<obj.period.since?obj.period.since:addDays(obj.period.until,-29);
+    await applyDate();
+  }catch(e){
+    $('status').textContent='Histórico diário pendente';
+    $('notice').textContent='O calendário está pronto, mas o GitHub Actions ainda precisa publicar o histórico diário de 90 dias. Enquanto isso, o último período fechado de 30 dias continua disponível.';
+    try{
+      const r=await fetch('data/marketing-aggregated.json?version='+Date.now(),{cache:'no-store'});
+      if(!r.ok)throw Error('Sem consolidado');
+      const x=await r.json();data=x;
+      $('startDate').value=x.period.since;$('endDate').value=x.period.until;
+      $('startDate').min=x.period.since;$('startDate').max=x.period.until;
+      $('endDate').min=x.period.since;$('endDate').max=x.period.until;
+      render();
+      $('status').textContent='Somente período consolidado disponível';
+    }catch(_){$('status').textContent='Dados indisponíveis';}
+  }
+}
+async function applyDate(){
+ const since=$('startDate').value,until=$('endDate').value;
+ if(!since||!until||since>until){alert('Informe datas inicial e final válidas.');return}
+ if(!dailySource){
+   if(data?.period?.since===since&&data?.period?.until===until){render();return}
+   alert('O histórico diário ainda não está publicado. Execute a consolidação no GitHub Actions.');return;
+ }
+ if(since<dailySource.period.since||until>dailySource.period.until){
+   alert('Escolha datas dentro do histórico sincronizado: '+dailySource.period.since+' a '+dailySource.period.until+'.');return;
+ }
+ if((parseISO(until)-parseISO(since))/86400000>89){alert('Máximo de 90 dias por consulta.');return}
+ data=dailyExtract(since,until);
+ // Janela exata 7/30 dias pode usar contagens CV completas previamente validadas.
+ const count=Math.round((parseISO(until)-parseISO(since))/86400000)+1;
+ if(count===7||count===30){
+   const url='data/marketing-'+count+'.json?nocache='+Date.now();
+   try{
+     const r=await fetch(url,{cache:'no-store'});
+     if(r.ok){
+       const x=await r.json();
+       if(x.cv_counts_validated&&x.period.since===since&&x.period.until===until&&x.meta_accounts.length===8){
+         data=x;
+       }
+     }
+   }catch(_){}
+ }
+ render();
+ if(!data.cv_counts_validated){
+   $('status').textContent='Meta atualizada • CV parcial';
+   $('caveat').textContent='Período personalizado: leads diários pequenos são suprimidos na publicação pública. Como a contagem poderia ficar incompleta, leads e CPL permanecem indisponíveis. Para o período fechado mais recente de 7 ou 30 dias, o relatório usa os totais validados quando disponíveis.';
+ }
 }
 map.forEach(m=>$('project').add(new Option(m.name+(m.project?'':' • vínculo CV pendente'),m.id)));
 $('project').addEventListener('change',render);
-$('period').addEventListener('change',load);
+$('apply').addEventListener('click',applyDate);
 $('reload').addEventListener('click',load);
 load();
 })();
