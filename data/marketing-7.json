@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-10T16:36:43.138054+00:00",
+  "generated_at_utc": "2026-11-10T16:57:04.137929+00:00",
   "period": {
     "since": "2026-11-03",
     "until": "2026-11-09"
@@ -27,8 +27,8 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "656.93",
-      "impressions": 65972,
+      "spend": "656.94",
+      "impressions": 65973,
       "clicks": 614
     },
     {
@@ -60,7 +60,7 @@
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
       "spend": "2385.37",
-      "impressions": 105600,
+      "impressions": 105601,
       "clicks": 714
     },
     {
@@ -68,7 +68,7 @@
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
       "spend": "772.64",
-      "impressions": 69008,
+      "impressions": 69009,
       "clicks": 521
     }
   ],
