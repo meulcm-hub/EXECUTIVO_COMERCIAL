@@ -33,6 +33,51 @@ def main():
     history_start=dt.date(2022,1,1)
     if since<history_start:raise RuntimeError("Histórico ainda não disponível")
 
+    # Pré-validação rápida: conversões sem ID do empreendimento do evento
+    # não permitem total por empreendimento. Detectar ANTES de consultar
+    # todos os cadastros desde 2022 (operação longa).
+    preflight=collections.Counter()
+    preflight_ids=set()
+    for row in read_complete(base,email,token,since,until,read_conversion_page,"pre-validacao-conversoes"):
+        if not isinstance(row,dict):
+            preflight["registro_invalido"]+=1
+            continue
+        event_id=row.get("idlead_conversao")
+        if event_id is None:
+            preflight["sem_id_evento"]+=1
+            continue
+        event_id=str(event_id)
+        if event_id in preflight_ids:continue
+        preflight_ids.add(event_id)
+        assoc=row.get("empreendimentos_conversao")
+        if not isinstance(assoc,list):
+            preflight["associacao_invalida"]+=1
+        elif not assoc:
+            preflight["empreendimento_nao_registrado"]+=1
+        elif len(assoc)>1:
+            preflight["mais_de_um_empreendimento"]+=1
+        else:
+            preflight["com_empreendimento_evento"]+=1
+    print("Pré-validação CV: "+str(len(preflight_ids))+
+          " eventos; com empreendimento do evento "+
+          str(preflight["com_empreendimento_evento"])+
+          "; sem empreendimento do evento "+
+          str(preflight["empreendimento_nao_registrado"])+
+          "; associações inválidas "+
+          str(preflight["associacao_invalida"])+
+          "; associações múltiplas "+
+          str(preflight["mais_de_um_empreendimento"])+".",flush=True)
+    if (preflight["registro_invalido"] or preflight["sem_id_evento"] or
+        preflight["associacao_invalida"] or
+        preflight["empreendimento_nao_registrado"] or
+        preflight["mais_de_um_empreendimento"]):
+        raise RuntimeError(
+            "Cobertura por empreendimento insuficiente: a API não informa "+
+            "o empreendimento de todos os eventos. Consulta histórica desde "+
+            "2022 dispensada para evitar execução longa. Nenhum dado incompleto "+
+            "foi publicado. É necessária uma regra de atribuição validada "+
+            "ou uma fonte adicional do CV CRM.")
+
     original={}
     project_alias=collections.defaultdict(set)
     conflicting=set()
