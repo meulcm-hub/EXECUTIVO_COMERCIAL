@@ -48,6 +48,26 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="kpi"><small>CPL indicativo • Meta</small><strong id="cpl">—</strong><span>Investimento Meta ÷ leads de origem Meta</span></div>
 <div class="kpi"><small>Leads totais CV CRM</small><strong id="leadsTotal">—</strong><span>Origem Meta, Google e outras</span></div>
 </section>
+<section class="panel" style="margin-top:15px">
+<h2>Leads de formulário — Meta Ads x CV CRM</h2>
+<p class="sub">Resultados de formulário da Meta por campanha, separados dos cadastros com origem Facebook/Meta no CV CRM. Mesmas datas selecionadas, métricas diferentes.</p>
+<div class="kpis">
+<div class="kpi"><small>Formulários Meta (API)</small><strong id="formsMeta">—</strong><span>Resultados atribuídos a campanhas de formulário</span></div>
+<div class="kpi"><small>Gasto em campanhas com formulários</small><strong id="formsSpend">—</strong><span>Campanhas com resultados de formulário no período</span></div>
+<div class="kpi"><small>CPL de formulário Meta</small><strong id="formsCpl">—</strong><span>Gasto nessas campanhas ÷ formulários</span></div>
+<div class="kpi"><small>Diferença bruta Meta − CV</small><strong id="formsDiff">—</strong><span>Não significa leads perdidos</span></div>
+</div>
+<p id="formNote" class="metric-note">Aguardando o primeiro histórico de resultados por campanha da Meta.</p>
+</section>
+<section class="grid">
+<div class="panel"><h2>Campanhas de captação — Meta Ads</h2><p class="sub">Comparação por campanha dentro do intervalo escolhido. CPL calculado sobre o gasto das campanhas com resultado de formulário.</p>
+<div class="tablewrap"><table class="table"><thead><tr><th>Campanha</th><th style="text-align:right">Leads formulário</th><th style="text-align:right">Gasto</th><th style="text-align:right">CPL</th></tr></thead><tbody id="campaignTable"><tr><td colspan="4">Aguardando sincronização da Meta.</td></tr></tbody></table></div>
+</div>
+<div class="panel"><h2>Conferência dos resultados</h2><p class="sub">Compare as plataformas sem presumir que todos os cadastros são equivalentes.</p>
+<div id="compareRows" class="empty">Carregando resultados da API Meta.</div>
+<p class="metric-note">A divergência pode decorrer de atribuição, duplicidade, integração e datas. Apenas conciliação por identificador no ambiente privado comprovaria perda de cadastros.</p>
+</div>
+</section>
 <section class="grid">
 <div class="panel"><h2>Investimento por empreendimento</h2><p class="sub">Meta Ads, período selecionado, valores em BRL. Quando selecionar um empreendimento, só ele será exibido.</p><div id="chartSpend" class="empty">Aguardando consolidação.</div></div>
 <div class="panel"><h2>Origem dos leads por empreendimento</h2><p class="sub">Classificação do CV CRM, sem presumir atribuição a campanhas pagas.</p><div id="chartOrigin" class="empty">Aguardando consolidação.</div></div>
@@ -61,7 +81,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
 </div>
 </section>
-<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
+<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL Meta utiliza somente as campanhas que tiveram conversões de formulário no intervalo; uma divergência não comprova perda de leads. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
 <script>
 (()=>{
@@ -79,9 +99,72 @@ const map=[
 {id:'1349139385694575',project:null,name:'Flamboyant'}
 ];
 const allids=new Set(map.map(m=>m.id));
+let campaignSource=null;
 let data=null;
 function el(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
 function bars(id,rows,fmt){const host=$(id);host.replaceChildren();if(!rows.length){host.className='empty';host.textContent='Sem dados nesta seleção.';return}host.className='';const max=Math.max(...rows.map(x=>Number(x.value)||0),1);for(const r of rows){const line=el('div','barrow'),name=el('div','barname',r.name),track=el('div','track'),fill=el('div','fill'),value=el('div','barvalue',fmt(r.value));fill.style.width=Math.max(0,Number(r.value||0)/max*100)+'%';track.append(fill);line.append(name,track,value);host.append(line)}}
+function campaignTotals(id,since,until){
+ const account=campaignSource?.accounts?.find(a=>String(a.account_id)===String(id));
+ if(!account)return null;
+ let formLeads=0,spend=0;
+ const campaigns=[];
+ for(const campaign of account.campaigns||[]){
+   let leads=0,cost=0;
+   for(const [date,v] of Object.entries(campaign.daily||{})){
+     if(date>=since&&date<=until){
+       leads+=Number(v.form_leads||0);
+       cost+=Number(v.spend||0);
+     }
+   }
+   if(leads>0){
+     campaigns.push({name:campaign.campaign_name||'Campanha',leads,spend:cost,cpl:cost/leads});
+     formLeads+=leads;
+     spend+=cost;
+   }
+ }
+ return {formLeads,spend,campaigns};
+}
+function renderCampaigns(visible,facebook,cvComplete){
+ const ids=['formsMeta','formsSpend','formsCpl','formsDiff'];
+ const blank=()=>ids.forEach(id=>$(id).textContent='—');
+ const table=$('campaignTable');table.replaceChildren();
+ if(!campaignSource||!data||!visible.length||campaignSource.period.since>data.period.since||campaignSource.period.until<data.period.until){
+   blank();$('formNote').textContent='Histórico de campanhas ainda não sincronizado para este período.';
+   $('compareRows').className='empty';$('compareRows').textContent='Sem resultados de campanhas publicados.';
+   table.append(Object.assign(el('tr'),{innerHTML:'<td colspan="4">Aguardando nova coleta.</td>'}));return;
+ }
+ const parts=visible.map(m=>({name:m.name,value:campaignTotals(m.id,data.period.since,data.period.until)}));
+ if(parts.some(p=>p.value===null)){
+   blank();$('formNote').textContent='Algumas contas ainda não constam no histórico de campanhas.';
+   $('compareRows').className='empty';$('compareRows').textContent='Cobertura parcial de contas.';
+   return;
+ }
+ const forms=parts.reduce((sum,p)=>sum+p.value.formLeads,0);
+ const expense=parts.reduce((sum,p)=>sum+p.value.spend,0);
+ $('formsMeta').textContent=nf(forms);
+ $('formsSpend').textContent=money(expense);
+ $('formsCpl').textContent=forms>0?money(expense/forms):'—';
+ $('formsDiff').textContent=cvComplete?nf(forms-facebook):'—';
+ $('formNote').textContent='CPL de formulário = gasto de campanhas que tiveram leads de formulário ÷ formulários atribuídos pela Meta. As campanhas sem resultados de formulário não entram neste gasto.';
+ const rows=parts.flatMap(p=>p.value.campaigns.map(x=>({...x,project:p.name}))).sort((a,b)=>b.leads-a.leads);
+ if(!rows.length){const tr=el('tr'),td=el('td','', 'Sem formulários atribuídos no período.');td.colSpan=4;tr.append(td);table.append(tr)}
+ else for(const c of rows){
+   const tr=el('tr');
+   for(const [v,i] of [[c.project+' · '+c.name,0],[nf(c.leads),1],[money(c.spend),2],[money(c.cpl),3]])tr.append(el('td',i?'num':'',v));
+   table.append(tr);
+ }
+ const host=$('compareRows');host.className='';host.replaceChildren();
+ const comparisons=[
+   {name:'Meta · resultados de formulário',value:forms},
+   {name:'CV · origem Facebook/Meta',value:cvComplete?facebook:null}
+ ];
+ const max=Math.max(1,...comparisons.map(x=>x.value||0));
+ for(const item of comparisons){
+   const line=el('div','barrow'),name=el('div','barname',item.name),track=el('div','track'),fill=el('div','fill'),label=el('div','barvalue',item.value===null?'—':nf(item.value));
+   fill.style.width=item.value===null?'0%':(item.value/max*100)+'%';
+   track.append(fill);line.append(name,track,label);host.append(line);
+ }
+}
 function render(){
   if(!data)return;
   const choice=$('project').value;
@@ -126,6 +209,7 @@ function render(){
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos.';
+  renderCampaigns(visible,facebook,cvComplete);
   $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
 }
 let dailySource=null;
@@ -167,6 +251,24 @@ function dailyExtract(since,until){
     cv_counts_validated:cvReady,cv_more_pages_possible:!cvReady,
     currencies_found:[...new Set(accounts.map(x=>x.currency))]};
 }
+async function loadCampaigns(){
+ try{
+   const response=await fetch('data/marketing-campaigns.json?version='+Date.now(),{cache:'no-store'});
+   if(!response.ok)throw Error('Ainda não publicado');
+   const x=await response.json();
+   if(x.schema_version!==1||x.action_type!=='onsite_conversion.lead_grouped'||x.action_report_time!=='impression'||x.accounts?.length!==8||!x.period||!x.accounts.every(a=>allids.has(String(a.account_id))&&Array.isArray(a.campaigns)))throw Error('Arquivo de campanhas inválido');
+   campaignSource=x;
+ }catch(err){campaignSource=null}
+ if(data){
+   const choice=$('project').value;
+   const visible=map.filter(m=>choice==='all'?Boolean(m.project):m.id===choice);
+   const cvReady=data.cv_counts_validated===true&&!data.cv_more_pages_possible;
+   const cvRows=visible.filter(m=>m.project).map(m=>data.cv_by_project_normalized[m.project]);
+   const complete=cvReady&&cvRows.length>0&&cvRows.every(Boolean);
+   const facebook=complete?cvRows.reduce((sum,c)=>sum+Number(c.meta_declarada||0),0):null;
+   renderCampaigns(visible,facebook,complete);
+ }
+}
 async function load(){
   $('status').textContent='Verificando histórico...';
   try{
@@ -184,6 +286,7 @@ async function load(){
     const defaultStart=obj.period.since; // Primeiro acesso abre todo histórico sincronizado
     $('startDate').value=startChoice && startChoice>=obj.period.since && startChoice<=obj.period.until ? startChoice : defaultStart;
     await applyDate();
+    await loadCampaigns();
   }catch(e){
     dailySource=null;
     $('status').textContent='Histórico diário não carregado';
@@ -197,6 +300,7 @@ async function load(){
       $('startDate').min=x.period.since;$('startDate').max=x.period.until;
       $('endDate').min=x.period.since;$('endDate').max=x.period.until;
       render();
+      await loadCampaigns();
       $('status').textContent='Somente período consolidado disponível';
     }catch(_){$('status').textContent='Dados indisponíveis';}
   }
