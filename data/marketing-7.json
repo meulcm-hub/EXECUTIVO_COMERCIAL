@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-11-10T16:36:43.138054+00:00",
+  "period": {
+    "since": "2026-11-03",
+    "until": "2026-11-09"
+  },
+  "status": "COMPLETO_META_CV_AGREGADO",
+  "meta_accounts": [
+    {
+      "account_id": "578753212923958",
+      "account_name": "LCM - Residencial Monte Belo",
+      "currency": "BRL",
+      "spend": "0",
+      "impressions": 0,
+      "clicks": 0
+    },
+    {
+      "account_id": "379393907144068",
+      "account_name": "LCM - Turquesa Parque",
+      "currency": "BRL",
+      "spend": "0",
+      "impressions": 0,
+      "clicks": 0
+    },
+    {
+      "account_id": "332967835423799",
+      "account_name": "LCM - Arraial Costa Verde",
+      "currency": "BRL",
+      "spend": "656.93",
+      "impressions": 65972,
+      "clicks": 614
+    },
+    {
+      "account_id": "626593228944023",
+      "account_name": "LCM - Village Sete Lagoas",
+      "currency": "BRL",
+      "spend": "1126.86",
+      "impressions": 133917,
+      "clicks": 997
+    },
+    {
+      "account_id": "272429171879216",
+      "account_name": "LCM - Residencial Green Plaza",
+      "currency": "BRL",
+      "spend": "0",
+      "impressions": 0,
+      "clicks": 0
+    },
+    {
+      "account_id": "1349139385694575",
+      "account_name": "LCM - Flamboyant",
+      "currency": "BRL",
+      "spend": "0",
+      "impressions": 0,
+      "clicks": 0
+    },
+    {
+      "account_id": "347253318197280",
+      "account_name": "LCM - Jacarandá",
+      "currency": "BRL",
+      "spend": "2385.37",
+      "impressions": 105600,
+      "clicks": 714
+    },
+    {
+      "account_id": "1183301460107081",
+      "account_name": "LCM - Jatobá",
+      "currency": "BRL",
+      "spend": "772.64",
+      "impressions": 69008,
+      "clicks": 521
+    }
+  ],
+  "cv_by_project_normalized": {
+    "residencial flores do cerrado jacaranda": {
+      "leads_period": 94,
+      "meta_declarada": 86,
+      "google_declarada": 1,
+      "outra_ou_nao_informada": 7
+    },
+    "residencial village lagoas": {
+      "leads_period": 32,
+      "meta_declarada": 23,
+      "google_declarada": 2,
+      "outra_ou_nao_informada": 7
+    },
+    "residencial extrema meu lar": {
+      "leads_period": 19,
+      "meta_declarada": 0,
+      "google_declarada": 0,
+      "outra_ou_nao_informada": 19
+    },
+    "residencial jatoba": {
+      "leads_period": 23,
+      "meta_declarada": 16,
+      "google_declarada": 2,
+      "outra_ou_nao_informada": 5
+    }
+  },
+  "cv_counts_validated": true,
+  "cv_date_scope": "referencia_filtrada_e_cadastro_validado",
+  "cv_completeness_warning": "CVDW usa data de referência na consulta; registros históricos alterados fora da janela podem ficar de fora.",
+  "cv_more_pages_possible": false,
+  "currencies_found": [
+    "BRL"
+  ],
+  "warning": "Origem Facebook/Instagram não comprova campanha paga; vendas atribuídas indisponíveis."
+}
