@@ -50,6 +50,18 @@ def main():
                         if n==project:matches[k]+=1
             if shapes:print("  Chaves/estrutura de itens: "+", ".join(sorted(shapes.keys())))
             if matches:print("  Correspondencias exatas de nomes conhecidos: "+str(dict(matches)))
+    lengths=collections.Counter()
+    member_types=collections.Counter()
+    relation=collections.Counter()
+    for row in rows:
+        v=row.get("empreendimentos_conversao")
+        if isinstance(v,list):
+            lengths[len(v)]+=1
+            for item in v:member_types[describe(item)]+=1
+            relation["ultimo_presente_na_lista" if row.get("empreendimento_ultimo") in v else "ultimo_ausente_da_lista"]+=1
+    print("Tamanho da lista de empreendimentos por conversão: "+str(dict(lengths)))
+    print("Tipos de itens da lista: "+str(dict(member_types)))
+    print("Relação com empreendimento_ultimo: "+str(dict(relation)))
     print("Apenas formatos, nomes de campos e contagens; nenhum dado individual.")
 if __name__=="__main__":
     try:main()
