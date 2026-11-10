@@ -191,8 +191,10 @@ def main():
             project=cv_project(row)
             key=norm(project) or "nao identificado"
             per_cv[key]["leads_period"]+=1
-            per_cv[key][guess_channel(row)]+=1
-            per_cv[key][classify_channel(row)]+=1 if classify_channel(row).startswith("meta_") and classify_channel(row)!="meta_declarada" else 0
+            subtype=classify_channel(row)
+            per_cv[key]["meta_declarada" if subtype.startswith("meta_") else subtype]+=1
+            if subtype.startswith("meta_"):
+                per_cv[key][subtype]+=1
             reservation=row.get("reserva")
             if isinstance(reservation,(int,float,str)) and str(reservation).strip().isdigit() and int(reservation)>0:
                 per_cv[key]["leads_with_reservation_flag"]+=1
@@ -263,6 +265,7 @@ def main():
         # Se CV for parcial, manter os indicadores indisponíveis e não inventar zeros.
         public={
             "schema_version":1,
+            "cv_channel_rules_version":2,
             "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
             "period":{"since":start.isoformat(),"until":end.isoformat()},
             "status":"COMPLETO_META_CV_AGREGADO" if cv_ready else "COMPLETO_META_CV_NAO_VALIDADO",
