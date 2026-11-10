@@ -152,16 +152,17 @@ function renderCampaigns(visible,facebook,cvComplete,cvRows){
  const forms=parts.reduce((sum,p)=>sum+p.value.formLeads,0);
  const expense=parts.reduce((sum,p)=>sum+p.value.spend,0);
  const combinedExpense=parts.reduce((sum,p)=>sum+p.value.captureSpend,0);
- const whatsapp=cvComplete?cvRows.reduce((sum,x)=>sum+Number(x.cv.meta_whatsapp_cv||0),0):null;
- const shared=cvComplete?cvRows.reduce((sum,x)=>sum+Number(x.cv.meta_busca_compartilhada_cv||0),0):null;
+ const rulesReady=cvComplete&&data.cv_channel_rules_version===2;
+ const whatsapp=rulesReady?cvRows.reduce((sum,x)=>sum+Number(x.cv.meta_whatsapp_cv||0),0):null;
+ const shared=rulesReady?cvRows.reduce((sum,x)=>sum+Number(x.cv.meta_busca_compartilhada_cv||0),0):null;
  $('formsMeta').textContent=nf(forms);
  $('formsSpend').textContent=money(expense);
  $('formsCpl').textContent=forms>0?money(expense/forms):'—';
- $('formsDiff').textContent=cvComplete?nf(forms-facebook):'—';
+ $('formsDiff').textContent=rulesReady?nf(forms-facebook):'—';
  $('waCv').textContent=whatsapp===null?'—':nf(whatsapp);
  $('sharedCv').textContent=shared===null?'—':nf(shared);
  $('captureSpend').textContent=money(combinedExpense);
- $('captureCpl').textContent=cvComplete&&facebook>0?money(combinedExpense/facebook):'—';
+ $('captureCpl').textContent=rulesReady&&facebook>0?money(combinedExpense/facebook):'—';
  $('formNote').textContent='CPL formulário: apenas campanhas com formulário. CPL combinado: gasto de campanhas com formulário + WADS WhatsApp, sem somar gasto duplicado, dividido pelos leads classificados Meta no CV (inclui Busca Compartilhada e WhatsApp Facebook). Conversas Meta não são automaticamente leads CV.';
  const rows=parts.flatMap(p=>p.value.campaigns.map(x=>({...x,project:p.name}))).sort((a,b)=>b.leads-a.leads);
  if(!rows.length){const tr=el('tr'),td=el('td','', 'Sem campanhas de captação no período.');td.colSpan=5;tr.append(td);table.append(tr)}
@@ -266,6 +267,7 @@ function dailyExtract(since,until){
     dailySource.cv_daily_groups_suppressed===false;
   return {period:{since,until},meta_accounts:accounts,cv_by_project_normalized:cv,
     cv_counts_validated:cvReady,cv_more_pages_possible:!cvReady,
+    cv_channel_rules_version:dailySource.schema_version>=3?2:0,
     currencies_found:[...new Set(accounts.map(x=>x.currency))]};
 }
 async function loadCampaigns(){
