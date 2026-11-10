@@ -1,0 +1,31 @@
+name: LCM - Consolidacao segura Meta e CV
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Periodo em dias fechados (1 a 90)'
+        required: true
+        default: '30'
+      cv_pages:
+        description: 'Paginas de leads CV para amostragem (1 a 50)'
+        required: true
+        default: '10'
+permissions:
+  contents: read
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Consolidar em memoria sem exportar informacoes
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/marketing_consolidate.py --days "${{ inputs.days }}" --cv-pages "${{ inputs.cv_pages }}"
