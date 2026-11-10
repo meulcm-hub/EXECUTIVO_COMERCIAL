@@ -74,6 +74,7 @@ def main():
     ap.add_argument("--days",type=int,default=30)
     ap.add_argument("--cv-pages",type=int,default=10)
     ap.add_argument("--output",default="",help="Arquivo LOCAL de agregados; nunca publicar automaticamente")
+    ap.add_argument("--public-output",default="",help="JSON de indicadores agregados, autorizados para GitHub Pages")
     args=ap.parse_args()
     if not 1<=args.days<=90 or not 1<=args.cv_pages<=50:
         ap.error("days: 1-90; cv-pages: 1-50")
@@ -185,6 +186,57 @@ def main():
     print("Páginas CV examinadas: "+str(scanned_pages)+"; limite atingido: "+str(not exhausted))
     print("Registros CV examinados: "+str(inspected)+"; registros no período dentro da amostra: "+str(in_period))
     print("Atribuição campanha → lead: NÃO VALIDADA")
+    if args.public_output:
+        if not args.public_output.startswith("data/marketing-") or not args.public_output.endswith(".json"):
+            raise RuntimeError("Arquivo público deve estar em data/marketing-*.json")
+        if len(per_account)!=8 or failures:
+            raise RuntimeError("Publicação recusada: não foram consultadas as oito contas")
+        if "DESCONHECIDA" in currency_set:
+            raise RuntimeError("Publicação recusada: moeda não validada em todas as contas")
+        if not all(re.fullmatch(r"[A-Z]{3}",c) for c in currency_set):
+            raise RuntimeError("Publicação recusada: código de moeda inesperado")
+        if len(per_account)!=len({a["account_id"] for a in per_account}):
+            raise RuntimeError("Publicação recusada: contas duplicadas")
+        # Dados de leads só são liberados com todas as páginas e datas validadas.
+        # Suprimir pequenos grupos para evitar exposição indireta de clientes.
+        cv_ready=exhausted and in_period>0 and inspected>=in_period
+        public_cv={}
+        if cv_ready:
+            for project,counts in cv_summary.items():
+                if counts.get("leads_period",0)>=10 and project!="nao identificado":
+                    public_cv[project]={
+                        "leads_period":int(counts["leads_period"]),
+                        "meta_declarada":int(counts.get("meta_declarada",0)),
+                        "google_declarada":int(counts.get("google_declarada",0)),
+                        "outra_ou_nao_informada":int(counts.get("outra_ou_nao_informada",0))
+                    }
+        # Se CV for parcial, manter os indicadores indisponíveis e não inventar zeros.
+        public={
+            "schema_version":1,
+            "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
+            "period":{"since":start.isoformat(),"until":end.isoformat()},
+            "status":"COMPLETO_META_CV_AGREGADO" if cv_ready else "COMPLETO_META_CV_NAO_VALIDADO",
+            "meta_accounts":[{
+                "account_id":a["account_id"],
+                "account_name":a["account_name"][:90],
+                "currency":a["currency"],
+                "spend":a["spend"],
+                "impressions":a["impressions"],
+                "clicks":a["clicks"]
+            } for a in per_account],
+            "cv_by_project_normalized":public_cv,
+            "cv_counts_validated":bool(cv_ready),
+            "cv_more_pages_possible":not exhausted,
+            "currencies_found":sorted(currency_set),
+            "warning":"Origem Facebook/Instagram não comprova campanha paga; vendas atribuídas indisponíveis."
+        }
+        os.makedirs("data",exist_ok=True)
+        temp=args.public_output+".tmp"
+        with open(temp,"w",encoding="utf-8") as handle:
+            json.dump(public,handle,ensure_ascii=False,indent=2)
+        os.replace(temp,args.public_output)
+        print("JSON público de indicadores agregados validado e gerado sem registros individuais.")
+        print("CV liberado: "+str(bool(cv_ready))+"; grupos grandes: "+str(len(public_cv)))
 
     # Entrega somente a backend privado, nunca para GitHub Pages ou arquivos públicos.
     ingest_url=os.environ.get("MARKETING_INGEST_URL","").strip()
