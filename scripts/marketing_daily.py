@@ -138,6 +138,7 @@ def main():
         "period":{"since":start.isoformat(),"until":end.isoformat()},
         "meta_accounts":summary,
         "cv_by_project_daily":cv_daily,
+        "cv_known_projects":sorted({project for project,date in byday}),
         "cv_counts_validated":cv_ready,
         "cv_daily_groups_suppressed":False,
         "warning":"Contagens diárias agregadas por empreendimento e origem são públicas. Datas de referência do CVDW podem limitar cobertura histórica. CPL não comprova anúncio pago."
