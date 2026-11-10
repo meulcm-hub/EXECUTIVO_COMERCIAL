@@ -30,6 +30,7 @@ def run_month(base,email,token,start,end):
     new=set()
     indeterminate=set()
     channel=collections.Counter()
+    event_counts=collections.Counter()
     events=0
     incomplete=0
     complete=False
@@ -61,6 +62,7 @@ def run_month(base,email,token,start,end):
             seen.add(eid)
             events+=1
             persons.add(lead)
+            event_counts[lead]+=1
             if registered is None or registered>date:
                 indeterminate.add(lead)
             elif registered<date:
@@ -80,7 +82,8 @@ def run_month(base,email,token,start,end):
             "Nenhum total histórico definitivo foi publicado.")
     return {
         "events":events, "persons":persons, "returning":returning,
-        "new":new, "channel":channel, "pages":page_count
+        "new":new, "channel":channel, "pages":page_count,
+        "event_counts":event_counts
     }
 
 def main():
@@ -101,6 +104,7 @@ def main():
     all_people=set()
     ever_returned=set()
     ever_new=set()
+    event_counts_all=collections.Counter()
     total_events=0
     channel_total=collections.Counter()
     month_count=0
@@ -111,6 +115,7 @@ def main():
         all_people.update(result["persons"])
         ever_returned.update(result["returning"])
         ever_new.update(result["new"])
+        event_counts_all.update(result["event_counts"])
         channel_total.update(result["channel"])
         print("Mês "+start.strftime("%Y-%m")+": eventos "+str(result["events"])+
               "; leads únicos no mês "+str(len(result["persons"]))+
@@ -122,12 +127,15 @@ def main():
     print("Meses completos consultados: "+str(month_count))
     print("Eventos distintos: "+str(total_events))
     print("Leads únicos em todo o período: "+str(len(all_people)))
-    print("Leads com alguma reconversão posterior ao cadastro: "+str(len(ever_returned)))
-    print("Leads com evento no mesmo dia do cadastro: "+str(len(ever_new)))
+    repeated_people=sum(1 for value in event_counts_all.values() if value>1)
+    extra_events=sum(value-1 for value in event_counts_all.values())
+    print("Leads distintos com mais de um evento observado: "+str(repeated_people))
+    print("Eventos adicionais ao primeiro observado por lead: "+str(extra_events))
+    print("RETORNOS APÓS CADASTRO ORIGINAL: NÃO VALIDADOS. data_cad do evento pode não ser a data do cadastro inicial.")
     print("Eventos classificados como Meta/Facebook/WhatsApp/Busca Compartilhada: "+
           str(sum(value for kind,value in channel_total.items() if kind.startswith("meta_"))))
-    print("LEITURA: os grupos de novo/retorno podem se sobrepor; o mesmo lead pode retornar várias vezes.")
-    print("Classificação do retorno é por dia, ainda não distingue duas conversões no mesmo dia.")
+    print("LEITURA: repetição observada não comprova origem de campanha, e a primeira conversão observada não equivale necessariamente ao primeiro cadastro.")
+    print("A data original precisa ser verificada no endpoint principal de leads antes de separar novos e retornantes.")
     print("Não publicou arquivo, leads individuais, tokens ou identificadores.")
 if __name__=="__main__":
     try: main()
