@@ -1,11 +1,8 @@
 name: LCM - Conversoes CV por empreendimento e dia
 on:
-  schedule:
-    - cron: '35 11 * * *'
+  # Agendamento suspenso até que os eventos sem empreendimento
+  # tenham fonte/critério de associação validado.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['scripts/marketing_conversions_daily.py']
 concurrency:
   group: marketing-cv-conversions-publication
   cancel-in-progress: false
