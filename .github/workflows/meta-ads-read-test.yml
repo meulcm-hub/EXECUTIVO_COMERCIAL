@@ -1,0 +1,24 @@
+name: Meta Ads - Teste de leitura seguro
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Dias fechados (1 a 90), sem incluir hoje'
+        required: true
+        default: '7'
+permissions:
+  contents: read
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Consulta somente leitura (sem exportar nem publicar arquivos)
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+        run: python scripts/meta_ads_collector.py --days "${{ inputs.days }}"
