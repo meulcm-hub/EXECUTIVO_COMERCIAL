@@ -15,7 +15,7 @@ import json
 import os
 import sys
 import time
-import email.utils
+from email import utils as email_utils
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -56,7 +56,7 @@ def get_page(base,email,token,since,until,page):
                     wait=max(0,int(retry))
                 except ValueError:
                     try:
-                        server_time=email.utils.parsedate_to_datetime(retry)
+                        server_time=email_utils.parsedate_to_datetime(retry)
                         wait=max(0,(server_time-dt.datetime.now(dt.timezone.utc)).total_seconds())
                     except (TypeError,ValueError,OverflowError):
                         pass
