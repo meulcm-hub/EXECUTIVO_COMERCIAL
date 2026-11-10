@@ -1,0 +1,20 @@
+name: CV CRM - Verificar campos de leads
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  leads-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar endpoint e presença de campos (sem imprimir dados)
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/cvcrm_leads_schema_test.py
