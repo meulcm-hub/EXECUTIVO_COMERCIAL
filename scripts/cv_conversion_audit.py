@@ -14,6 +14,8 @@ import datetime as dt
 import json
 import os
 import sys
+import time
+import email.utils
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -35,15 +37,36 @@ def get_page(base,email,token,since,until,page):
     })
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self,req,fp,code,msg,headers,newurl):return None
-    try:
-        with urllib.request.build_opener(NoRedirect()).open(req,timeout=45) as response:
-            if response.status==204:return [],{"total_de_paginas":0}
-            payload=json.load(response)
-    except urllib.error.HTTPError as exc:
-        if exc.code==204:return [],{"total_de_paginas":0}
-        raise RuntimeError("CVDW conversões retornou HTTP "+str(exc.code)) from None
-    except (urllib.error.URLError,TimeoutError,ValueError):
-        raise RuntimeError("CVDW conversões não respondeu corretamente") from None
+    opener=urllib.request.build_opener(NoRedirect())
+    for attempt in range(6):
+        try:
+            with opener.open(req,timeout=45) as response:
+                if response.status==204:return [],{"total_de_paginas":0}
+                payload=json.load(response)
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code==204:return [],{"total_de_paginas":0}
+            if exc.code not in (429,500,502,503,504) or attempt==5:
+                raise RuntimeError("CVDW conversões retornou HTTP "+str(exc.code)+
+                    " após "+str(attempt+1)+" tentativa(s)") from None
+            retry=exc.headers.get("Retry-After")
+            wait=None
+            if retry:
+                try:
+                    wait=max(0,int(retry))
+                except ValueError:
+                    try:
+                        server_time=email.utils.parsedate_to_datetime(retry)
+                        wait=max(0,(server_time-dt.datetime.now(dt.timezone.utc)).total_seconds())
+                    except (TypeError,ValueError,OverflowError):
+                        pass
+            delay=min(300,max(15,wait if wait is not None else 20*(2**attempt)))
+            print("CVDW HTTP "+str(exc.code)+
+                  ": respeitando limite da API; nova tentativa após "+str(int(delay))+
+                  " segundos ("+str(attempt+1)+"/6).",flush=True)
+            time.sleep(delay)
+        except (urllib.error.URLError,TimeoutError,ValueError):
+            raise RuntimeError("CVDW conversões não respondeu corretamente") from None
     if not isinstance(payload,dict) or not isinstance(payload.get("dados",[]),list):
         raise RuntimeError("Formato da resposta de conversões não reconhecido")
     return payload.get("dados",[]),payload
