@@ -11,7 +11,7 @@ on:
       cv_pages:
         description: 'Paginas de leads CV para amostragem (1 a 50)'
         required: true
-        default: '10'
+        default: '50'
 permissions:
   contents: write
 jobs:
@@ -32,7 +32,7 @@ jobs:
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
           MARKETING_INGEST_URL: ${{ secrets.MARKETING_INGEST_URL }}
           MARKETING_INGEST_TOKEN: ${{ secrets.MARKETING_INGEST_TOKEN }}
-        run: python scripts/marketing_consolidate.py --days "${{ inputs.days || '30' }}" --cv-pages "${{ inputs.cv_pages || '10' }}" --public-output data/marketing-aggregated.json
+        run: python scripts/marketing_consolidate.py --days "${{ inputs.days || '30' }}" --cv-pages "${{ inputs.cv_pages || '50' }}" --public-output data/marketing-aggregated.json
       - name: Publicar somente JSON agregado validado
         run: |
           git config user.name "github-actions[bot]"
