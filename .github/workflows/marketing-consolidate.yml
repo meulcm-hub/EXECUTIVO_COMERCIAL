@@ -36,11 +36,19 @@ jobs:
           python scripts/marketing_consolidate.py --days 7 --cv-pages "${{ inputs.cv_pages || '50' }}" --public-output data/marketing-7.json
           python scripts/marketing_consolidate.py --days 30 --cv-pages "${{ inputs.cv_pages || '50' }}" --public-output data/marketing-30.json
           cp data/marketing-30.json data/marketing-aggregated.json
+      - name: Criar histórico diário agregado para calendário
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/marketing_daily.py
       - name: Publicar somente JSON agregado validado
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json
+          git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json
           if ! git diff --cached --quiet; then
             git commit -m "Atualiza indicadores agregados de Marketing"
             git push origin HEAD:main
