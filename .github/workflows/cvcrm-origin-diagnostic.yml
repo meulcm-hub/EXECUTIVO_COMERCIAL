@@ -1,0 +1,29 @@
+name: CV CRM - Diagnostico agregado de origem
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Páginas para amostragem (1 a 10)'
+        required: true
+        default: '3'
+      page_size:
+        description: 'Registros por página (1 a 200)'
+        required: true
+        default: '100'
+permissions:
+  contents: read
+jobs:
+  origin-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Contar canais e verificar rastreabilidade sem publicar registros
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/cvcrm_origin_diagnostic.py --pages "${{ inputs.pages }}" --page-size "${{ inputs.page_size }}"
