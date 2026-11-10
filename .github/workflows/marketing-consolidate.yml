@@ -1,9 +1,5 @@
 name: LCM - Consolidacao segura Meta e CV
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/marketing_daily.py'
   schedule:
     - cron: '15 11 * * *'
   workflow_dispatch:
@@ -16,6 +12,9 @@ on:
         description: 'Paginas de leads CV para amostragem (1 a 50)'
         required: true
         default: '50'
+concurrency:
+  group: marketing-aggregated-publication
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
@@ -55,7 +54,18 @@ jobs:
           git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json
           if ! git diff --cached --quiet; then
             git commit -m "Atualiza indicadores agregados de Marketing"
-            git push origin HEAD:main
+            for attempt in 1 2 3; do
+              git fetch origin main
+              if git rebase origin/main && git push origin HEAD:main; then
+                echo "Indicadores publicados com sucesso"
+                exit 0
+              fi
+              echo "Tentativa de publicação não concluída: $attempt"
+              git rebase --abort 2>/dev/null || true
+              sleep 4
+            done
+            echo "Falha ao publicar após três tentativas"
+            exit 1
           else
             echo "Nenhuma alteração em indicadores"
           fi
