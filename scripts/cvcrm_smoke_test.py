@@ -21,12 +21,11 @@ def main():
     url = base + path + "?pagina=1&registros_por_pagina=1"
     req = urllib.request.Request(url, headers={"email": email, "token": token, "Accept": "application/json"})
     try:
-        opener = urllib.request.build_opener(urllib.request.HTTPHandler, urllib.request.HTTPSHandler)
-        # Não seguir redirects para outro host e, assim, não transmitir headers secretos.
+         # Não seguir redirects para outro host e, assim, não transmitir headers secretos.
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, req, fp, code, msg, headers, newurl):
                 return None
-        opener.add_handler(NoRedirect())
+        opener = urllib.request.build_opener(NoRedirect())
         with opener.open(req, timeout=25) as resp:
             code = resp.status
             content_type = resp.headers.get("Content-Type", "")
