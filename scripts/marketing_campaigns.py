@@ -84,7 +84,14 @@ def main():
                 "messages": int(messages)
             }
         # IDs de campanhas não são exportados: somente nome e contagens agregadas.
-        published = list(campaign_data.values())
+        published = []
+        for item in campaign_data.values():
+            name=item["campaign_name"].casefold()
+            # Classificação explícita de campanha LCM, não inferência por conversões.
+            item["is_whatsapp_campaign"] = (
+                "wads" in name and ("whatsapp" in name or "whats app" in name)
+            )
+            published.append(item)
         result.append({
             "account_id": account_id[4:],
             "campaigns": published
@@ -99,7 +106,7 @@ def main():
         "action_report_time": "impression",
         "attribution": "use_unified_attribution_setting=true",
         "accounts": result,
-        "warning": "Resultados da Meta não são registros individuais. Não somar indicadores lead e onsite_conversion.lead_grouped; a classificação de origem CV não comprova a atribuição por campanha."
+        "warning": "Campanhas WADS WhatsApp classificadas pelo nome; seus gastos entram no CPL combinado sem dupla contagem com formulários. Conversas Meta não equivalem a cadastros únicos CV."
     }
     os.makedirs("data", exist_ok=True)
     filename = "data/marketing-campaigns.json"
