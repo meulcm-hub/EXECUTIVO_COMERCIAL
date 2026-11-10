@@ -36,8 +36,13 @@ def guess_channel(row):
         return "google_declarada"
     return "outra_ou_nao_informada"
 
-def cv_page(base,email,token,page,size):
-    params=urllib.parse.urlencode({"pagina":page,"registros_por_pagina":size})
+def cv_page(base,email,token,page,size,start,end):
+    params=urllib.parse.urlencode({
+        "pagina":page,
+        "registros_por_pagina":size,
+        "a_partir_data_referencia":start.isoformat()+" 00:00:00",
+        "ate_data_referencia":end.isoformat()+" 23:59:59"
+    })
     req=urllib.request.Request(base+"/api/v1/cvdw/leads?"+params,
         headers={"email":email,"token":token,"Accept":"application/json"})
     class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -131,9 +136,18 @@ def main():
     in_period=0
     scanned_pages=0
     exhausted=False
+    missing_dates=0
+    duplicates=0
+    pages_announced=None
+    page_end_seen=False
     for page in range(1,args.cv_pages+1):
-        rows,payload=cv_page(url,email,token,page,size)
+        rows,payload=cv_page(url,email,token,page,size,start,end)
         scanned_pages+=1
+        if "total_de_paginas" in payload:
+            try:
+                pages_announced=int(payload["total_de_paginas"])
+            except (ValueError, TypeError):
+                raise RuntimeError("CVDW retornou total_de_paginas inválido")
         if not rows:
             exhausted=True
             break
@@ -143,14 +157,19 @@ def main():
             inspected+=1
             lead_id=row.get("idlead")
             if lead_id is not None:
-                if str(lead_id) in seen: continue
+                if str(lead_id) in seen:
+                    duplicates+=1
+                    continue
                 seen.add(str(lead_id))
             date=to_date(
                 row.get("data_cad") or row.get("dataCad") or
                 row.get("data_cadastro") or row.get("datacadastro") or
                 row.get("referencia_data") or row.get("data")
             )
-            if date is None or date<start or date>end:
+            if date is None:
+                missing_dates+=1
+                continue
+            if date<start or date>end:
                 continue
             in_period+=1
             project=cv_project(row)
@@ -161,7 +180,11 @@ def main():
             if isinstance(reservation,(int,float,str)) and str(reservation).strip().isdigit() and int(reservation)>0:
                 per_cv[key]["leads_with_reservation_flag"]+=1
         # Final de paginação inferido apenas se menos registros que o limite.
-        if len(rows)<size:
+        if pages_announced is not None:
+            if page>=pages_announced:
+                exhausted=True
+                break
+        elif len(rows)<size:
             exhausted=True
             break
 
@@ -174,6 +197,8 @@ def main():
         "cv_scanned_pages":scanned_pages,"cv_records_scanned":inspected,
         "cv_leads_in_period_in_scanned_pages":in_period,
         "cv_more_pages_possible":not exhausted,
+        "cv_missing_dates":missing_dates,
+        "cv_duplicate_ids":duplicates,
         "meta_accounts":per_account,
         "cv_by_project_normalized":cv_summary,
         "currencies_found":sorted(currency_set),
@@ -185,6 +210,8 @@ def main():
     print("Projetos diferentes na amostra CV: "+str(len(cv_summary)))
     print("Páginas CV examinadas: "+str(scanned_pages)+"; limite atingido: "+str(not exhausted))
     print("Registros CV examinados: "+str(inspected)+"; registros no período dentro da amostra: "+str(in_period))
+    print("Datas de cadastro ausentes na amostra: "+str(missing_dates))
+    print("Paginação CV completa dentro da janela de referência: "+str(exhausted))
     print("Atribuição campanha → lead: NÃO VALIDADA")
     if args.public_output:
         if not args.public_output.startswith("data/marketing-") or not args.public_output.endswith(".json"):
@@ -198,9 +225,12 @@ def main():
         if len(per_account)!=len({a["account_id"] for a in per_account}):
             raise RuntimeError("Publicação recusada: contas duplicadas")
         # Dados de leads só são liberados com todas as páginas e datas validadas.
+        # CVDW filtra por data de referência; o cadastro é filtrado separadamente.
+        # Uma alteração com referência posterior pode afetar a cobertura histórica.
         # Suprimir pequenos grupos para evitar exposição indireta de clientes.
-        cv_ready=exhausted and in_period>0 and inspected>=in_period
+        cv_ready=exhausted and missing_dates==0 and in_period>0 and inspected>=in_period
         public_cv={}
+        suppressed=0
         if cv_ready:
             for project,counts in cv_summary.items():
                 if counts.get("leads_period",0)>=10 and project!="nao identificado":
@@ -226,6 +256,8 @@ def main():
             } for a in per_account],
             "cv_by_project_normalized":public_cv,
             "cv_counts_validated":bool(cv_ready),
+            "cv_date_scope":"referencia_filtrada_e_cadastro_validado",
+            "cv_completeness_warning":"CVDW usa data de referência na consulta; registros históricos alterados fora da janela podem ficar de fora.",
             "cv_more_pages_possible":not exhausted,
             "currencies_found":sorted(currency_set),
             "warning":"Origem Facebook/Instagram não comprova campanha paga; vendas atribuídas indisponíveis."
