@@ -39,7 +39,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os 4 empreendimentos vinculados</option></select></div>
 <div class="field"><label for="startDate">Data inicial</label><input type="date" id="startDate"></div>
 <div class="field"><label for="endDate">Data final</label><input type="date" id="endDate"></div>
-<button class="button" id="apply" type="button">Aplicar período</button>
+<button class="button" id="apply" type="button">Aplicar período</button><span id="appliedPeriod" style="align-self:center;font-size:11px;color:#647887">Período aplicado: aguardando</span>
 <button class="button alt" id="reload" type="button">Atualizar</button>
 </section>
 <section class="kpis">
@@ -123,7 +123,8 @@ function render(){
     }
     tbody.append(tr);
   }
-  $('status').textContent='Automático • Meta + CV';
+  $('status').textContent='Dados aplicados: '+data.period.since.split('-').reverse().join('/')+' até '+data.period.until.split('-').reverse().join('/');
+  $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos.';
   $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
 }
@@ -166,10 +167,15 @@ async function load(){
     if(obj.schema_version!==2||obj.meta_accounts?.length!==8||!obj.period||!obj.meta_accounts.every(a=>allids.has(String(a.account_id))))throw Error('Histórico incompleto');
     dailySource=obj;
     for(const id of ['startDate','endDate']){$(id).min=obj.period.since;$(id).max=obj.period.until;}
-    $('endDate').value=obj.period.until;
-    $('startDate').value=addDays(obj.period.until,-29)<obj.period.since?obj.period.since:addDays(obj.period.until,-29);
+    // Preservar a seleção quando o usuário clica em Atualizar
+    const startChoice=$('startDate').value;
+    const endChoice=$('endDate').value;
+    $('endDate').value=endChoice && endChoice>=obj.period.since && endChoice<=obj.period.until ? endChoice : obj.period.until;
+    const defaultStart=addDays(obj.period.until,-29)<obj.period.since?obj.period.since:addDays(obj.period.until,-29);
+    $('startDate').value=startChoice && startChoice>=obj.period.since && startChoice<=obj.period.until ? startChoice : defaultStart;
     await applyDate();
   }catch(e){
+    dailySource=null;
     $('status').textContent='Histórico diário pendente';
     $('notice').textContent='O calendário está pronto, mas o GitHub Actions ainda precisa publicar o histórico diário de 90 dias. Enquanto isso, o último período fechado de 30 dias continua disponível.';
     try{
@@ -186,7 +192,8 @@ async function load(){
 }
 async function applyDate(){
  const since=$('startDate').value,until=$('endDate').value;
- if(!since||!until||since>until){alert('Informe datas inicial e final válidas.');return}
+ if(!since||!until){$('appliedPeriod').textContent='Escolha as duas datas';return}
+ if(since>until){$('appliedPeriod').textContent='Data inicial deve ser anterior à final';return}
  if(!dailySource){
    if(data?.period?.since===since&&data?.period?.until===until){render();return}
    alert('O histórico diário ainda não está publicado. Execute a consolidação no GitHub Actions.');return;
@@ -212,13 +219,16 @@ async function applyDate(){
  }
  render();
  if(!data.cv_counts_validated){
-   $('status').textContent='Meta atualizada • CV parcial';
+   $('status').textContent='Meta atualizada • CV parcial • '+since+' a '+until;
    $('caveat').textContent='Período personalizado: leads diários pequenos são suprimidos na publicação pública. Como a contagem poderia ficar incompleta, leads e CPL permanecem indisponíveis. Para o período fechado mais recente de 7 ou 30 dias, o relatório usa os totais validados quando disponíveis.';
  }
 }
 map.forEach(m=>$('project').add(new Option(m.name+(m.project?'':' • vínculo CV pendente'),m.id)));
 $('project').addEventListener('change',render);
 $('apply').addEventListener('click',applyDate);
+for(const id of ['startDate','endDate']){
+  $(id).addEventListener('change',()=>{applyDate().catch(e=>{$('appliedPeriod').textContent='Falha ao aplicar período';})});
+}
 $('reload').addEventListener('click',load);
 load();
 })();
