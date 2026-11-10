@@ -52,12 +52,12 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <h2>Novos cadastros x retornos no CV CRM</h2>
 <p class="sub">São dois eventos distintos: o primeiro cadastro identifica um novo cliente; a conversão posterior registra quando o cliente voltou a interagir com uma campanha.</p>
 <div class="kpis">
-<div class="kpi"><small>Novos cadastros no período</small><strong>Em validação</strong><span>Data original de cadastro do lead</span></div>
-<div class="kpi"><small>Leads que retornaram</small><strong>Em validação</strong><span>Conversão posterior ao primeiro cadastro</span></div>
-<div class="kpi"><small>Conversões no período</small><strong>Em validação</strong><span>Eventos de conversão; um lead pode aparecer mais de uma vez</span></div>
-<div class="kpi"><small>Leads únicos convertidos</small><strong>Em validação</strong><span>Identificadores distintos, apurados apenas na rotina privada</span></div>
+<div class="kpi"><small>Novos cadastros no período</small><strong id="cvNew">Em validação</strong><span>Primeiro cadastro no CV e primeiro empreendimento</span></div>
+<div class="kpi"><small>Leads que retornaram</small><strong id="cvReturned">Em validação</strong><span>Leads com conversão em data posterior ao cadastro</span></div>
+<div class="kpi"><small>Conversões no período</small><strong id="cvEvents">Em validação</strong><span>Eventos de conversão; um lead pode aparecer mais de uma vez</span></div>
+<div class="kpi"><small>Leads únicos convertidos</small><strong id="cvUnique">Em validação</strong><span>Leads distintos deduplicados no período e empreendimento</span></div>
 </div>
-<p class="metric-note">Aguardando validação do endpoint CVDW leads/conversoes e conciliação dos empreendimentos. Não usar o valor de leads por data de cadastro como substituto das novas conversões.</p>
+<p class="metric-note" id="cvConversionNote">Aguardando publicação do cruzamento privado entre cadastro original, conversões e empreendimentos. Não presumir atribuição às campanhas da Meta.</p>
 </section>
 <section class="panel" style="margin-top:15px">
 <h2>Captação Meta Ads x CV CRM • Formulário e WhatsApp</h2>
@@ -194,6 +194,55 @@ function renderCampaigns(visible,facebook,cvComplete,cvRows){
    track.append(fill);line.append(name,track,label);host.append(line);
  }
 }
+let conversionSource=null;
+function renderConversionMetrics(visible){
+ const ids=['cvNew','cvReturned','cvEvents','cvUnique'];
+ const missing=reason=>{
+   ids.forEach(id=>$(id).textContent='Em validação');
+   $('cvConversionNote').textContent=reason;
+ };
+ if(!conversionSource||!data||conversionSource.validated!==true){
+   missing('Cruzamento de conversões aguardando publicação validada pelo GitHub Actions. Os demais indicadores continuam disponíveis.');
+   return;
+ }
+ const {since,until}=data.period;
+ if(since<conversionSource.period.since||until>conversionSource.period.until){
+   missing('Cruzamento validado disponível somente de '+conversionSource.period.since+' até '+conversionSource.period.until+'. Ajuste o período ou aguarde nova coleta.');
+   return;
+ }
+ if(!visible.length||visible.some(m=>!m.project||!conversionSource.daily[m.project])){
+   missing('Empreendimento sem vinculação CV validada para conversões.');
+   return;
+ }
+ const range=conversionSource.range_unique?.[since+'|'+until];
+ if(!range){
+   missing('Ainda não existe deduplicação validada para este intervalo de datas.');
+   return;
+ }
+ const choice=$('project').value;
+ const key=choice==='all'?'all':visible[0].project;
+ if(!Number.isInteger(range.unique?.[key])||!Number.isInteger(range.returning?.[key])){
+   missing('Deduplicação de pessoas ou retornos não validada para esta seleção.');
+   return;
+ }
+ let newCount=0,eventCount=0;
+ for(const m of visible){
+   const days=conversionSource.daily[m.project];
+   for(const [date,v] of Object.entries(days)){
+     if(date>=since&&date<=until){
+       newCount+=Number(v.new||0);
+       eventCount+=Number(v.conversions||0);
+     }
+   }
+ }
+ $('cvNew').textContent=nf(newCount);
+ $('cvReturned').textContent=nf(range.returning[key]);
+ $('cvEvents').textContent=nf(eventCount);
+ $('cvUnique').textContent=nf(range.unique[key]);
+ const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
+ $('cvConversionNote').textContent='Fonte: CV CRM · cruzamento privado por ID, atualizado em '+when+
+ '. Retornos = conversões após o dia do primeiro cadastro. Eventos de conversão não equivalem a cadastros novos nem comprovam atribuição à Meta. Conversões no próprio dia do cadastro não são classificadas como retornos.';
+}
 function render(){
   if(!data)return;
   const choice=$('project').value;
@@ -238,6 +287,7 @@ function render(){
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos.';
+  renderConversionMetrics(visible);
   renderCampaigns(visible,facebook,cvComplete,cvRows);
   $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
 }
@@ -281,6 +331,17 @@ function dailyExtract(since,until){
     cv_channel_rules_version:dailySource.schema_version>=3?2:0,
     currencies_found:[...new Set(accounts.map(x=>x.currency))]};
 }
+async function loadConversionMetrics(){
+ try{
+   const r=await fetch('data/marketing-conversions.json?version='+Date.now(),{cache:'no-store'});
+   if(!r.ok)throw Error('Não publicado');
+   const x=await r.json();
+   if(x.schema_version!==1||x.validated!==true||!x.period||!x.range_unique||!x.daily||
+      !map.filter(m=>m.project).every(m=>Array.isArray(x.projects)&&x.projects.includes(m.project)&&x.daily[m.project]))
+     throw Error('Estrutura de conversões não validada');
+   conversionSource=x;
+ }catch(err){conversionSource=null}
+}
 async function loadCampaigns(){
  try{
    const response=await fetch('data/marketing-campaigns.json?version='+Date.now(),{cache:'no-store'});
@@ -315,6 +376,7 @@ async function load(){
     $('endDate').value=endChoice && endChoice>=obj.period.since && endChoice<=obj.period.until ? endChoice : obj.period.until;
     const defaultStart=obj.period.since; // Primeiro acesso abre todo histórico sincronizado
     $('startDate').value=startChoice && startChoice>=obj.period.since && startChoice<=obj.period.until ? startChoice : defaultStart;
+    await loadConversionMetrics();
     await applyDate();
     await loadCampaigns();
   }catch(e){
@@ -329,6 +391,7 @@ async function load(){
       $('startDate').value=x.period.since;$('endDate').value=x.period.until;
       $('startDate').min=x.period.since;$('startDate').max=x.period.until;
       $('endDate').min=x.period.since;$('endDate').max=x.period.until;
+      await loadConversionMetrics();
       render();
       await loadCampaigns();
       $('status').textContent='Somente período consolidado disponível';
