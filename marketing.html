@@ -115,7 +115,7 @@ async function autoLoad(){
     if(!response.ok)throw Error('Arquivo ainda não publicado');
     const obj=await response.json();
     if(obj.schema_version!==1||!Array.isArray(obj.meta_accounts)||!obj.period||!obj.cv_by_project_normalized||!Array.isArray(obj.currencies_found))throw Error('Formato de indicadores incompatível');
-    if(!obj.meta_accounts.length||obj.meta_accounts.length>100||obj.meta_accounts.some(x=>!/^\\d+$/.test(String(x.account_id||''))||!Number.isFinite(Number(x.spend))))throw Error('Dados inconsistentes');
+    if(!obj.meta_accounts.length||obj.meta_accounts.length>100||obj.meta_accounts.some(x=>!/^\d+$/.test(String(x.account_id||''))||!Number.isFinite(Number(x.spend))))throw Error('Dados inconsistentes');
     data=obj;automatic=true;
     populate('account',[...new Set(obj.meta_accounts.map(x=>x.account_id))],'Todas as contas');
     populate('project',Object.keys(obj.cv_by_project_normalized),'Todos os empreendimentos');
