@@ -10,6 +10,9 @@ on:
         description: 'Data final YYYY-MM-DD'
         required: false
         default: ''
+concurrency:
+  group: cv-conversion-audit
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
