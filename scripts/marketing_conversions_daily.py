@@ -48,10 +48,19 @@ def main():
         if lead in original and (date,first_project)!=original[lead]:
             conflicting.add(lead)
         original[lead]=(date,first_project)
-        for id_field,name in (("idempreendimento_primeiro",first_project),("idempreendimento_ultimo",last_project),("idempreendimento",norm(row.get("empreendimento")))):
+        for id_field,name in (("idempreendimento_primeiro",first_project),("idempreendimento_ultimo",last_project)):
             project_id=row.get(id_field)
             if project_id is not None and name:
                 project_alias[str(project_id)].add(name)
+        # O campo CVDW "idempreendimento" pode conter vários IDs e
+        # "empreendimento" vários nomes. Usar apenas quando ambos são
+        # inequívocos (um único identificador e um único nome).
+        import re
+        extra_ids=re.findall(r"\\d+",str(row.get("idempreendimento") or ""))
+        extra_name=norm(row.get("empreendimento"))
+        if len(extra_ids)==1 and extra_name and (
+            extra_name==first_project or extra_name==last_project):
+            project_alias[extra_ids[0]].add(extra_name)
     # Um ID não pode mapear para nomes diferentes se algum for um dos quatro
     # projetos em exibição. Nunca escolher um nome arbitrariamente.
     project_by_id={}
@@ -80,12 +89,16 @@ def main():
     unknown_project=0
     ambiguous=0
     matched=0
+    external_mapped=0
+    unknown_evidence=collections.Counter()
+    invalid_evidence=collections.Counter()
     for row in read_complete(base,email,token,since,until,read_conversion_page,"conversoes"):
         eid=row.get("idlead_conversao")
         lead=row.get("idlead")
         date=to_date(row.get("referencia_data"))
         if eid is None or lead is None or date is None or date<since or date>until:
             invalid+=1
+            invalid_evidence["sem_id_data"]+=1
             continue
         eid=str(eid)
         lead=str(lead)
@@ -94,6 +107,7 @@ def main():
         assoc=row.get("empreendimentos_conversao")
         if not isinstance(assoc,list):
             invalid+=1
+            invalid_evidence["lista_formato_invalido"]+=1
             continue
         # Quando a lista tem 1 ID, ela representa o empreendimento daquela
         # conversão. Sem lista, usar o empreendimento_ultimo do evento.
@@ -101,18 +115,31 @@ def main():
         if len(assoc)>1:
             ambiguous+=1
             continue
-        project_id=str(assoc[0] if assoc else row.get("empreendimento_ultimo"))
+        # Sem empreendimento historicamente registrado na conversão, o último
+        # empreendimento do lead NÃO prova a origem do evento. Não atribuir.
+        if not assoc:
+            unknown_project+=1
+            unknown_evidence["lista_vazia"]+=1
+            continue
+        project_id=str(assoc[0])
         if project_id in ambiguous_ids:
             ambiguous+=1
             continue
         project=project_by_id.get(project_id)
         if project is None:
             unknown_project+=1
+            info=original.get(lead)
+            if info is None:unknown_evidence["sem_cadastro_associado"]+=1
+            elif info[1] in PROJECTS:unknown_evidence["cadastro_inicial_projeto_alvo"]+=1
+            else:unknown_evidence["cadastro_inicial_outro_projeto"]+=1
             continue
-        if project not in PROJECTS:continue
+        if project not in PROJECTS:
+            external_mapped+=1
+            continue
         info=original.get(lead)
         if info is None or lead in conflicting or info[0]>date:
             invalid+=1
+            invalid_evidence["sem_original_ou_conflito"]+=1
             continue
         day=date.isoformat()
         matched+=1
@@ -124,6 +151,9 @@ def main():
     # Cobertura: IDs de empreendimento que não foram mapeados poderiam
     # corresponder aos projetos mostrados; nessas condições não publicar.
     if invalid or ambiguous or unknown_project:
+        print("Diagnóstico agregado: projetos externos reconhecidos "+str(external_mapped)+
+              "; motivos de falta de correspondência "+str(dict(unknown_evidence))+
+              "; motivos de registros inválidos "+str(dict(invalid_evidence)),flush=True)
         raise RuntimeError(
             "Cobertura de conversões não validada: "+str(invalid)+
             " registros inválidos; "+str(ambiguous)+
