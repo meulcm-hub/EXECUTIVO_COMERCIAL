@@ -1,0 +1,39 @@
+name: CV CRM - Cruzar cadastro original e conversoes
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: Data inicial das conversoes YYYY-MM-DD
+        default: '2026-10-01'
+        required: true
+      until:
+        description: Data final das conversoes YYYY-MM-DD
+        default: '2026-10-31'
+        required: true
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/cv_join_original_conversions.py'
+concurrency:
+  group: cv-join-original-conversions
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  join:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar cadastro original e conversoes em memoria
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: >-
+          python scripts/cv_join_original_conversions.py
+          --since "${{ inputs.since || '2026-10-01' }}"
+          --until "${{ inputs.until || '2026-10-31' }}"
