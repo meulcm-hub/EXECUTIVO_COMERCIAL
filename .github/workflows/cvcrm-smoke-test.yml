@@ -1,0 +1,20 @@
+name: CV CRM - Teste seguro de acesso
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cvcrm-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar acesso CV CRM sem registrar dados
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/cvcrm_smoke_test.py
