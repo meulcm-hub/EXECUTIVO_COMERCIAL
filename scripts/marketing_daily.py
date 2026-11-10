@@ -15,7 +15,7 @@ import sys
 from decimal import Decimal, InvalidOperation
 
 from meta_ads_collector import accounts, request
-from marketing_consolidate import cv_page, cv_project, guess_channel, norm, to_date
+from marketing_consolidate import cv_page, cv_project, guess_channel, classify_channel, norm, to_date
 
 D=Decimal
 DAYS=90
@@ -111,6 +111,9 @@ def main():
             key=(project,date.isoformat())
             byday[key]["leads_period"]+=1
             byday[key][guess_channel(row)]+=1
+            subtype=classify_channel(row)
+            if subtype.startswith("meta_") and subtype!="meta_declarada":
+                byday[key][subtype]+=1
             count+=1
         if announced is not None and page>=announced:
             complete=True
@@ -129,11 +132,14 @@ def main():
             cv_daily.setdefault(project,{})[date]={
                 "leads_period":int(value["leads_period"]),
                 "meta_declarada":int(value.get("meta_declarada",0)),
+                "meta_whatsapp_cv":int(value.get("meta_whatsapp_cv",0)),
+                "meta_busca_compartilhada_cv":int(value.get("meta_busca_compartilhada_cv",0)),
+                "meta_outros_cv":int(value.get("meta_outros_cv",0)),
                 "google_declarada":int(value.get("google_declarada",0)),
                 "outra_ou_nao_informada":int(value.get("outra_ou_nao_informada",0))
             }
     report={
-        "schema_version":2,
+        "schema_version":3,
         "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
         "period":{"since":start.isoformat(),"until":end.isoformat()},
         "meta_accounts":summary,
@@ -141,7 +147,7 @@ def main():
         "cv_known_projects":sorted({project for project,date in byday}),
         "cv_counts_validated":cv_ready,
         "cv_daily_groups_suppressed":False,
-        "warning":"Contagens diárias agregadas por empreendimento e origem são públicas. Datas de referência do CVDW podem limitar cobertura histórica. CPL não comprova anúncio pago."
+        "warning":"Busca Compartilhada e mídia WhatsApp Facebook classificadas como Meta por regra LCM. Contagens agregadas públicas, sem atribuição individual comprovada."
     }
     os.makedirs("data",exist_ok=True)
     path="data/marketing-daily.json"
