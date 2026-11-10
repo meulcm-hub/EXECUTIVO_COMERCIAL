@@ -54,7 +54,7 @@ footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 <div class="step"><strong>Meta Ads</strong><p>8 contas consultadas</p></div><div class="step"><strong>Leads CV CRM</strong><p>API CVDW acessível</p></div><div class="step"><strong>Campanha → Lead</strong><p>Vínculo não validado</p></div><div class="step"><strong>Venda → Campanha</strong><p>Atribuição pendente</p></div>
 </div><div class="empty" style="margin-top:15px;padding:21px"><b>CPL, custo por venda e ROAS comercial</b><div>Indisponíveis até termos períodos completos, mesma moeda e correspondência comprovada entre campanhas, leads e vendas.</div></div></div>
 </section>
-<footer>Fonte: Meta Marketing API e CV CRM CVDW. Os dados de arquivo são processados exclusivamente no navegador, não enviados para servidores e descartados ao fechar a página. Não importe arquivos que contenham informações pessoais. Não há sincronização automática de valores financeiros nesta versão.</footer>
+<footer>Fonte: Meta Marketing API e CV CRM CVDW. Os resultados agregados autorizados são publicados automaticamente no GitHub Pages e ficam acessíveis ao público. O arquivo local, quando escolhido, é processado apenas no navegador. Não importe dados pessoais. Indicadores de atribuição não validados permanecem indisponíveis.</footer>
 </main>
 <script>
 (()=>{
@@ -62,6 +62,7 @@ const $=id=>document.getElementById(id);
 const nf=n=>Number(n||0).toLocaleString('pt-BR');
 const money=(n,c)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:c||'BRL',maximumFractionDigits:2}).format(Number(n));
 let data=null;
+let automatic=false;
 const safeText=v=>String(v??'');
 function el(tag,className,txt){let e=document.createElement(tag);if(className)e.className=className;if(txt!==undefined)e.textContent=safeText(txt);return e}
 function selected(rows,id,key){let value=$(id).value;return value==='__all'?rows:rows.filter(x=>String(x[key])===value)}
@@ -76,18 +77,21 @@ const total=account.reduce((a,x)=>a+Number(x.spend||0),0),imp=account.reduce((a,
 $('spend').textContent=account.length&&currencies.length===1&&currencies[0]!=='DESCONHECIDA'?money(total,currencies[0]):'—';
 $('spendNote').textContent=currencies.length!==1?'Escolha uma moeda única':currencies[0]==='DESCONHECIDA'?'Moeda não confirmada':'Gastos no período selecionado';
 $('impressions').textContent=nf(imp);$('clicks').textContent=nf(click);
-let lc=cv.reduce((a,x)=>a+Number(x.leads_period||0),0);$('leads').textContent=nf(lc);
-$('leadsNote').textContent=data.cv_more_pages_possible?'PARCIAL: mais páginas podem existir':'Conforme amostra consultada';
+let lc=cv.reduce((a,x)=>a+Number(x.leads_period||0),0);
+let cvReady=data.cv_counts_validated===true;
+$('leads').textContent=cvReady?nf(lc):'—';
+$('leadsNote').textContent=cvReady?'Leads agregados na janela validada':'Cobertura do CV CRM ainda não validada';
 let mrows=account.map(x=>({name:x.account_name||('Conta '+x.account_id),value:Number(x.spend||0),currency:x.currency})).sort((a,b)=>b.value-a.value);
 if(currencies.length!==1){$('chartMeta').className='empty';$('chartMeta').textContent='Selecione uma moeda única para comparar investimentos com segurança.'}else bars('chartMeta',mrows,(v)=>money(v,currencies[0]));
 let originKeys=['meta_declarada','google_declarada','outra_ou_nao_informada'];
 let labels={'meta_declarada':'Meta (origem declarada)','google_declarada':'Google (origem declarada)','outra_ou_nao_informada':'Outras / não informadas'};
-bars('chartCv',originKeys.map(k=>({name:labels[k],value:cv.reduce((a,x)=>a+Number(x[k]||0),0)})),v=>nf(v));
+if(cvReady){bars('chartCv',originKeys.map(k=>({name:labels[k],value:cv.reduce((a,x)=>a+Number(x[k]||0),0)})),v=>nf(v))}
+else{$('chartCv').className='empty';$('chartCv').textContent='Amostra de leads não validada; sem indicadores de CV CRM nesta atualização.'}
 let tbody=$('tableMeta');tbody.replaceChildren();
 account.forEach(x=>{let tr=el('tr');[x.account_name||x.account_id,x.currency,x.currency==='DESCONHECIDA'?'—':money(x.spend,x.currency),nf(x.clicks)].forEach((v,i)=>{let td=el('td',i>=2?'num':'',v);tr.append(td)});tbody.append(tr)});
 if(!account.length){let tr=el('tr'),td=el('td','', 'Nenhuma conta encontrada neste filtro.');td.colSpan=4;tr.append(td);tbody.append(tr)}
-$('status').textContent='Dados locais · '+(data.status==='PARCIAL'?'amostra parcial':'verificação pendente');
-$('notice').textContent='Arquivo carregado localmente. Período: '+safeText(data.period.since)+' a '+safeText(data.period.until)+'. Contas Meta: '+account.length+'. Leads CV: '+(data.cv_more_pages_possible?'amostra limitada':'amostra consultada')+'. Nenhum dado foi enviado ou publicado.';
+$('status').textContent=(automatic?'Automático':'Arquivo local')+' · '+(data.cv_counts_validated?'Meta e CV':'Meta validada');
+$('notice').textContent=(automatic?'Indicadores agregados publicados automaticamente. ':'Arquivo carregado localmente. ')+'Período: '+safeText(data.period.since)+' a '+safeText(data.period.until)+'. Contas Meta: '+account.length+'. CV: '+(cvReady?'cobertura validada':'ainda não validado')+'. Os dados desta página são públicos.';
 }
 $('file').addEventListener('change',async e=>{
 let f=e.target.files[0];if(!f)return;
@@ -97,7 +101,7 @@ let obj=JSON.parse(await f.text());
 if(!obj||!Array.isArray(obj.meta_accounts)||!obj.cv_by_project_normalized||typeof obj.cv_by_project_normalized!=='object'||!obj.period||!Array.isArray(obj.currencies_found))throw Error('Estrutura de arquivo não reconhecida.');
 if(obj.meta_accounts.length>100)throw Error('Quantidade de contas inesperada.');
 for(let x of obj.meta_accounts){if(!/^\d+$/.test(String(x.account_id||''))||!Number.isFinite(Number(x.spend))||Number(x.spend)<0)throw Error('Dados de conta inválidos.')}
-data=obj;
+data=obj;automatic=false;
 populate('account',[...new Set(obj.meta_accounts.map(x=>x.account_id))],'Todas as contas');
 populate('project',Object.keys(obj.cv_by_project_normalized),'Todos os empreendimentos');
 populate('currency',obj.currencies_found,'Todas (sem somar moedas)');
@@ -105,6 +109,24 @@ render();
 }catch(err){alert('Não foi possível carregar: '+err.message)}
 e.target.value='';
 });
+async function autoLoad(){
+  try{
+    const response=await fetch('data/marketing-aggregated.json?ts='+Math.floor(Date.now()/3600000),{cache:'no-store'});
+    if(!response.ok)throw Error('Arquivo ainda não publicado');
+    const obj=await response.json();
+    if(obj.schema_version!==1||!Array.isArray(obj.meta_accounts)||!obj.period||!obj.cv_by_project_normalized||!Array.isArray(obj.currencies_found))throw Error('Formato de indicadores incompatível');
+    if(!obj.meta_accounts.length||obj.meta_accounts.length>100||obj.meta_accounts.some(x=>!/^\\d+$/.test(String(x.account_id||''))||!Number.isFinite(Number(x.spend))))throw Error('Dados inconsistentes');
+    data=obj;automatic=true;
+    populate('account',[...new Set(obj.meta_accounts.map(x=>x.account_id))],'Todas as contas');
+    populate('project',Object.keys(obj.cv_by_project_normalized),'Todos os empreendimentos');
+    populate('currency',obj.currencies_found,'Todas (sem somar moedas)');
+    render();
+  }catch(err){
+    $('status').textContent='Aguardando primeira sincronização';
+    $('notice').textContent='A interface está pronta. Os indicadores agregados aparecerão após a primeira execução bem-sucedida de LCM - Consolidação segura Meta e CV no GitHub Actions. Nenhum valor fictício é apresentado.';
+  }
+}
+autoLoad();
 ['account','project','currency'].forEach(id=>$(id).addEventListener('change',render));
 $('clear').addEventListener('click',()=>{data=null;location.reload()});
 })();
