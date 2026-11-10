@@ -93,15 +93,9 @@ def main():
             failures+=1
             continue
         try:
-            detail=meta_request(account_id,{
-                "fields":"id,name,currency,timezone_name,account_status"
-            })
-            # O helper espera 'data' para coleções, então a leitura de metadados
-            # deve usar o nome/moeda recebido em /me/adaccounts quando disponível.
-            if isinstance(detail,list) and detail:
-                detail=detail[0]
-            else:
-                detail=a
+            # /me/adaccounts já retornou nome e moeda; não consultar objeto singular
+            # pelo helper paginado, que espera uma coleção em "data".
+            detail=a
             rows=meta_request(account_id+"/insights",{
                 "fields":"account_id,account_name,campaign_id,campaign_name,date_start,spend,impressions,clicks",
                 "level":"campaign","time_increment":1,
