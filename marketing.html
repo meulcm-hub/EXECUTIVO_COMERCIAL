@@ -33,10 +33,10 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .highlight{color:var(--green)}
 </style></head>
 <body><main>
-<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores integrados por empreendimento, com período equivalente de análise.</p></div><span class="pill" id="status">Sincronização automática</span></header>
+<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com janelas de 7 ou 30 dias de cadastro e investimento.</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="banner"><strong>Meta Ads + CV CRM • painel executivo</strong><span id="notice">Os números de investimento vêm da Meta Ads. Leads classificados como Meta/Facebook vêm do CV CRM, mas essa classificação ainda não comprova campanha paga ou atribuição individual.</span></section>
 <section class="toolbar">
-<div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os empreendimentos vinculados</option></select></div>
+<div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os 4 empreendimentos vinculados</option></select></div>
 <div class="field"><label for="period">Período de cadastro e investimento</label><select id="period"><option value="30">Últimos 30 dias completos</option><option value="7">Últimos 7 dias completos</option></select></div>
 <div class="field"><label>Janela de análise</label><div id="dates" style="height:41px;border:1px solid #d8e3df;border-radius:8px;padding:12px;color:#557080;font-size:12px">Aguardando dados</div></div>
 <button class="button alt" id="reload" type="button">Atualizar</button>
@@ -84,7 +84,7 @@ function bars(id,rows,fmt){const host=$(id);host.replaceChildren();if(!rows.leng
 function render(){
   if(!data)return;
   const choice=$('project').value;
-  const visible=map.filter(m=>choice==='all'||m.id===choice);
+  const visible=map.filter(m=>choice==='all'?Boolean(m.project):m.id===choice);
   const metaRows=visible.map(m=>({m,a:data.meta_accounts.find(a=>String(a.account_id)===m.id)}));
   const currencies=[...new Set(metaRows.filter(x=>x.a).map(x=>x.a.currency))];
   const validMeta=currencies.length===1&&currencies[0]==='BRL'&&metaRows.every(x=>x.a);
@@ -140,7 +140,7 @@ async function load(){
     render();
   }catch(e){data=null;$('status').textContent='Período indisponível';$('notice').textContent=e.message+'. A última publicação do GitHub Actions deve ser verificada.';for(const id of ['spend','leadsTotal','leadsMeta','cpl','fImpressions','fClicks','fLeads'])$(id).textContent='—';$('chartSpend').textContent='Sem dados para o período.';$('chartOrigin').textContent='Sem dados para o período.';$('projectsTable').replaceChildren();}
 }
-map.forEach(m=>$('project').add(new Option(m.name,m.id)));
+map.forEach(m=>$('project').add(new Option(m.name+(m.project?'':' • vínculo CV pendente'),m.id)));
 $('project').addEventListener('change',render);
 $('period').addEventListener('change',load);
 $('reload').addEventListener('click',load);
