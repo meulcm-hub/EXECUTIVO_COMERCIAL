@@ -27,14 +27,30 @@ def norm(s):
     s=unicodedata.normalize("NFKD",str(s or "")).casefold()
     return re.sub(r"[^a-z0-9]+"," ", "".join(c for c in s if not unicodedata.combining(c))).strip()
 
-def guess_channel(row):
-    original=" ".join(str(row.get(k) or "") for k in ("origem","origem_nome","midia_original","conversao_original")).casefold()
-    paid=" ".join(str(row.get(k) or "") for k in ("midia_original","midia_ultimo")).casefold()
-    if "facebook" in original or "instagram" in original or re.search(r"\bfb\b",original):
-        return "meta_declarada"
-    if "google" in original:
+def classify_channel(row):
+    """Prioridade: mídia WhatsApp Facebook > origem Busca Compartilhada > demais Meta.
+
+    Uma linha CV entra em exatamente um subtipo, evitando contagem dupla.
+    As denominações são regras de negócio informadas pela LCM, não provas de
+    atribuição publicitária por campanha.
+    """
+    origin=norm(" ".join(str(row.get(k) or "") for k in (
+        "origem", "origem_nome", "conversao_original")))
+    media=norm(" ".join(str(row.get(k) or "") for k in (
+        "midia_original", "midia_ultimo", "midia", "midia_nome")))
+    if "whatsapp facebook" in media or "facebook whatsapp" in media:
+        return "meta_whatsapp_cv"
+    if "busca compartilhada" in origin:
+        return "meta_busca_compartilhada_cv"
+    if any(v in origin+" "+media for v in ("facebook", "instagram")) or re.search(r"\\bfb\\b",origin+" "+media):
+        return "meta_outros_cv"
+    if "google" in origin+" "+media:
         return "google_declarada"
     return "outra_ou_nao_informada"
+
+def guess_channel(row):
+    kind=classify_channel(row)
+    return "meta_declarada" if kind.startswith("meta_") else kind
 
 def cv_page(base,email,token,page,size,start,end):
     params=urllib.parse.urlencode({
@@ -176,6 +192,7 @@ def main():
             key=norm(project) or "nao identificado"
             per_cv[key]["leads_period"]+=1
             per_cv[key][guess_channel(row)]+=1
+            per_cv[key][classify_channel(row)]+=1 if classify_channel(row).startswith("meta_") and classify_channel(row)!="meta_declarada" else 0
             reservation=row.get("reserva")
             if isinstance(reservation,(int,float,str)) and str(reservation).strip().isdigit() and int(reservation)>0:
                 per_cv[key]["leads_with_reservation_flag"]+=1
@@ -237,6 +254,9 @@ def main():
                     public_cv[project]={
                         "leads_period":int(counts["leads_period"]),
                         "meta_declarada":int(counts.get("meta_declarada",0)),
+                        "meta_whatsapp_cv":int(counts.get("meta_whatsapp_cv",0)),
+                        "meta_busca_compartilhada_cv":int(counts.get("meta_busca_compartilhada_cv",0)),
+                        "meta_outros_cv":int(counts.get("meta_outros_cv",0)),
                         "google_declarada":int(counts.get("google_declarada",0)),
                         "outra_ou_nao_informada":int(counts.get("outra_ou_nao_informada",0))
                     }
