@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-10T16:57:25.966027+00:00",
+  "generated_at_utc": "2026-11-10T17:35:58.655978+00:00",
   "period": {
     "since": "2026-10-11",
     "until": "2026-11-09"
@@ -35,8 +35,8 @@
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4148.17",
-      "impressions": 526643,
+      "spend": "4148.18",
+      "impressions": 526644,
       "clicks": 3270
     },
     {
@@ -60,7 +60,7 @@
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
       "spend": "14593.27",
-      "impressions": 657241,
+      "impressions": 657242,
       "clicks": 5134
     },
     {
@@ -75,39 +75,39 @@
   "cv_by_project_normalized": {
     "residencial flores do cerrado jacaranda": {
       "leads_period": 661,
-      "meta_declarada": 603,
+      "meta_declarada": 636,
       "google_declarada": 4,
-      "outra_ou_nao_informada": 54
+      "outra_ou_nao_informada": 21
     },
     "spe arraial costa verde club": {
       "leads_period": 75,
-      "meta_declarada": 58,
+      "meta_declarada": 59,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 16
+      "outra_ou_nao_informada": 15
     },
     "residencial extrema meu lar": {
       "leads_period": 111,
-      "meta_declarada": 0,
+      "meta_declarada": 1,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 111
+      "outra_ou_nao_informada": 110
     },
     "residencial village lagoas": {
-      "leads_period": 152,
-      "meta_declarada": 105,
+      "leads_period": 150,
+      "meta_declarada": 107,
       "google_declarada": 4,
-      "outra_ou_nao_informada": 43
+      "outra_ou_nao_informada": 39
     },
     "residencial terra solis": {
       "leads_period": 22,
-      "meta_declarada": 0,
+      "meta_declarada": 2,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 21
+      "outra_ou_nao_informada": 19
     },
     "residencial jatoba": {
-      "leads_period": 124,
-      "meta_declarada": 52,
-      "google_declarada": 49,
-      "outra_ou_nao_informada": 23
+      "leads_period": 122,
+      "meta_declarada": 66,
+      "google_declarada": 48,
+      "outra_ou_nao_informada": 8
     }
   },
   "cv_counts_validated": true,

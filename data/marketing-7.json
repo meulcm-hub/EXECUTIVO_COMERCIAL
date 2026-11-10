@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-10T16:57:04.137929+00:00",
+  "generated_at_utc": "2026-11-10T17:35:32.008841+00:00",
   "period": {
     "since": "2026-11-03",
     "until": "2026-11-09"
@@ -35,8 +35,8 @@
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "1126.86",
-      "impressions": 133917,
+      "spend": "1126.87",
+      "impressions": 133918,
       "clicks": 997
     },
     {
@@ -60,7 +60,7 @@
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
       "spend": "2385.37",
-      "impressions": 105601,
+      "impressions": 105602,
       "clicks": 714
     },
     {
@@ -75,15 +75,15 @@
   "cv_by_project_normalized": {
     "residencial flores do cerrado jacaranda": {
       "leads_period": 94,
-      "meta_declarada": 86,
+      "meta_declarada": 90,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 7
+      "outra_ou_nao_informada": 3
     },
     "residencial village lagoas": {
-      "leads_period": 32,
+      "leads_period": 31,
       "meta_declarada": 23,
       "google_declarada": 2,
-      "outra_ou_nao_informada": 7
+      "outra_ou_nao_informada": 6
     },
     "residencial extrema meu lar": {
       "leads_period": 19,
@@ -93,9 +93,9 @@
     },
     "residencial jatoba": {
       "leads_period": 23,
-      "meta_declarada": 16,
+      "meta_declarada": 19,
       "google_declarada": 2,
-      "outra_ou_nao_informada": 5
+      "outra_ou_nao_informada": 2
     }
   },
   "cv_counts_validated": true,
