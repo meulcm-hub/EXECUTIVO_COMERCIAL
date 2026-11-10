@@ -1,0 +1,19 @@
+name: Meta Ads - Diagnostico de formularios
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  form-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar vinculos anuncio-formulario sem expor dados
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+        run: python scripts/meta_form_diagnostic.py
