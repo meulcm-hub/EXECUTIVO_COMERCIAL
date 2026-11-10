@@ -153,6 +153,12 @@ function dailyExtract(since,until){
     }
     if(obj.leads_period)cv[project]=obj;
   }
+  // Distinguir empreendimento conhecido sem leads (zero) de projeto não mapeado.
+  for(const project of dailySource.cv_known_projects||[]){
+    if(!cv[project]){
+      cv[project]={leads_period:0,meta_declarada:0,google_declarada:0,outra_ou_nao_informada:0};
+    }
+  }
   // Só liberar a contagem quando o histórico diário CV estiver completo,
   // SEM supressão de dias: do contrário o CPL subestimaria o denominador.
   const cvReady=dailySource.cv_counts_validated===true &&
