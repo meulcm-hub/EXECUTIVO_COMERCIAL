@@ -1,5 +1,9 @@
 name: LCM - Consolidacao segura Meta e CV
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marketing_daily.py'
   schedule:
     - cron: '15 11 * * *'
   workflow_dispatch:
