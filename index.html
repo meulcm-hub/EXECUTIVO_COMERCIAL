@@ -156,6 +156,34 @@ tbody tr:nth-child(even){background:#f8faf8}
 }
 /* Visão de vendas: filtros compactos no topo e auditoria incorporada */
 #audit.audit-inline{display:block!important;width:100%!important;margin-top:12px!important}#audit.audit-inline>.audit-filters{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px!important;position:static!important;margin:0 0 12px!important}#audit.audit-inline>.audit-kpi-row{margin:0 0 12px!important}#audit.audit-inline>.audit-table-panel,#audit.audit-inline>.analytics-panel{width:100%!important;margin:0 0 12px!important}#audit-inline-host{width:100%} .sectiontitle{font-weight:750;color:#24452d;margin:18px 0 8px}
+
+/* Perfil comprador: atualização isolada do painel comercial */
+#audience .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#audience .kpi{border:1px solid #e3ebe5;border-radius:13px;box-shadow:0 6px 17px #1a42300d;padding:18px}
+#audience .kpi strong{color:#60a83f}
+#audience .charts{gap:16px}
+#audience .aud-panel{padding:22px;border:1px solid #e2eae6;border-radius:14px;box-shadow:0 6px 18px #183b2710;background:#fff}
+#audience .aud-panel-title{display:flex;flex-direction:column;gap:4px;margin-bottom:18px}
+#audience .aud-panel-title h2{font-size:16px;margin:0;color:#233c4e}
+#audience .aud-panel-title span{font-size:11px;color:#788b91}
+#audience .aud-bar-row{display:grid;grid-template-columns:minmax(95px,1fr) minmax(90px,1.25fr) 42px 47px;align-items:center;gap:10px;margin:12px 0;font-size:12px}
+#audience .aud-bar-label{overflow-wrap:anywhere}
+#audience .aud-track{height:10px;border-radius:12px;background:#eaf0f2;overflow:hidden}
+#audience .aud-track i{display:block;height:100%;background:#64ae43;border-radius:12px}
+#audience .aud-bar-row strong{font-size:11px;text-align:right;color:#25485e}
+#audience .aud-bar-row small{font-size:11px;color:#788996;text-align:right}
+#audience .aud-donut-wrap{display:grid;grid-template-columns:minmax(130px,1fr) minmax(130px,1fr);align-items:center;gap:22px;min-height:230px}
+#audience .aud-donut{width:min(210px,100%);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:auto}
+#audience .aud-donut-inner{background:white;width:58%;height:58%;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;box-shadow:0 0 0 1px #e9efed}
+#audience .aud-donut-inner b{font-size:25px;color:#233f50}
+#audience .aud-donut-inner span{font-size:10px;color:#859198}
+#audience .aud-legend{display:flex;flex-direction:column;gap:12px}
+#audience .aud-legend-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;align-items:center;gap:8px;font-size:11px}
+#audience .aud-legend-row i{width:10px;height:10px;border-radius:3px}
+#audience .aud-legend-row strong{color:#203e51}
+#audience .aud-legend-row small{color:#788996}
+#audience .aud-muted{font-size:11px;color:#83919b}
+@media(max-width:650px){#audience .cards{grid-template-columns:1fr}#audience .aud-donut-wrap{grid-template-columns:1fr}#audience .aud-bar-row{grid-template-columns:minmax(70px,1fr) minmax(60px,1fr) 36px 42px;gap:6px}}
 </style></head><body><header class="site-header"><div class="brand"><img class="brand-logo" src="./logo_empresa.png" alt="LCM Construção"><div class="brand-copy"><h1>COMERCIAL LCM</h1><p>Relatório de vendas · Desempenho comercial</p></div></div><button class="pdf-button" type="button" onclick="printActiveReport()">Baixar PDF</button></header><main>
 <nav><button class="active" data-view="exec">Visão de Vendas</button><button data-view="audience">Público Comprador</button></nav>
 <section id="exec" class="view active">
@@ -215,7 +243,31 @@ function renderFilteredDashboard(){renderExec();renderAudit()}
 ['auditQ','auditProject','auditStage','auditAgency','auditBlock','auditFrom','auditTo'].forEach(id=>document.getElementById(id).addEventListener(id==='auditQ'?'input':'change',renderFilteredDashboard));document.getElementById('auditClear').onclick=()=>{['auditQ','auditProject','auditStage','auditAgency','auditBlock','auditFrom','auditTo'].forEach(id=>document.getElementById(id).value='');renderFilteredDashboard()};
 document.getElementById('auditCsv').onclick=()=>{let rows=auditRows(),head=['Reserva','Nome do Cliente','Empreendimento','Etapa','Imobiliaria','Bloco','Unidade','Data Venda','Valor Total','Valor Liquido','FGTS','Subsidio','Financiamento','Total Financiado','AdPremiada','Cheque Moradia','Pro-Soluto','Risco'];let out=[head,...rows.map(x=>[x.id,x.client,x.project,x.stage,x.agency,x.block,x.unit,x.date,x.total,x.net,x.fgts,x.subsidy,x.financing,x.financed,x.adpremiada,x.cheque,x.pro,x.risk])].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+out],{type:'text/csv;charset=utf-8'}));a.download='auditoria_comercial.csv';a.click();URL.revokeObjectURL(a.href)};
 
-function renderAudience(){let p=document.getElementById('audienceProject').value||'Todos os empreendimentos',obj=AUD[p]||AUD['Todos os empreendimentos'];let total=(obj['Faixa etária']||[]).reduce((a,x)=>a+x.count,0);document.getElementById('audienceKpis').innerHTML=[['Perfis analisados',num(total),'Contagem agregada'],['Empreendimento',p,'Filtro aplicado']].map(x=>`<div class="kpi"><small>${x[0]}</small><strong>${x[1]}</strong><span>${x[2]}</span></div>`).join('');document.getElementById('audienceCharts').innerHTML=Object.entries(obj).map(([label,items])=>`<div class="panel"><h2>${esc(label)}</h2>${bars(items,'label','count')}</div>`).join('')}
+function audienceDonut(items,total){
+ const palette=['#63ae42','#214e68','#8baab9','#e2bd68','#9fabc1','#c1d6b9'];
+ const sum=items.reduce((a,x)=>a+(Number(x.count)||0),0),base=Math.max(sum,total,1);
+ let angle=0;const stops=items.map((x,i)=>{const from=angle;angle+=Number(x.count||0)/base*100;return palette[i%palette.length]+' '+from+'% '+angle+'%';});
+ if(angle<100)stops.push('#e6ecef '+angle+'% 100%');
+ return '<div class="aud-donut-wrap"><div class="aud-donut" style="background:conic-gradient('+stops.join(',')+')"><div class="aud-donut-inner"><b>'+num(sum)+'</b><span>classificados</span></div></div><div class="aud-legend">'+items.map((x,i)=>'<div class="aud-legend-row"><i style="background:'+palette[i%palette.length]+'"></i><span>'+esc(x.label)+'</span><strong>'+(Number(x.count)/base*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%</strong><small>'+num(x.count)+'</small></div>').join('')+(angle<99.99?'<p class="aud-muted">Restante sem categoria: '+num(Math.max(0,base-sum))+'</p>':'')+'</div></div>';
+}
+function audienceBars(items,total,limit){
+ const list=items.slice(0,limit||items.length),max=Math.max(1,...list.map(x=>Number(x.count)||0));
+ return list.map(x=>'<div class="aud-bar-row"><span class="aud-bar-label">'+esc(x.label)+'</span><div class="aud-track"><i style="width:'+(Number(x.count)/max*100)+'%"></i></div><strong>'+num(x.count)+'</strong><small>'+(total?Number(x.count)/total*100:0).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%</small></div>').join('')||'<div class="empty">Sem dados para o filtro selecionado.</div>';
+}
+function renderAudience(){
+ const p=document.getElementById('audienceProject').value||'Todos os empreendimentos',obj=AUD[p]||AUD['Todos os empreendimentos'];
+ const total=(obj['Faixa etária']||[]).reduce((a,x)=>a+x.count,0);
+ document.getElementById('audienceKpis').innerHTML=[['Perfis analisados',num(total),'Contagem agregada'],['Empreendimento',p,'Filtro aplicado']].map(x=>'<div class="kpi"><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong><span>'+esc(x[2])+'</span></div>').join('');
+ const order=['Sexo','Faixa etária','Renda familiar','Estado civil','Cidade','Bairro'];
+ const entries=Object.entries(obj).sort((a,b)=>{const ai=order.indexOf(a[0]),bi=order.indexOf(b[0]);return (ai<0?99:ai)-(bi<0?99:bi)});
+ document.getElementById('audienceCharts').innerHTML=entries.map(([label,items])=>{
+  const valid=items.filter(x=>Number(x.count)>0);
+  const isSex=label==='Sexo';
+  const limit=(label==='Cidade'||label==='Bairro')?10:20;
+  const subtitle=isSex?'Distribuição percentual de compradores':label==='Cidade'||label==='Bairro'?'Top 10 por quantidade · percentual sobre a seleção':'Quantidade e participação na seleção';
+  return '<div class="panel aud-panel '+(isSex?'aud-panel-donut':'')+'"><div class="aud-panel-title"><h2>'+esc(label)+'</h2><span>'+subtitle+'</span></div>'+(isSex?audienceDonut(valid,total):audienceBars(valid,total,limit))+'</div>';
+ }).join('');
+}
 document.getElementById('audienceProject').addEventListener('change',renderAudience);
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.view).classList.add('active')});
 function printActiveReport(){
