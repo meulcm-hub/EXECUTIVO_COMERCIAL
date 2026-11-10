@@ -78,9 +78,9 @@ $('spend').textContent=account.length&&currencies.length===1&&currencies[0]!=='D
 $('spendNote').textContent=currencies.length!==1?'Escolha uma moeda única':currencies[0]==='DESCONHECIDA'?'Moeda não confirmada':'Gastos no período selecionado';
 $('impressions').textContent=nf(imp);$('clicks').textContent=nf(click);
 let lc=cv.reduce((a,x)=>a+Number(x.leads_period||0),0);
-let cvReady=data.cv_counts_validated===true;
+let cvReady=data.cv_counts_validated===true && !data.cv_more_pages_possible;
 $('leads').textContent=cvReady?nf(lc):'—';
-$('leadsNote').textContent=cvReady?'Leads agregados na janela validada':'Cobertura do CV CRM ainda não validada';
+$('leadsNote').textContent=cvReady?'Leads agregados na janela validada':'CVDW: cobertura ou datas ainda não validadas';
 let mrows=account.map(x=>({name:x.account_name||('Conta '+x.account_id),value:Number(x.spend||0),currency:x.currency})).sort((a,b)=>b.value-a.value);
 if(currencies.length!==1){$('chartMeta').className='empty';$('chartMeta').textContent='Selecione uma moeda única para comparar investimentos com segurança.'}else bars('chartMeta',mrows,(v)=>money(v,currencies[0]));
 let originKeys=['meta_declarada','google_declarada','outra_ou_nao_informada'];
@@ -91,7 +91,7 @@ let tbody=$('tableMeta');tbody.replaceChildren();
 account.forEach(x=>{let tr=el('tr');[x.account_name||x.account_id,x.currency,x.currency==='DESCONHECIDA'?'—':money(x.spend,x.currency),nf(x.clicks)].forEach((v,i)=>{let td=el('td',i>=2?'num':'',v);tr.append(td)});tbody.append(tr)});
 if(!account.length){let tr=el('tr'),td=el('td','', 'Nenhuma conta encontrada neste filtro.');td.colSpan=4;tr.append(td);tbody.append(tr)}
 $('status').textContent=(automatic?'Automático':'Arquivo local')+' · '+(data.cv_counts_validated?'Meta e CV':'Meta validada');
-$('notice').textContent=(automatic?'Indicadores agregados publicados automaticamente. ':'Arquivo carregado localmente. ')+'Período: '+safeText(data.period.since)+' a '+safeText(data.period.until)+'. Contas Meta: '+account.length+'. CV: '+(cvReady?'cobertura validada':'ainda não validado')+'. Os dados desta página são públicos.';
+$('notice').textContent=(automatic?'Indicadores agregados publicados automaticamente. ':'Arquivo carregado localmente. ')+'Período: '+safeText(data.period.since)+' a '+safeText(data.period.until)+'. Contas Meta: '+account.length+'. CV: '+(cvReady?'agregados disponíveis (janela de referência CVDW)':'não validado; nenhuma contagem de lead divulgada')+'. Filtros Meta e CV são independentes até validar as correspondências. Os dados desta página são públicos.';
 }
 $('file').addEventListener('change',async e=>{
 let f=e.target.files[0];if(!f)return;
