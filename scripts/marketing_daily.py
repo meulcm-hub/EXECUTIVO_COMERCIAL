@@ -150,6 +150,7 @@ def main():
     print("Histórico agregado gerado: "+str(DAYS)+" dias; contas Meta: "+str(len(summary))+".")
     print("CV: "+("contagens diárias agregadas disponíveis" if cv_ready else "indisponível por cobertura incompleta")+".")
     print("Nenhum registro de lead, token ou nome de campanha publicado.")
+    print("Atenção: apenas contagens diárias por empreendimento e origem são publicadas.")
     return 0
 
 if __name__=="__main__":
