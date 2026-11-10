@@ -61,7 +61,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
 </div>
 </section>
-<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Leads com menos de 10 registros por empreendimento podem ser suprimidos. Não se trata de ROAS ou venda atribuída.</footer>
+<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
 <script>
 (()=>{
@@ -111,7 +111,7 @@ function render(){
   if(cvComplete){
     const cats=[{name:'Facebook/Meta (origem CV)',value:facebook},{name:'Google (origem CV)',value:cvRows.reduce((s,x)=>s+Number(x.cv.google_declarada||0),0)},{name:'Outras origens',value:cvRows.reduce((s,x)=>s+Number(x.cv.outra_ou_nao_informada||0),0)}];
     bars('chartOrigin',cats,v=>nf(v));
-  }else{$('chartOrigin').className='empty';$('chartOrigin').textContent='Leads não apurados para algum empreendimento selecionado (CV CRM ou grupo suprimido).'}
+  }else{$('chartOrigin').className='empty';$('chartOrigin').textContent='Leads indisponíveis: histórico ainda não validado ou empreendimento não mapeado no CV CRM.'}
   const tbody=$('projectsTable');tbody.replaceChildren();
   for(const {m,a} of metaRows){
     const cv=m.project&&cvReady?data.cv_by_project_normalized[m.project]:null;
@@ -153,9 +153,12 @@ function dailyExtract(since,until){
     }
     if(obj.leads_period)cv[project]=obj;
   }
-  // Public daily cells under 5 are suppressed. Never portray their sum as a complete lead count.
+  // Só liberar a contagem quando o histórico diário CV estiver completo,
+  // SEM supressão de dias: do contrário o CPL subestimaria o denominador.
+  const cvReady=dailySource.cv_counts_validated===true &&
+    dailySource.cv_daily_groups_suppressed===false;
   return {period:{since,until},meta_accounts:accounts,cv_by_project_normalized:cv,
-    cv_counts_validated:false,cv_more_pages_possible:true,
+    cv_counts_validated:cvReady,cv_more_pages_possible:!cvReady,
     currencies_found:[...new Set(accounts.map(x=>x.currency))]};
 }
 async function load(){
@@ -165,7 +168,7 @@ async function load(){
     if(!r.ok)throw Error('Histórico de datas ainda não publicado');
     const obj=await r.json();
     if(obj.schema_version!==2||obj.meta_accounts?.length!==8||!obj.period||!obj.meta_accounts.every(a=>allids.has(String(a.account_id))))throw Error('Histórico incompleto');
-    $('notice').textContent='Histórico diário disponível: '+obj.period.since+' a '+obj.period.until+'. Escolha qualquer intervalo dentro dessas datas. Os dados Meta são recalculados; leads CV e CPL dependem de validação da contagem agregada.';
+    $('notice').textContent='Histórico diário: '+obj.period.since+' a '+obj.period.until+'. Os indicadores Meta e CV serão recalculados para o intervalo aplicado quando o histórico completo de contagens agregadas estiver disponível.';
     dailySource=obj;
     for(const id of ['startDate','endDate']){$(id).min=obj.period.since;$(id).max=obj.period.until;}
     // Preservar a seleção quando o usuário clica em Atualizar
@@ -221,8 +224,8 @@ async function applyDate(){
  }
  render();
  if(!data.cv_counts_validated){
-   $('status').textContent='Período aplicado na Meta • CV parcial';
-   $('caveat').textContent='Período personalizado: leads diários pequenos são suprimidos na publicação pública. Como a contagem poderia ficar incompleta, leads e CPL permanecem indisponíveis. Para o período fechado mais recente de 7 ou 30 dias, o relatório usa os totais validados quando disponíveis.';
+   $('status').textContent='Meta atualizada • histórico CV ainda incompleto';
+   $('caveat').textContent='O histórico diário CV ainda não foi publicado sem supressão de grupos. O cálculo de leads e CPL aguarda a nova consolidação; os gastos Meta já correspondem às datas selecionadas.';
  }
 }
 map.forEach(m=>$('project').add(new Option(m.name+(m.project?'':' • vínculo CV pendente'),m.id)));
