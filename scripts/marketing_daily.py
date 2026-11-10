@@ -123,10 +123,9 @@ def main():
     if cv_ready:
         for (project,date),value in byday.items():
             # A divulgação é apenas de contagens agrupadas, não leads individuais.
-            # Pequenos grupos diários ficam suprimidos para mitigar inferência.
-            # Isso pode impedir calcular totais exatos em intervalos curtos.
-            if value["leads_period"]<5:
-                continue
+            # Exporta APENAS contagens agregadas por empreendimento, data e origem.
+            # Usuário autorizou publicação pública de indicadores agregados.
+            # Nenhum ID, nome ou outro atributo individual é persistido.
             cv_daily.setdefault(project,{})[date]={
                 "leads_period":int(value["leads_period"]),
                 "meta_declarada":int(value.get("meta_declarada",0)),
@@ -140,8 +139,8 @@ def main():
         "meta_accounts":summary,
         "cv_by_project_daily":cv_daily,
         "cv_counts_validated":cv_ready,
-        "cv_daily_groups_suppressed":True,
-        "warning":"CV: dias com menos de 5 leads por empreendimento são ocultados; qualquer período que os inclua terá contagem CV parcial. CPL não prova anúncio pago."
+        "cv_daily_groups_suppressed":False,
+        "warning":"Contagens diárias agregadas por empreendimento e origem são públicas. Datas de referência do CVDW podem limitar cobertura histórica. CPL não comprova anúncio pago."
     }
     os.makedirs("data",exist_ok=True)
     path="data/marketing-daily.json"
@@ -149,7 +148,7 @@ def main():
         json.dump(report,fh,ensure_ascii=False,separators=(",",":"))
     os.replace(path+".tmp",path)
     print("Histórico agregado gerado: "+str(DAYS)+" dias; contas Meta: "+str(len(summary))+".")
-    print("CV: "+("disponível com supressão de pequenos grupos" if cv_ready else "indisponível por cobertura incompleta")+".")
+    print("CV: "+("contagens diárias agregadas disponíveis" if cv_ready else "indisponível por cobertura incompleta")+".")
     print("Nenhum registro de lead, token ou nome de campanha publicado.")
     return 0
 
