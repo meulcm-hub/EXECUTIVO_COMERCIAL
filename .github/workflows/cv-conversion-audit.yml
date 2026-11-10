@@ -5,28 +5,28 @@ on:
       since:
         description: 'Data inicial YYYY-MM-DD'
         required: true
-        default: '2026-10-01'
+        default: '2022-01-01'
       until:
         description: 'Data final YYYY-MM-DD'
-        required: true
-        default: '2026-10-31'
+        required: false
+        default: ''
 permissions:
   contents: read
 jobs:
   conversion-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Diagnosticar conversoes e retornos sem publicar leads
+      - name: Auditar histórico mensal completo sem publicar leads
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
           CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
         run: >-
-          python scripts/cv_conversion_audit.py
+          python scripts/cv_conversion_history.py
           --since "${{ inputs.since }}"
           --until "${{ inputs.until }}"
