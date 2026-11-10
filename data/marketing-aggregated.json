@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-10T17:35:58.655978+00:00",
+  "cv_channel_rules_version": 2,
+  "generated_at_utc": "2026-11-10T17:48:45.457687+00:00",
   "period": {
     "since": "2026-10-11",
     "until": "2026-11-09"
@@ -60,7 +61,7 @@
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
       "spend": "14593.27",
-      "impressions": 657242,
+      "impressions": 657243,
       "clicks": 5134
     },
     {
@@ -74,39 +75,57 @@
   ],
   "cv_by_project_normalized": {
     "residencial flores do cerrado jacaranda": {
-      "leads_period": 661,
+      "leads_period": 659,
       "meta_declarada": 636,
-      "google_declarada": 4,
+      "meta_whatsapp_cv": 33,
+      "meta_busca_compartilhada_cv": 2,
+      "meta_outros_cv": 601,
+      "google_declarada": 2,
       "outra_ou_nao_informada": 21
     },
     "spe arraial costa verde club": {
       "leads_period": 75,
-      "meta_declarada": 59,
-      "google_declarada": 1,
+      "meta_declarada": 60,
+      "meta_whatsapp_cv": 1,
+      "meta_busca_compartilhada_cv": 1,
+      "meta_outros_cv": 58,
+      "google_declarada": 0,
       "outra_ou_nao_informada": 15
     },
     "residencial extrema meu lar": {
       "leads_period": 111,
       "meta_declarada": 1,
+      "meta_whatsapp_cv": 1,
+      "meta_busca_compartilhada_cv": 0,
+      "meta_outros_cv": 0,
       "google_declarada": 0,
       "outra_ou_nao_informada": 110
     },
     "residencial village lagoas": {
-      "leads_period": 150,
-      "meta_declarada": 107,
-      "google_declarada": 4,
-      "outra_ou_nao_informada": 39
+      "leads_period": 149,
+      "meta_declarada": 108,
+      "meta_whatsapp_cv": 3,
+      "meta_busca_compartilhada_cv": 1,
+      "meta_outros_cv": 104,
+      "google_declarada": 3,
+      "outra_ou_nao_informada": 38
     },
     "residencial terra solis": {
       "leads_period": 22,
       "meta_declarada": 2,
+      "meta_whatsapp_cv": 2,
+      "meta_busca_compartilhada_cv": 0,
+      "meta_outros_cv": 0,
       "google_declarada": 1,
       "outra_ou_nao_informada": 19
     },
     "residencial jatoba": {
-      "leads_period": 122,
-      "meta_declarada": 66,
-      "google_declarada": 48,
+      "leads_period": 120,
+      "meta_declarada": 110,
+      "meta_whatsapp_cv": 15,
+      "meta_busca_compartilhada_cv": 46,
+      "meta_outros_cv": 49,
+      "google_declarada": 2,
       "outra_ou_nao_informada": 8
     }
   },

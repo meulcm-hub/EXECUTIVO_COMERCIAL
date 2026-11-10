@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-10T17:35:32.008841+00:00",
+  "cv_channel_rules_version": 2,
+  "generated_at_utc": "2026-11-10T17:48:24.245477+00:00",
   "period": {
     "since": "2026-11-03",
     "until": "2026-11-09"
@@ -60,7 +61,7 @@
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
       "spend": "2385.37",
-      "impressions": 105602,
+      "impressions": 105603,
       "clicks": 714
     },
     {
@@ -76,25 +77,37 @@
     "residencial flores do cerrado jacaranda": {
       "leads_period": 94,
       "meta_declarada": 90,
+      "meta_whatsapp_cv": 4,
+      "meta_busca_compartilhada_cv": 0,
+      "meta_outros_cv": 86,
       "google_declarada": 1,
       "outra_ou_nao_informada": 3
     },
     "residencial village lagoas": {
       "leads_period": 31,
       "meta_declarada": 23,
+      "meta_whatsapp_cv": 1,
+      "meta_busca_compartilhada_cv": 0,
+      "meta_outros_cv": 22,
       "google_declarada": 2,
       "outra_ou_nao_informada": 6
     },
     "residencial extrema meu lar": {
       "leads_period": 19,
       "meta_declarada": 0,
+      "meta_whatsapp_cv": 0,
+      "meta_busca_compartilhada_cv": 0,
+      "meta_outros_cv": 0,
       "google_declarada": 0,
       "outra_ou_nao_informada": 19
     },
     "residencial jatoba": {
-      "leads_period": 23,
+      "leads_period": 22,
       "meta_declarada": 19,
-      "google_declarada": 2,
+      "meta_whatsapp_cv": 3,
+      "meta_busca_compartilhada_cv": 1,
+      "meta_outros_cv": 15,
+      "google_declarada": 1,
       "outra_ou_nao_informada": 2
     }
   },
