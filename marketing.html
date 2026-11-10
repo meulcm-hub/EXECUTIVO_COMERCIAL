@@ -26,108 +26,124 @@ footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){main{padding:12px}.heading{display:block}.pill{display:inline-block;margin-top:10px}.kpis{gap:9px}.kpi{padding:14px}.kpi strong{font-size:21px}.status{grid-template-columns:repeat(2,1fr)}.barrow{grid-template-columns:1.2fr 1fr 75px;gap:7px}}
 @media print{.toolbar,.button{display:none!important}.panel,.kpi{box-shadow:none!important;break-inside:avoid}body{background:white}}
+
+input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:0 12px;color:var(--ink);background:white}
+.summaryline{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;font-size:11px;color:#657b86}
+.metric-note{font-size:11px;line-height:1.5;color:#6b7f89;margin-top:13px}
+.highlight{color:var(--green)}
 </style></head>
 <body><main>
-<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Investimento Meta Ads, origens de leads e desempenho comercial por empreendimento.</p></div><span class="pill" id="status">Integrações validadas</span></header>
-<section class="banner"><strong>Integração Meta Ads + CV CRM — estrutura operacional</strong><span id="notice">Foram consultadas 8 contas da Meta e validado o acesso analítico aos leads do CV CRM. Os dados financeiros só aparecem com um arquivo consolidado autorizado. Nenhum token ou dado individual é carregado nesta página.</span></section>
+<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores integrados por empreendimento, com período equivalente de análise.</p></div><span class="pill" id="status">Sincronização automática</span></header>
+<section class="banner"><strong>Meta Ads + CV CRM • painel executivo</strong><span id="notice">Os números de investimento vêm da Meta Ads. Leads classificados como Meta/Facebook vêm do CV CRM, mas essa classificação ainda não comprova campanha paga ou atribuição individual.</span></section>
 <section class="toolbar">
-<div class="field"><label for="account">Conta de anúncios Meta</label><select id="account"><option value="__all">Todas as contas</option></select></div>
-<div class="field"><label for="project">Empreendimento CV CRM</label><select id="project"><option value="__all">Todos os empreendimentos</option></select></div>
-<div class="field"><label for="currency">Moeda dos gastos</label><select id="currency"><option value="__all">Todas (sem somar moedas)</option></select></div>
-<label class="button" for="file">Carregar consolidado local (JSON)</label><input id="file" type="file" accept=".json,application/json">
-<button class="button alt" id="clear" type="button">Limpar dados locais</button>
+<div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os empreendimentos vinculados</option></select></div>
+<div class="field"><label for="period">Período de cadastro e investimento</label><select id="period"><option value="30">Últimos 30 dias completos</option><option value="7">Últimos 7 dias completos</option></select></div>
+<div class="field"><label>Janela de análise</label><div id="dates" style="height:41px;border:1px solid #d8e3df;border-radius:8px;padding:12px;color:#557080;font-size:12px">Aguardando dados</div></div>
+<button class="button alt" id="reload" type="button">Atualizar</button>
 </section>
 <section class="kpis">
-<div class="kpi"><small>Investimento Meta</small><strong id="spend">—</strong><span id="spendNote">Aguardando dados validados</span></div>
-<div class="kpi"><small>Impressões</small><strong id="impressions">—</strong><span>Contas filtradas</span></div>
-<div class="kpi"><small>Cliques</small><strong id="clicks">—</strong><span>Campanhas consultadas</span></div>
-<div class="kpi"><small>Leads CV CRM</small><strong id="leads">—</strong><span id="leadsNote">Amostra incompleta / não carregada</span></div>
+<div class="kpi"><small>Investimento Meta</small><strong id="spend">—</strong><span>Gastos da conta do empreendimento</span></div>
+<div class="kpi"><small>Leads origem Meta / Facebook</small><strong id="leadsMeta">—</strong><span>Origem declarada no CV CRM</span></div>
+<div class="kpi"><small>CPL indicativo • Meta</small><strong id="cpl">—</strong><span>Investimento Meta ÷ leads de origem Meta</span></div>
+<div class="kpi"><small>Leads totais CV CRM</small><strong id="leadsTotal">—</strong><span>Origem Meta, Google e outras</span></div>
 </section>
 <section class="grid">
-<div class="panel"><h2>Investimento por conta Meta</h2><p class="sub">Valores por conta e moeda. A ligação com o empreendimento será validada antes de calcular CPL.</p><div id="chartMeta" class="empty">Carregue um arquivo consolidado autorizado para visualizar os gastos reais.</div></div>
-<div class="panel"><h2>Origens dos leads no CV CRM</h2><p class="sub">Classificações declaradas; Facebook/Instagram não são automaticamente equivalentes a anúncios pagos.</p><div id="chartCv" class="empty">Aguardando consolidação dos leads por origem.</div></div>
+<div class="panel"><h2>Investimento por empreendimento</h2><p class="sub">Meta Ads, período selecionado, valores em BRL. Quando selecionar um empreendimento, só ele será exibido.</p><div id="chartSpend" class="empty">Aguardando consolidação.</div></div>
+<div class="panel"><h2>Origem dos leads por empreendimento</h2><p class="sub">Classificação do CV CRM, sem presumir atribuição a campanhas pagas.</p><div id="chartOrigin" class="empty">Aguardando consolidação.</div></div>
 </section>
 <section class="grid">
-<div class="panel"><h2>Contas de anúncios</h2><p class="sub">Indicadores por conta, preservando moeda e evitando soma indevida entre moedas diferentes.</p>
-<div class="tablewrap"><table class="table"><thead><tr><th>Conta Meta</th><th>Moeda</th><th style="text-align:right">Investimento</th><th style="text-align:right">Cliques</th></tr></thead><tbody id="tableMeta"><tr><td colspan="4">Nenhum consolidado local carregado.</td></tr></tbody></table></div></div>
-<div class="panel"><h2>Etapas de atribuição</h2><p class="sub">Indicadores de vendas atribuídas são exibidos somente com vínculo verificável.</p><div class="status">
-<div class="step"><strong>Meta Ads</strong><p>8 contas consultadas</p></div><div class="step"><strong>Leads CV CRM</strong><p>API CVDW acessível</p></div><div class="step"><strong>Campanha → Lead</strong><p>Vínculo não validado</p></div><div class="step"><strong>Venda → Campanha</strong><p>Atribuição pendente</p></div>
-</div><div class="empty" style="margin-top:15px;padding:21px"><b>CPL, custo por venda e ROAS comercial</b><div>Indisponíveis até termos períodos completos, mesma moeda e correspondência comprovada entre campanhas, leads e vendas.</div></div></div>
+<div class="panel"><h2>Desempenho por empreendimento</h2><p class="sub">O mapeamento é explícito: conta da Meta ↔ empreendimento do CV CRM. Empreendimentos sem ligação confirmada ficam pendentes.</p>
+<div class="tablewrap"><table class="table"><thead><tr><th>Empreendimento</th><th style="text-align:right">Investimento</th><th style="text-align:right">Leads Meta</th><th style="text-align:right">CPL indicativo</th></tr></thead><tbody id="projectsTable"><tr><td colspan="4">Aguardando indicadores.</td></tr></tbody></table></div></div>
+<div class="panel"><h2>Funil e etapas de atribuição</h2><p class="sub">Números disponíveis nas APIs separados de reservas e vendas, que exigem vínculo comprovado.</p>
+<div class="status">
+<div class="step"><strong>Impressões</strong><p id="fImpressions">—</p></div><div class="step"><strong>Cliques Meta</strong><p id="fClicks">—</p></div><div class="step"><strong>Leads origem Meta</strong><p id="fLeads">—</p></div><div class="step"><strong>Reservas e vendas atribuídas</strong><p>Não apuradas</p></div>
+</div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
+</div>
 </section>
-<footer>Fonte: Meta Marketing API e CV CRM CVDW. Os resultados agregados autorizados são publicados automaticamente no GitHub Pages e ficam acessíveis ao público. O arquivo local, quando escolhido, é processado apenas no navegador. Não importe dados pessoais. Indicadores de atribuição não validados permanecem indisponíveis.</footer>
+<footer>Atualização automática por GitHub Actions. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Leads com menos de 10 registros por empreendimento podem ser suprimidos. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
 const nf=n=>Number(n||0).toLocaleString('pt-BR');
-const money=(n,c)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:c||'BRL',maximumFractionDigits:2}).format(Number(n));
+const money=(n,c='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:c,minimumFractionDigits:2}).format(Number(n));
+const map=[
+{id:'347253318197280',project:'residencial flores do cerrado jacaranda',name:'Jacarandá'},
+{id:'626593228944023',project:'residencial village lagoas',name:'Village Sete Lagoas'},
+{id:'332967835423799',project:'spe arraial costa verde club',name:'Arraial Costa Verde'},
+{id:'1183301460107081',project:'residencial jatoba',name:'Jatobá'},
+{id:'578753212923958',project:null,name:'Residencial Monte Belo'},
+{id:'379393907144068',project:null,name:'Turquesa Parque'},
+{id:'272429171879216',project:null,name:'Residencial Green Plaza'},
+{id:'1349139385694575',project:null,name:'Flamboyant'}
+];
+const allids=new Set(map.map(m=>m.id));
 let data=null;
-let automatic=false;
-const safeText=v=>String(v??'');
-function el(tag,className,txt){let e=document.createElement(tag);if(className)e.className=className;if(txt!==undefined)e.textContent=safeText(txt);return e}
-function selected(rows,id,key){let value=$(id).value;return value==='__all'?rows:rows.filter(x=>String(x[key])===value)}
-function populate(id,arr,label){let s=$(id),keep=s.value;s.replaceChildren(new Option(label,'__all'));arr.filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')).forEach(x=>s.add(new Option(x,x)));if([...s.options].some(x=>x.value===keep))s.value=keep}
-function bars(id,rows,fmt){let host=$(id);host.replaceChildren();if(!rows.length){host.className='empty';host.textContent='Nenhum registro na seleção.';return}host.className='';let max=Math.max(1,...rows.map(r=>Number(r.value)||0));rows.slice(0,12).forEach(r=>{let line=el('div','barrow'),name=el('div','barname',r.name),track=el('div','track'),fill=el('div','fill'),n=el('div','barvalue',fmt(r.value,r));fill.style.width=Math.max(0,Math.min(100,Number(r.value||0)/max*100))+'%';track.append(fill);line.append(name,track,n);host.append(line)})}
+function el(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
+function bars(id,rows,fmt){const host=$(id);host.replaceChildren();if(!rows.length){host.className='empty';host.textContent='Sem dados nesta seleção.';return}host.className='';const max=Math.max(...rows.map(x=>Number(x.value)||0),1);for(const r of rows){const line=el('div','barrow'),name=el('div','barname',r.name),track=el('div','track'),fill=el('div','fill'),value=el('div','barvalue',fmt(r.value));fill.style.width=Math.max(0,Number(r.value||0)/max*100)+'%';track.append(fill);line.append(name,track,value);host.append(line)}}
 function render(){
-if(!data)return;
-let account=selected(data.meta_accounts,'account','account_id'),cv=selected(Object.entries(data.cv_by_project_normalized).map(([project,v])=>({project,...v})),'project','project');
-let currency=$('currency').value;if(currency!=='__all')account=account.filter(x=>x.currency===currency);
-const currencies=[...new Set(account.map(x=>x.currency))];
-const total=account.reduce((a,x)=>a+Number(x.spend||0),0),imp=account.reduce((a,x)=>a+Number(x.impressions||0),0),click=account.reduce((a,x)=>a+Number(x.clicks||0),0);
-$('spend').textContent=account.length&&currencies.length===1&&currencies[0]!=='DESCONHECIDA'?money(total,currencies[0]):'—';
-$('spendNote').textContent=currencies.length!==1?'Escolha uma moeda única':currencies[0]==='DESCONHECIDA'?'Moeda não confirmada':'Gastos no período selecionado';
-$('impressions').textContent=nf(imp);$('clicks').textContent=nf(click);
-let lc=cv.reduce((a,x)=>a+Number(x.leads_period||0),0);
-let cvReady=data.cv_counts_validated===true && !data.cv_more_pages_possible;
-$('leads').textContent=cvReady?nf(lc):'—';
-$('leadsNote').textContent=cvReady?'Leads agregados na janela validada':'CVDW: cobertura ou datas ainda não validadas';
-let mrows=account.map(x=>({name:x.account_name||('Conta '+x.account_id),value:Number(x.spend||0),currency:x.currency})).sort((a,b)=>b.value-a.value);
-if(currencies.length!==1){$('chartMeta').className='empty';$('chartMeta').textContent='Selecione uma moeda única para comparar investimentos com segurança.'}else bars('chartMeta',mrows,(v)=>money(v,currencies[0]));
-let originKeys=['meta_declarada','google_declarada','outra_ou_nao_informada'];
-let labels={'meta_declarada':'Meta (origem declarada)','google_declarada':'Google (origem declarada)','outra_ou_nao_informada':'Outras / não informadas'};
-if(cvReady){bars('chartCv',originKeys.map(k=>({name:labels[k],value:cv.reduce((a,x)=>a+Number(x[k]||0),0)})),v=>nf(v))}
-else{$('chartCv').className='empty';$('chartCv').textContent='Amostra de leads não validada; sem indicadores de CV CRM nesta atualização.'}
-let tbody=$('tableMeta');tbody.replaceChildren();
-account.forEach(x=>{let tr=el('tr');[x.account_name||x.account_id,x.currency,x.currency==='DESCONHECIDA'?'—':money(x.spend,x.currency),nf(x.clicks)].forEach((v,i)=>{let td=el('td',i>=2?'num':'',v);tr.append(td)});tbody.append(tr)});
-if(!account.length){let tr=el('tr'),td=el('td','', 'Nenhuma conta encontrada neste filtro.');td.colSpan=4;tr.append(td);tbody.append(tr)}
-$('status').textContent=(automatic?'Automático':'Arquivo local')+' · '+(data.cv_counts_validated?'Meta e CV':'Meta validada');
-$('notice').textContent=(automatic?'Indicadores agregados publicados automaticamente. ':'Arquivo carregado localmente. ')+'Período: '+safeText(data.period.since)+' a '+safeText(data.period.until)+'. Contas Meta: '+account.length+'. CV: '+(cvReady?'agregados disponíveis (janela de referência CVDW)':'não validado; nenhuma contagem de lead divulgada')+'. Filtros Meta e CV são independentes até validar as correspondências. Os dados desta página são públicos.';
-}
-$('file').addEventListener('change',async e=>{
-let f=e.target.files[0];if(!f)return;
-if(f.size>5000000){alert('Arquivo muito grande. Limite de 5 MB.');return}
-try{
-let obj=JSON.parse(await f.text());
-if(!obj||!Array.isArray(obj.meta_accounts)||!obj.cv_by_project_normalized||typeof obj.cv_by_project_normalized!=='object'||!obj.period||!Array.isArray(obj.currencies_found))throw Error('Estrutura de arquivo não reconhecida.');
-if(obj.meta_accounts.length>100)throw Error('Quantidade de contas inesperada.');
-for(let x of obj.meta_accounts){if(!/^\d+$/.test(String(x.account_id||''))||!Number.isFinite(Number(x.spend))||Number(x.spend)<0)throw Error('Dados de conta inválidos.')}
-data=obj;automatic=false;
-populate('account',[...new Set(obj.meta_accounts.map(x=>x.account_id))],'Todas as contas');
-populate('project',Object.keys(obj.cv_by_project_normalized),'Todos os empreendimentos');
-populate('currency',obj.currencies_found,'Todas (sem somar moedas)');
-render();
-}catch(err){alert('Não foi possível carregar: '+err.message)}
-e.target.value='';
-});
-async function autoLoad(){
-  try{
-    const response=await fetch('data/marketing-aggregated.json?ts='+Math.floor(Date.now()/3600000),{cache:'no-store'});
-    if(!response.ok)throw Error('Arquivo ainda não publicado');
-    const obj=await response.json();
-    if(obj.schema_version!==1||!Array.isArray(obj.meta_accounts)||!obj.period||!obj.cv_by_project_normalized||!Array.isArray(obj.currencies_found))throw Error('Formato de indicadores incompatível');
-    if(!obj.meta_accounts.length||obj.meta_accounts.length>100||obj.meta_accounts.some(x=>!/^\d+$/.test(String(x.account_id||''))||!Number.isFinite(Number(x.spend))))throw Error('Dados inconsistentes');
-    data=obj;automatic=true;
-    populate('account',[...new Set(obj.meta_accounts.map(x=>x.account_id))],'Todas as contas');
-    populate('project',Object.keys(obj.cv_by_project_normalized),'Todos os empreendimentos');
-    populate('currency',obj.currencies_found,'Todas (sem somar moedas)');
-    render();
-  }catch(err){
-    $('status').textContent='Aguardando primeira sincronização';
-    $('notice').textContent='A interface está pronta. Os indicadores agregados aparecerão após a primeira execução bem-sucedida de LCM - Consolidação segura Meta e CV no GitHub Actions. Nenhum valor fictício é apresentado.';
+  if(!data)return;
+  const choice=$('project').value;
+  const visible=map.filter(m=>choice==='all'||m.id===choice);
+  const metaRows=visible.map(m=>({m,a:data.meta_accounts.find(a=>String(a.account_id)===m.id)}));
+  const currencies=[...new Set(metaRows.filter(x=>x.a).map(x=>x.a.currency))];
+  const validMeta=currencies.length===1&&currencies[0]==='BRL'&&metaRows.every(x=>x.a);
+  const spend=metaRows.reduce((sum,x)=>sum+Number(x.a?.spend||0),0);
+  const impressions=metaRows.reduce((sum,x)=>sum+Number(x.a?.impressions||0),0);
+  const clicks=metaRows.reduce((sum,x)=>sum+Number(x.a?.clicks||0),0);
+  const cvReady=data.cv_counts_validated===true&&!data.cv_more_pages_possible;
+  const cvRows=visible.filter(m=>m.project).map(m=>({m,cv:data.cv_by_project_normalized[m.project]}));
+  const missing=cvRows.filter(x=>!x.cv).length;
+  const cvComplete=cvReady&&missing===0&&cvRows.length>0;
+  const total=cvComplete?cvRows.reduce((s,x)=>s+Number(x.cv.leads_period||0),0):null;
+  const facebook=cvComplete?cvRows.reduce((s,x)=>s+Number(x.cv.meta_declarada||0),0):null;
+  const cpl=validMeta&&cvComplete&&facebook>0?spend/facebook:null;
+  $('spend').textContent=validMeta?money(spend):'—';
+  $('leadsTotal').textContent=total===null?'—':nf(total);
+  $('leadsMeta').textContent=facebook===null?'—':nf(facebook);
+  $('cpl').textContent=cpl===null?'—':money(cpl);
+  $('fImpressions').textContent=validMeta?nf(impressions):'—';
+  $('fClicks').textContent=validMeta?nf(clicks):'—';
+  $('fLeads').textContent=facebook===null?'—':nf(facebook);
+  $('dates').textContent=data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
+  bars('chartSpend',metaRows.filter(x=>x.a).map(x=>({name:x.m.name,value:Number(x.a.spend)})).sort((a,b)=>b.value-a.value),v=>money(v));
+  if(cvComplete){
+    const cats=[{name:'Facebook/Meta (origem CV)',value:facebook},{name:'Google (origem CV)',value:cvRows.reduce((s,x)=>s+Number(x.cv.google_declarada||0),0)},{name:'Outras origens',value:cvRows.reduce((s,x)=>s+Number(x.cv.outra_ou_nao_informada||0),0)}];
+    bars('chartOrigin',cats,v=>nf(v));
+  }else{$('chartOrigin').className='empty';$('chartOrigin').textContent='Leads não apurados para algum empreendimento selecionado (CV CRM ou grupo suprimido).'}
+  const tbody=$('projectsTable');tbody.replaceChildren();
+  for(const {m,a} of metaRows){
+    const cv=m.project&&cvReady?data.cv_by_project_normalized[m.project]:null;
+    const leads=cv?Number(cv.meta_declarada||0):null;
+    const cplrow=a&&a.currency==='BRL'&&leads>0?Number(a.spend)/leads:null;
+    const tr=el('tr');
+    for(const [v,i] of [[m.name,0],[a&&a.currency==='BRL'?money(a.spend):'—',1],[leads===null?'—':nf(leads),2],[cplrow===null?'—':money(cplrow),3]]){
+      tr.append(el('td',i?'num':'',v));
+    }
+    tbody.append(tr);
   }
+  $('status').textContent='Automático • Meta + CV';
+  $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos.';
+  $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
 }
-autoLoad();
-['account','project','currency'].forEach(id=>$(id).addEventListener('change',render));
-$('clear').addEventListener('click',()=>{data=null;location.reload()});
+async function load(){
+  const days=$('period').value;
+  $('status').textContent='Atualizando indicadores...';
+  try{
+    let r=await fetch('data/marketing-'+days+'.json?nocache='+Date.now(),{cache:'no-store'});
+    if(!r.ok&&days==='30')r=await fetch('data/marketing-aggregated.json?nocache='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw Error('O período ainda não foi publicado no GitHub Actions');
+    const obj=await r.json();
+    if(!obj||!Array.isArray(obj.meta_accounts)||!obj.cv_by_project_normalized||!obj.period||!obj.currencies_found||!obj.meta_accounts.every(x=>allids.has(String(x.account_id))&&Number.isFinite(Number(x.spend))))throw Error('Estrutura de dados inconsistente');
+    if(obj.meta_accounts.length!==8)throw Error('A consulta não contém as oito contas');
+    data=obj;
+    render();
+  }catch(e){data=null;$('status').textContent='Período indisponível';$('notice').textContent=e.message+'. A última publicação do GitHub Actions deve ser verificada.';for(const id of ['spend','leadsTotal','leadsMeta','cpl','fImpressions','fClicks','fLeads'])$(id).textContent='—';$('chartSpend').textContent='Sem dados para o período.';$('chartOrigin').textContent='Sem dados para o período.';$('projectsTable').replaceChildren();}
+}
+map.forEach(m=>$('project').add(new Option(m.name,m.id)));
+$('project').addEventListener('change',render);
+$('period').addEventListener('change',load);
+$('reload').addEventListener('click',load);
+load();
 })();
 </script></body></html>
