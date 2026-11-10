@@ -58,8 +58,10 @@ def main():
     ambiguous_ids=set()
     for project_id,names in project_alias.items():
         relevant=names.intersection(PROJECTS)
-        if len(relevant)==1 and len(names)==1:
-            project_by_id[project_id]=next(iter(relevant))
+        if len(names)==1:
+            # Identificar também os projetos externos ao recorte para não
+            # confundi-los com conversões sem correspondência.
+            project_by_id[project_id]=next(iter(names))
         elif relevant:
             ambiguous_ids.add(project_id)
 
