@@ -1,0 +1,41 @@
+name: Meta Ads - Auditar leads de formulario
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Data inicial YYYY-MM-DD'
+        required: true
+        default: '2026-10-01'
+      until:
+        description: 'Data final YYYY-MM-DD'
+        required: true
+        default: '2026-10-31'
+      account_id:
+        description: 'ID da conta Meta (Jacaranda por padrao)'
+        required: true
+        default: '347253318197280'
+      expected_form_leads:
+        description: 'Resultado visto no Gerenciador de Anuncios'
+        required: true
+        default: '665'
+permissions:
+  contents: read
+jobs:
+  audit-form-leads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Comparar tipos de lead e janela de atribuicao sem PII
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+        run: >-
+          python scripts/meta_form_leads_audit.py
+          --since "${{ inputs.since }}"
+          --until "${{ inputs.until }}"
+          --account-id "${{ inputs.account_id }}"
+          --expected-form-leads "${{ inputs.expected_form_leads }}"
