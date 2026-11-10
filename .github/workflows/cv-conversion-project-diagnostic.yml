@@ -1,0 +1,23 @@
+name: CV CRM - Validar empreendimentos de conversao
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/cv_conversion_project_diagnostic.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Conferir formatos de empreendimentos sem dados pessoais
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/cv_conversion_project_diagnostic.py
