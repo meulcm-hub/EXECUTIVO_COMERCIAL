@@ -1,5 +1,7 @@
 name: LCM - Consolidacao segura Meta e CV
 on:
+  schedule:
+    - cron: '15 11 * * *'
   workflow_dispatch:
     inputs:
       days:
@@ -28,4 +30,6 @@ jobs:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
           CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
-        run: python scripts/marketing_consolidate.py --days "${{ inputs.days }}" --cv-pages "${{ inputs.cv_pages }}"
+          MARKETING_INGEST_URL: ${{ secrets.MARKETING_INGEST_URL }}
+          MARKETING_INGEST_TOKEN: ${{ secrets.MARKETING_INGEST_TOKEN }}
+        run: python scripts/marketing_consolidate.py --days "${{ inputs.days || '30' }}" --cv-pages "${{ inputs.cv_pages || '10' }}"
