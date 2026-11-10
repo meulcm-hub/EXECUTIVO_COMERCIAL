@@ -47,11 +47,16 @@ jobs:
           CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
         run: python scripts/marketing_daily.py
+      - name: Consultar leads e gasto por campanha Meta sem PII
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+        run: python scripts/marketing_campaigns.py
       - name: Publicar somente JSON agregado validado
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json
+          git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json data/marketing-campaigns.json
           if ! git diff --cached --quiet; then
             git commit -m "Atualiza indicadores agregados de Marketing"
             for attempt in 1 2 3; do
