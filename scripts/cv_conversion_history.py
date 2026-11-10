@@ -35,6 +35,8 @@ def run_month(base,email,token,start,end):
     complete=False
     page_count=0
     for page in range(1,MAX_PAGES+1):
+        # Intervalo conservador entre requisições para reduzir HTTP 429.
+        time.sleep(3)
         rows,payload=get_page(base,email,token,start.isoformat(),end.isoformat(),page)
         page_count+=1
         try: total=int(payload.get("total_de_paginas") or 0)
@@ -114,7 +116,7 @@ def main():
               "; leads únicos no mês "+str(len(result["persons"]))+
               "; páginas "+str(result["pages"])+".")
         sys.stdout.flush()
-        time.sleep(0.15)
+        # O controle de velocidade ocorre antes de cada página, inclusive entre meses.
     print("AUDITORIA HISTÓRICA CV CRM — DADOS APENAS AGREGADOS")
     print("Período: "+since.isoformat()+" até "+until.isoformat())
     print("Meses completos consultados: "+str(month_count))
