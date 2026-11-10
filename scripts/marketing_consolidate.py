@@ -175,6 +175,40 @@ def main():
     print("Páginas CV examinadas: "+str(scanned_pages)+"; limite atingido: "+str(not exhausted))
     print("Registros CV examinados: "+str(inspected)+"; registros no período dentro da amostra: "+str(in_period))
     print("Atribuição campanha → lead: NÃO VALIDADA")
+
+    # Entrega somente a backend privado, nunca para GitHub Pages ou arquivos públicos.
+    ingest_url=os.environ.get("MARKETING_INGEST_URL","").strip()
+    ingest_token=os.environ.get("MARKETING_INGEST_TOKEN","").strip()
+    if ingest_url or ingest_token:
+        if not ingest_url or not ingest_token:
+            raise RuntimeError("MARKETING_INGEST_URL e MARKETING_INGEST_TOKEN devem ser configurados juntos")
+        endpoint=urllib.parse.urlsplit(ingest_url)
+        if (endpoint.scheme!="https" or not endpoint.hostname or
+            endpoint.hostname in {"github.com","raw.githubusercontent.com","github.io"} or
+            endpoint.hostname.endswith(".github.io") or
+            endpoint.username or endpoint.password or endpoint.fragment or endpoint.query):
+            raise RuntimeError("Endpoint de ingestão deve ser HTTPS privado, não hospedado no GitHub Pages")
+        if not exhausted:
+            print("Entrega privada não executada: paginação dos leads CV ainda pode estar incompleta.")
+        elif "DESCONHECIDA" in currency_set:
+            print("Entrega privada não executada: moeda de uma ou mais contas não confirmada.")
+        else:
+            # A implantação privada deve validar o Bearer token e restringir leitura por autenticação.
+            body=json.dumps(report,ensure_ascii=False,separators=(",",":")).encode("utf-8")
+            req=urllib.request.Request(ingest_url,body,headers={
+                "Authorization":"Bearer "+ingest_token,
+                "Content-Type":"application/json"
+            },method="POST")
+            class NoRedirect(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self,req,fp,code,msg,headers,newurl):return None
+            try:
+                with urllib.request.build_opener(NoRedirect()).open(req,timeout=45) as response:
+                    if response.status not in (200,201,202,204):
+                        raise RuntimeError("Servidor protegido não confirmou a entrega")
+            except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError):
+                raise RuntimeError("Falha ao enviar consolidação ao backend protegido") from None
+            print("Consolidação enviada ao backend protegido (sem imprimir valores).")
+
     if args.output:
         if os.environ.get("ALLOW_LOCAL_AGGREGATE_EXPORT")!="YES":
             raise RuntimeError("Exportação local bloqueada. Configure ALLOW_LOCAL_AGGREGATE_EXPORT=YES apenas em ambiente privado.")
