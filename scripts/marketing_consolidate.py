@@ -62,7 +62,12 @@ def to_date(raw):
 
 def cv_project(row):
     # Primeiro empreendimento evita contar o mesmo lead várias vezes em múltiplos projetos
-    return str(row.get("empreendimento_primeiro") or row.get("empreendimento") or "Não identificado")
+    raw=row.get("empreendimento_primeiro") or row.get("empreendimento") or "Não identificado"
+    if isinstance(raw,dict):
+        raw=raw.get("nome") or raw.get("descricao") or raw.get("id") or "Não identificado"
+    if isinstance(raw,list):
+        raw="Não identificado"
+    return str(raw)
 
 def main():
     ap=argparse.ArgumentParser()
@@ -139,7 +144,11 @@ def main():
             if lead_id is not None:
                 if str(lead_id) in seen: continue
                 seen.add(str(lead_id))
-            date=to_date(row.get("data_cad") or row.get("dataCad"))
+            date=to_date(
+                row.get("data_cad") or row.get("dataCad") or
+                row.get("data_cadastro") or row.get("datacadastro") or
+                row.get("referencia_data") or row.get("data")
+            )
             if date is None or date<start or date>end:
                 continue
             in_period+=1
@@ -147,7 +156,8 @@ def main():
             key=norm(project) or "nao identificado"
             per_cv[key]["leads_period"]+=1
             per_cv[key][guess_channel(row)]+=1
-            if int(row.get("reserva") or 0)>0:
+            reservation=row.get("reserva")
+            if isinstance(reservation,(int,float,str)) and str(reservation).strip().isdigit() and int(reservation)>0:
                 per_cv[key]["leads_with_reservation_flag"]+=1
         # Final de paginação inferido apenas se menos registros que o limite.
         if len(rows)<size:
