@@ -143,7 +143,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-step level-4"><span class="funnel-label">ANÁLISE DE CRÉDITO</span><strong class="funnel-value" id="cvFunnelCredit">Não apurado</strong></div>
 <div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Análise → Venda <strong id="cvRateCredit">—</strong></span></div>
 <div class="funnel-step level-5"><span class="funnel-label">VENDA REALIZADA</span><strong class="funnel-value" id="cvFunnelSale">Não apurado</strong></div>
-</div><p class="metric-note">Taxa por etapa = clientes únicos na próxima etapa ÷ clientes únicos na etapa anterior. Cada cliente conta uma vez por etapa; quem avança à venda conta também nas anteriores. Valores dependem da integração validada.</p>
+</div><p class="metric-note" id="cvFunnelStatus" aria-live="polite">Verificando dados do CV CRM...</p><p class="metric-note">Taxa por etapa = clientes únicos na próxima etapa ÷ clientes únicos na etapa anterior. Cada cliente conta uma vez por etapa; quem avança à venda conta também nas anteriores.</p>
 </div>
 </div>
 </div>
@@ -428,36 +428,60 @@ function render(){
 // As métricas do funil por safra só são mostradas quando a integração
 // publicar contagens de IDs únicos consistentes, incluindo retroprogressão.
 let cvFunnelSource=null;
+let cvFunnelError='Dados do funil ainda não carregados';
 async function loadCvFunnel(){
-  try{
-    const r=await fetch('data/cv-funnel.json?version='+Date.now(),{cache:'no-store'});
-    if(!r.ok)throw Error('Funil ainda não publicado');
-    const payload=await r.json();
-    if(payload.schema_version!==1||payload.validated!==true||
-       payload.cohort_mode!=='prospect_date'||!Array.isArray(payload.cohorts)){
-      throw Error('Funil não validado');
-    }
-    cvFunnelSource=payload;
-  }catch(_){cvFunnelSource=null;}
+  cvFunnelSource=null;
+  const sources=[
+    'data/cv-funnel.json?version='+Date.now(),
+    'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-funnel.json?version='+Date.now()
+  ];
+  const errors=[];
+  for(const source of sources){
+    try{
+      const r=await fetch(source,{cache:'no-store'});
+      if(!r.ok)throw Error('HTTP '+r.status);
+      const payload=await r.json();
+      if(payload.schema_version!==1||payload.validated!==true||
+         payload.cohort_mode!=='prospect_date'||!Array.isArray(payload.cohorts)||
+         payload.cohorts.length===0)throw Error('JSON sem coortes validadas');
+      cvFunnelSource=payload;
+      cvFunnelError='';
+      return;
+    }catch(err){errors.push((source.startsWith('http')?'Repositório':'GitHub Pages')+': '+String(err.message||err));}
+  }
+  cvFunnelError='Falha de leitura do funil ('+errors.join(' | ')+')';
 }
 function renderCvFunnel(visible){
   const ids=['cvFunnelProspect','cvFunnelSchedule','cvFunnelVisit','cvFunnelCredit','cvFunnelSale'];
   const rates=['cvRateProspect','cvRateSchedule','cvRateVisit','cvRateCredit'];
   ids.forEach(id=>$(id).textContent='Não apurado');
   rates.forEach(id=>$(id).textContent='—');
-  if(!cvFunnelSource||!data||!visible.length)return;
+  const note=$('cvFunnelStatus');
+  if(!cvFunnelSource||!data||!visible.length){
+    if(note)note.textContent=cvFunnelError||'Sem dados CV para este filtro.';
+    return;
+  }
   const {since,until}=data.period;
   const projects=visible.map(m=>m.project);
   if(projects.some(p=>!p))return;
   const rows=projects.map(project=>cvFunnelSource.cohorts.find(row=>
     row.project===project && row.since===since && row.until===until &&
     row.validated===true && row.as_of));
-  if(rows.some(row=>!row))return;
+  if(rows.some(row=>!row)){
+    if(note)note.textContent='Funil ainda sem coorte para '+since+' a '+until+
+      '. Cobertura publicada: '+cvFunnelSource.period.since+' a '+cvFunnelSource.period.until+'.';
+    return;
+  }
   const keys=['prospect','agendamento','visita','analise_credito','venda_realizada'];
   if(rows.some(row=>keys.some(k=>!Number.isSafeInteger(row.counts?.[k])||row.counts[k]<0)))return;
   const values=keys.map(key=>rows.reduce((sum,row)=>sum+row.counts[key],0));
   // Rejeitar contagens que violem a estrutura cumulativa acordada.
-  if(values.some((v,i)=>i>0&&v>values[i-1]))return;
+  if(values.some((v,i)=>i>0&&v>values[i-1])){
+    if(note)note.textContent='Valores CV inconsistentes: atualização aguardando validação.';
+    return;
+  }
+  if(note)note.textContent='Dados CV CRM até '+cvFunnelSource.as_of+
+    ' · Safra de '+since+' a '+until+' · Venda em auditoria quando não vinculada.';
   const salesVerified=cvFunnelSource.sales_link_validated===true;
   ids.forEach((id,i)=>$(id).textContent=(i===4&&!salesVerified)?'Em auditoria':nf(values[i]));
   rates.forEach((id,i)=>$(id).textContent=(i===3&&!salesVerified)?'—':
