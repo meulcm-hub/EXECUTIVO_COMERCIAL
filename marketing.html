@@ -8,9 +8,7 @@ h1,h2,h3,p{margin:0}.eyebrow{font-size:11px;color:#62aa3e;font-weight:800;letter
 .heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin:2px 0 22px}
 .heading h1{font-size:30px;margin:7px 0}.heading p,.note{font-size:12px;color:var(--muted);line-height:1.6}
 .pill{padding:9px 13px;border-radius:24px;background:#e7f2e2;color:#4c8a36;font-size:11px;font-weight:800;white-space:nowrap}
-.panel,.kpi,.toolbar,.banner{background:white;border:1px solid var(--line);border-radius:15px;box-shadow:0 6px 22px #173d2710}
-.banner{padding:16px 19px;border-left:4px solid var(--green);font-size:12px;line-height:1.55;margin-bottom:15px}
-.banner strong{display:block;font-size:14px;margin-bottom:5px}
+.panel,.kpi,.toolbar{background:white;border:1px solid var(--line);border-radius:15px;box-shadow:0 6px 22px #173d2710}
 .toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:17px;margin-bottom:15px}
 .field{display:flex;flex-direction:column;gap:7px;flex:1;min-width:170px}.field label{font-size:10px;font-weight:800;color:#647887;letter-spacing:.06em;text-transform:uppercase}
 select,button,input{font-family:inherit}select{height:41px;width:100%;border:1px solid #d8e3df;border-radius:8px;padding:0 12px;color:var(--ink);background:#fff;font-size:12px}
@@ -52,7 +50,6 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </style></head>
 <body><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
-<section class="banner"><span id="notice">Os números de investimento vêm da Meta Ads. Os quatro vínculos entre conta e empreendimento foram propostos pelos nomes e ainda precisam ser confirmados. Origem Facebook no CV não prova anúncio pago.</span></section>
 <section class="toolbar">
 <div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os 4 empreendimentos vinculados</option></select></div>
 <div class="field"><label for="startDate">Data inicial</label><input type="date" id="startDate"></div>
@@ -350,7 +347,6 @@ function render(){
 
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
-  $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. A tabela mostra todas as campanhas atualmente ativas, inclusive reconhecimento; o investimento inclui seus gastos no período. CPL combinado é indicativo: gasto das campanhas ativas dividido por formulários e conversas WhatsApp (conversas não são leads únicos). CV CRM separado por Facebook e Google. Dia atual parcial.';
   renderConversionMetrics(visible);
   renderWhatsAppCV(visible);
   renderCampaigns(visible);
@@ -427,7 +423,6 @@ async function load(){
     if(!r.ok)throw Error('Histórico de datas ainda não publicado');
     const obj=await r.json();
     if(obj.schema_version<2||obj.meta_accounts?.length!==8||!obj.period||!obj.meta_accounts.every(a=>allids.has(String(a.account_id))))throw Error('Histórico incompleto');
-    $('notice').textContent='Histórico diário: '+obj.period.since+' a '+obj.period.until+'. Os indicadores Meta e CV serão recalculados para o intervalo aplicado quando o histórico completo de contagens agregadas estiver disponível.';
     dailySource=obj;
     const brazilNow=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
     const stamp=obj.generated_at_utc?new Date(obj.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'não informado';
@@ -447,7 +442,6 @@ async function load(){
     $('lastSync').textContent='Última coleta diária: indisponível';
     $('status').textContent='Histórico diário não carregado';
     $('appliedPeriod').textContent='Histórico não carregou: '+String(e.message||'falha');
-    $('notice').textContent='O calendário está pronto, mas o GitHub Actions ainda precisa publicar o histórico diário de 90 dias. Enquanto isso, o último período fechado de 30 dias continua disponível.';
     try{
       const r=await fetch('data/marketing-aggregated.json?version='+Date.now(),{cache:'no-store'});
       if(!r.ok)throw Error('Sem consolidado');
