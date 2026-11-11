@@ -31,6 +31,23 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-arrow{font-size:22px;color:#647985;line-height:1}
 .funnel-rate{display:inline-block;margin-top:7px;background:#94c5fa;color:#174c83;padding:4px 10px;border-radius:24px;font-size:11px;font-weight:750}
 .funnel-results{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;margin-top:7px;font-size:12px}
+.funnel-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.funnel-column{min-width:0;border:1px solid #e6ece8;border-radius:15px;padding:18px 14px;background:#fff}
+.funnel-column h3{font-size:15px;margin:0 0 5px}
+.funnel-intro{font-size:11px;color:#7c8991;line-height:1.45;margin:0 0 16px}
+.funnel-column .funnel-step{min-height:124px}
+.funnel-column .funnel-step.level-1{width:100%}
+.funnel-column .funnel-step.level-2{width:86%}
+.funnel-column .funnel-step.level-3{width:72%}
+.funnel-cv .funnel-step{color:#276942}
+.funnel-cv .funnel-step.level-1{background:#e3f3df}
+.funnel-cv .funnel-step.level-2{background:#cde9c5}
+.funnel-cv .funnel-step.level-3{background:#b4dda7}
+.funnel-cv .funnel-rate{background:#a4d795;color:#235d36}
+.funnel-cv .funnel-value{font-size:27px}
+.funnel-cv .funnel-arrow{color:#5d9870}
+@media(max-width:950px){.funnel-columns{grid-template-columns:1fr}.funnel-column{padding:16px 12px}}
+
 @media(max-width:640px){.funnel-step.level-2{width:92%}.funnel-step.level-3{width:86%}.funnel-value{font-size:24px}}
 footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
@@ -93,14 +110,27 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 
 </section>
 <section class="grid">
-<div class="panel" style="grid-column:1 / -1"><h2>Desempenho da campanha — Meta Ads</h2><p class="sub">Impressões, cliques e resultados das campanhas ativas no período e empreendimento selecionados.</p>
+<div class="panel" style="grid-column:1 / -1"><h2>Desempenho de captação e comercial</h2><p class="sub">Comparativo visual entre Meta Ads e CV CRM, respeitando o período e o empreendimento selecionados.</p>
+<div class="funnel-columns">
+<div class="funnel-column"><h3>Funil de captação — Meta Ads</h3><p class="funnel-intro">Impressões, cliques e resultados das campanhas ativas.</p>
 <div class="status">
 <div class="funnel-step level-1"><span class="funnel-label">01 · IMPRESSÕES</span><strong class="funnel-value" id="fImpressions">—</strong><span class="funnel-desc">Vezes que os anúncios foram exibidos</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
 <div class="funnel-step level-2"><span class="funnel-label">02 · CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
 <div class="funnel-step level-3"><span class="funnel-label">03 · RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
-</div><p class="metric-note" id="caveat">Resultados agregados da Meta Ads: formulários e conversas não representam necessariamente pessoas únicas. Cliques totais não equivalem a cliques no link.</p>
+</div><p class="metric-note" id="caveat">Fonte: Meta Ads. Formulários e conversas não são pessoas únicas; cliques totais não equivalem a cliques no link.</p>
+</div>
+<div class="funnel-column funnel-cv"><h3>Indicadores comerciais — CV CRM</h3><p class="funnel-intro">Cadastros novos, retornos e dados comerciais disponíveis.</p>
+<div class="status">
+<div class="funnel-step level-1"><span class="funnel-label">01 · NOVOS CADASTROS</span><strong class="funnel-value" id="fCvNew">Em validação</strong><span class="funnel-desc">Facebook e Google · cadastros originais no período</span><span class="funnel-rate">WhatsApp Facebook: <b id="fCvWhatsApp">Em validação</b></span></div>
+<div class="funnel-arrow" aria-hidden="true">↓</div>
+<div class="funnel-step level-2"><span class="funnel-label">02 · RETORNOS CONFIRMADOS</span><strong class="funnel-value" id="fCvReturned">Em validação</strong><span class="funnel-desc">Interações posteriores de clientes existentes</span><span class="funnel-rate">Não representam necessariamente os novos cadastros acima</span></div>
+<div class="funnel-arrow" aria-hidden="true">↓</div>
+<div class="funnel-step level-3"><span class="funnel-label">03 · RESERVAS E VENDAS</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Sem ligação validada entre estes leads e contratos</span></div>
+</div><p class="metric-note">Fonte: CV CRM. Os indicadores não são etapas comprovadas das mesmas pessoas. Não calcular conversão entre eles sem vínculo individual.</p>
+</div>
+</div>
 </div>
 </section>
 <footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
@@ -376,6 +406,9 @@ function render(){
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   renderConversionMetrics(visible);
   renderWhatsAppCV(visible);
+  $('fCvNew').textContent=$('cvNew').textContent;
+  $('fCvReturned').textContent=$('cvReturned').textContent;
+  $('fCvWhatsApp').textContent=$('cvWhatsAppNew').textContent;
   renderCampaigns(visible);
   $('caveat').textContent='Fonte: Meta Ads. Cliques totais ÷ impressões não é o CTR de link. Formulários ÷ cliques é uma razão indicativa; formulários e conversas WhatsApp são apresentados separadamente para evitar interpretação de pessoas únicas.';
 }
