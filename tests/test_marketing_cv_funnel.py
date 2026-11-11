@@ -15,6 +15,10 @@ class FunnelRulesTests(unittest.TestCase):
             with self.subTest(state=state):
                 self.assertTrue(funnel.sold({"situacao": {"situacao": state}}))
 
+    def test_cv_explicit_sale_flag(self):
+        self.assertTrue(funnel.sold({"vendida": "S", "situacao": {"situacao": "Reserva"}}))
+        self.assertTrue(funnel.sold({"status_reserva": "Pode Faturar"}))
+
     def test_canceled_not_sale(self):
         for state in ("Cancelada", "Distrato", "Vencida", "Reservada"):
             self.assertFalse(funnel.sold({"situacao": {"situacao": state}}))
