@@ -23,7 +23,7 @@ MAX_PAGES=50
 SIZE=500
 
 def main():
-    end=dt.date.today()-dt.timedelta(days=1)
+    end=dt.date.today()
     start=end-dt.timedelta(days=DAYS-1)
     ads=accounts()
     if len(ads)!=8:
