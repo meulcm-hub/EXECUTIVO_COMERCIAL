@@ -23,6 +23,18 @@ class FunnelRulesTests(unittest.TestCase):
         self.assertEqual(funnel.lead_ids({"idlead": "168523,4322"}), {"168523", "4322"})
         self.assertEqual(funnel.lead_ids({"idlead": 168523}), {"168523"})
 
+    def test_id_link_matches_lead_before_commercial_filters(self):
+        # Reserva com data_cancelamento preenchida no payload ainda precisa
+        # localizar o lead; classificação comercial é uma etapa separada.
+        reserve = {"idreserva": 12414, "idlead": "168523,4322",
+                   "venda": "Sim", "situacao": "Vendida",
+                   "data_cancelamento": "2022-02-23 13:20:05"}
+        original = {"168523", "4322", "5000"}
+        cohort = {"4322", "5000"}
+        found = funnel.lead_ids(reserve)
+        self.assertEqual(found & original, {"168523", "4322"})
+        self.assertEqual(found & cohort, {"4322"})
+
     def test_cvdw_sale_flag(self):
         self.assertTrue(funnel.sold({"venda": "Sim", "situacao": "Pré-vendas"}))
         self.assertTrue(funnel.sold({"situacao": "Pode Faturar"}))
