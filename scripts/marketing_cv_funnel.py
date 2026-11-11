@@ -71,8 +71,10 @@ def rows(payload, keys):
         if isinstance(data, dict):
             return list(data.values())
     # Reservas comerciais são indexadas pelo ID numérico da reserva.
-    if all(str(k).isdigit() and isinstance(v, dict) for k, v in payload.items()):
-        return list(payload.values())
+    # Alguns retornos também incluem metadados da paginação.
+    indexed = [v for k, v in payload.items() if str(k).isdigit() and isinstance(v, dict)]
+    if indexed or payload == {}:
+        return indexed
     raise RuntimeError("Chaves de resposta não reconhecidas")
 
 def paged(base, email, token, path, start, end, *, collection, commercial=False, precadastro=False):
@@ -83,8 +85,9 @@ def paged(base, email, token, path, start, end, *, collection, commercial=False,
         if precadastro:
             pass  # Pré-cadastro v1 não documenta filtros por data; consultar tudo.
         elif commercial:
-            params.update({"situacao": "todas", "faturar": "false",
-                           "retornar_integradas": "true"})
+            # CV CRM: 'situacao' e 'faturar' são filtros mutuamente exclusivos.
+            # 'faturar=false' abrange diferentes situações; incluir integradas.
+            params.update({"faturar": "false", "retornar_integradas": "true"})
         else:
             params.update({"a_partir_data_referencia": start.isoformat() + " 00:00:00",
                            "ate_data_referencia": end.isoformat() + " 23:59:59"})
