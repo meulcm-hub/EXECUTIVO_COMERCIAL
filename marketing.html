@@ -264,9 +264,13 @@ function renderWhatsAppCV(visible){
   }
   const {since,until}=data.period;
   let count=0;
+  const useValidatedConversions=conversionSource?.validated===true && conversionSource.schema_version>=3 &&
+    conversionSource.period && since>=conversionSource.period.since && until<=conversionSource.period.until &&
+    visible.every(m=>conversionSource.daily?.[m.project]);
   for(const m of visible){
-    for(const [date,values] of Object.entries(dailySource.cv_by_project_daily[m.project])){
-      if(date>=since&&date<=until)count+=Number(values.meta_whatsapp_cv||0);
+    const days=useValidatedConversions?conversionSource.daily[m.project]:dailySource.cv_by_project_daily[m.project];
+    for(const [date,values] of Object.entries(days)){
+      if(date>=since&&date<=until)count+=Number(useValidatedConversions?values.whatsapp_new:values.meta_whatsapp_cv)||0;
     }
   }
   target.textContent=nf(count);
