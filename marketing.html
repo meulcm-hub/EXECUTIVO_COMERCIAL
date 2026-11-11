@@ -222,6 +222,11 @@ function drawOriginChart(dailyByProject,visible,since,until){
  for(let i=0;i<=2;i++){
    const y=top+(height-top-bottom)*i/2;
    line(left+','+y+' '+(width-right)+','+y,'#e7eeeb',1);
+   const label=document.createElementNS(ns,'text');
+   label.setAttribute('x','1');label.setAttribute('y',String(y+3));
+   label.setAttribute('font-size','9');label.setAttribute('fill','#70838e');
+   label.textContent=String(Math.round(max*(1-i/2)));
+   svg.append(label);
  }
  const coord=(key)=>dates.map((date,i)=>{
    const x=left+(width-left-right)*(dates.length===1?0.5:i/(dates.length-1));
