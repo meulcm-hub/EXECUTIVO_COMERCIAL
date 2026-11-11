@@ -280,7 +280,10 @@ def main():
         for lead in lead_ids(row):
             stage_by_lead[lead].append((day, 3))
     sales_audit = collections.Counter()
+    # O vínculo é puramente por ID. Filtros comerciais e datas são verificados
+    # somente depois de confirmar que a reserva encontrou um lead do funil.
     prospective_ids = {lead for _, lead in entry}
+    original_ids = set(original)
     # CVDW pode devolver múltiplas referências da mesma reserva.
     # Considerar a versão mais recente de cada idreserva, sem somar snapshots.
     latest_reservations={}
@@ -295,6 +298,20 @@ def main():
     sales_audit["snapshots_consultados"]=len(reservations)
     for row in latest_reservations.values():
         sales_audit["reservas_consultadas"] += 1
+        ids = lead_ids(row)
+        linked_original = ids & original_ids
+        linked_cohort = ids & prospective_ids
+        if not ids:
+            sales_audit["reservas_sem_idlead"] += 1
+        if linked_original:
+            sales_audit["reservas_com_lead_identificado"] += 1
+        if linked_cohort:
+            sales_audit["reservas_com_prospect_na_safra"] += 1
+        elif linked_original:
+            sales_audit["reservas_lead_fora_da_safra"] += 1
+        elif ids:
+            sales_audit["reservas_id_nao_encontrado"] += 1
+        # Não bloquear o vínculo de IDs por data, cancelamento ou status.
         if norm(row.get("ativo")) == "n":
             sales_audit["reservas_inativas"] += 1
             continue
@@ -304,7 +321,6 @@ def main():
         if not sold(row):
             continue
         sales_audit["reservas_classificadas_venda"] += 1
-        ids = lead_ids(row)
         if not ids:
             sales_audit["vendas_sem_idlead"] += 1
             continue
@@ -313,10 +329,10 @@ def main():
         if day is None:
             sales_audit["vendas_sem_data"] += 1
             continue
-        if ids.isdisjoint(prospective_ids):
-            sales_audit["vendas_sem_prospect_na_safra"] += 1
-        else:
+        if linked_cohort:
             sales_audit["vendas_com_prospect_na_safra"] += 1
+        else:
+            sales_audit["vendas_sem_prospect_na_safra"] += 1
         for lead in ids:
             stage_by_lead[lead].append((day, 4))
     sale_ids = {lead for lead, events in stage_by_lead.items()
