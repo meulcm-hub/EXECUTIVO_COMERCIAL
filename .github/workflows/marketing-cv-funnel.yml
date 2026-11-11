@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/marketing_cv_funnel.py'
+      - 'tests/test_marketing_cv_funnel.py'
       - '.github/workflows/marketing-cv-funnel.yml'
   workflow_dispatch:
 concurrency:
@@ -22,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Verificar regras e paginação sem credenciais
+        run: python -m unittest discover -s tests -p 'test_marketing_cv_funnel.py'
       - name: Consolidar funil CV a partir de IDs somente em memória privada
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
