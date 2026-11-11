@@ -99,7 +99,7 @@ def main():
     args=ap.parse_args()
     if not 1<=args.days<=90 or not 1<=args.cv_pages<=50:
         ap.error("days: 1-90; cv-pages: 1-50")
-    end=dt.date.today()-dt.timedelta(days=1)
+    end=dt.date.today()
     start=end-dt.timedelta(days=args.days-1)
 
     url=os.environ.get("CVCRM_DOMINIO","").strip().rstrip("/")
