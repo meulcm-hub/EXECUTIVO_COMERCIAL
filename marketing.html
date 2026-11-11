@@ -20,7 +20,18 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .empty{border:1px dashed #d8e2dd;border-radius:11px;padding:32px 15px;text-align:center;color:#809099;font-size:12px;line-height:1.6}
 .tablewrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;font-size:12px;min-width:530px}.table th{background:var(--navy);color:white;text-align:left;padding:12px}.table td{padding:12px;border-bottom:1px solid var(--line)}.table td.num,.table tfoot th.num{text-align:right;font-variant-numeric:tabular-nums}
 .table tfoot th{background:#e8f2e4;color:#254a40;border-top:2px solid #67ae42;font-weight:800;padding:14px 12px}
-.status{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.step{background:#f7faf8;border:1px solid #e4ece7;padding:13px;border-radius:10px}.step strong{font-size:12px}.step p{margin-top:7px;font-size:11px;color:#798995;line-height:1.5}
+.status{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:1000px;margin:0 auto}
+.funnel-step{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:112px;border-radius:14px;padding:15px;color:#205583}
+.funnel-step.level-1{width:100%;background:#dfecfc}
+.funnel-step.level-2{width:82%;background:#c7dcfa}
+.funnel-step.level-3{width:66%;background:#a9caf4}
+.funnel-label{font-size:13px;font-weight:800;letter-spacing:.03em}
+.funnel-value{font-size:29px;font-weight:800;margin:6px 0 3px;font-variant-numeric:tabular-nums}
+.funnel-desc{font-size:12px;line-height:1.5}
+.funnel-arrow{font-size:22px;color:#647985;line-height:1}
+.funnel-rate{display:inline-block;margin-top:7px;background:#94c5fa;color:#174c83;padding:4px 10px;border-radius:24px;font-size:11px;font-weight:750}
+.funnel-results{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;margin-top:7px;font-size:12px}
+@media(max-width:640px){.funnel-step.level-2{width:92%}.funnel-step.level-3{width:86%}.funnel-value{font-size:24px}}
 footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){main{padding:12px}.heading{display:block}.pill{display:inline-block;margin-top:10px}.kpis{gap:9px}.kpi{padding:14px}.kpi strong{font-size:21px}.status{grid-template-columns:repeat(2,1fr)}.barrow{grid-template-columns:1.2fr 1fr 75px;gap:7px}}
@@ -82,10 +93,14 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 
 </section>
 <section class="grid">
-<div class="panel" style="grid-column:1 / -1"><h2>Funil e etapas de atribuição</h2><p class="sub">Números disponíveis nas APIs separados de reservas e vendas, que exigem vínculo comprovado.</p>
+<div class="panel" style="grid-column:1 / -1"><h2>Desempenho da campanha — Meta Ads</h2><p class="sub">Impressões, cliques e resultados das campanhas ativas no período e empreendimento selecionados.</p>
 <div class="status">
-<div class="step"><strong>Impressões</strong><p id="fImpressions">—</p></div><div class="step"><strong>Cliques Meta</strong><p id="fClicks">—</p></div><div class="step"><strong>Formulários Meta</strong><p id="fLeads">—</p></div><div class="step"><strong>Reservas e vendas atribuídas</strong><p>Não apuradas</p></div>
-</div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
+<div class="funnel-step level-1"><span class="funnel-label">01 · IMPRESSÕES</span><strong class="funnel-value" id="fImpressions">—</strong><span class="funnel-desc">Vezes que os anúncios foram exibidos</span></div>
+<div class="funnel-arrow" aria-hidden="true">↓</div>
+<div class="funnel-step level-2"><span class="funnel-label">02 · CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
+<div class="funnel-arrow" aria-hidden="true">↓</div>
+<div class="funnel-step level-3"><span class="funnel-label">03 · RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
+</div><p class="metric-note" id="caveat">Resultados agregados da Meta Ads: formulários e conversas não representam necessariamente pessoas únicas. Cliques totais não equivalem a cliques no link.</p>
 </div>
 </section>
 <footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
@@ -139,6 +154,8 @@ function renderCampaigns(visible){
  const blank=()=>{
    $('spend').textContent='—';$('formsMeta').textContent='—';
    $('waMeta').textContent='—';$('cpl').textContent='—';
+   $('fLeads').textContent='—';$('fFormBreakdown').textContent='—';
+   $('fWhatsApp').textContent='—';$('fConversion').textContent='Formulários ÷ cliques: —';
  };
  const table=$('campaignTable');table.replaceChildren();
  const foot=$('campaignTotals');foot.replaceChildren();
@@ -165,6 +182,13 @@ function renderCampaigns(visible){
  $('spend').textContent=money(expense);
  $('formsMeta').textContent=nf(forms);
  $('fLeads').textContent=nf(forms);
+ $('fFormBreakdown').textContent=nf(forms);
+ $('fWhatsApp').textContent=nf(wa);
+ const clicks=visible.reduce((sum,m)=>sum+Number(data.meta_accounts.find(a=>String(a.account_id)===m.id)?.clicks||0),0);
+ const hasClicks=visible.every(m=>data.meta_accounts.some(a=>String(a.account_id)===m.id));
+ $('fConversion').textContent=hasClicks&&clicks>0?
+    'Formulários ÷ cliques: '+(forms/clicks*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':
+    'Formulários ÷ cliques: —';
  $('waMeta').textContent=nf(wa);
  $('cpl').textContent=combined===null?'—':money(combined);
  const rows=parts.flatMap(p=>p.value.campaigns.map(c=>({...c,project:p.name})))
@@ -342,6 +366,9 @@ function render(){
   // Os leads do CV são independentes, sem atribuição publicitária individual.
   $('fImpressions').textContent=validMeta?nf(impressions):'—';
   $('fClicks').textContent=validMeta?nf(clicks):'—';
+  $('fCTR').textContent=validMeta&&impressions>0?
+    'Cliques ÷ impressões: '+(clicks/impressions*100).toLocaleString('pt-BR',{maximumFractionDigits:2})+'%':
+    'Cliques ÷ impressões: —';
   // Formulários Meta atualizados por renderCampaigns, com a mesma janela.
 
 
@@ -350,7 +377,7 @@ function render(){
   renderConversionMetrics(visible);
   renderWhatsAppCV(visible);
   renderCampaigns(visible);
-  $('caveat').textContent='Funil em revisão. Resultados da Meta não provam atribuição individual a leads do CV CRM.';
+  $('caveat').textContent='Fonte: Meta Ads. Cliques totais ÷ impressões não é o CTR de link. Formulários ÷ cliques é uma razão indicativa; formulários e conversas WhatsApp são apresentados separadamente para evitar interpretação de pessoas únicas.';
 }
 let dailySource=null;
 let validatedWindows={};
@@ -486,7 +513,7 @@ async function applyDate(){
  render();
  if(!data.cv_counts_validated){
    $('status').textContent='Meta atualizada • histórico CV ainda incompleto';
-   $('caveat').textContent='O histórico diário CV ainda não foi publicado sem supressão de grupos. O cálculo de leads e CPL aguarda a nova consolidação; os gastos Meta já correspondem às datas selecionadas.';
+    $('caveat').textContent='Fonte: Meta Ads. As taxas são indicativas e dependem da coleta das campanhas; a validação dos dados CV CRM é independente.';
  }
 }
 map.forEach(m=>$('project').add(new Option(m.name+(m.project?'':' • vínculo CV pendente'),m.id)));
