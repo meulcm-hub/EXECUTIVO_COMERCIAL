@@ -60,6 +60,36 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 @media(max-width:950px){.funnel-columns{grid-template-columns:1fr}.funnel-column{padding:16px 12px}}
 
 @media(max-width:640px){.funnel-step.level-2{width:92%}.funnel-step.level-3{width:86%}}
+/* Funis executivos compactos: preservar legibilidade e reduzir espaço vertical. */
+.funnel-columns{gap:14px}
+.funnel-column{padding:14px 13px}
+.funnel-intro{margin-bottom:10px}
+.funnel-column .status{width:100%;max-width:540px;gap:3px}
+.funnel-column .funnel-step{min-height:79px;padding:10px 12px;border-radius:11px}
+.funnel-column .funnel-label,.funnel-cv .funnel-label{font-size:19px;line-height:1.2;letter-spacing:0}
+.funnel-column .funnel-value,.funnel-cv .funnel-value{font-size:17px;line-height:1.2;margin:5px 0 2px}
+.funnel-column .funnel-desc{font-size:10px;line-height:1.35}
+.funnel-column .funnel-arrow{font-size:17px;line-height:1}
+.funnel-column .funnel-rate{font-size:10px;padding:3px 8px;margin-top:4px}
+.funnel-column .funnel-results{font-size:10px;margin-top:4px;gap:9px}
+.funnel-column .cv-transition{min-height:33px;gap:6px}
+.funnel-column .cv-transition-arrow{font-size:20px}
+.funnel-column .cv-transition-text{font-size:10px}
+.funnel-column .cv-transition-text strong{font-size:13px;margin-top:0}
+.funnel-cv .funnel-step.level-1{width:100%}
+.funnel-cv .funnel-step.level-2{width:91%}
+.funnel-cv .funnel-step.level-3{width:83%}
+.funnel-cv .funnel-step.level-4{width:77%}
+.funnel-cv .funnel-step.level-5{width:72%}
+.funnel-column .metric-note{font-size:10px;line-height:1.4;margin-top:9px}
+@media(max-width:640px){
+.funnel-column{padding:12px 9px}
+.funnel-column .funnel-label,.funnel-cv .funnel-label{font-size:16px}
+.funnel-column .funnel-value,.funnel-cv .funnel-value{font-size:15px}
+.funnel-column .funnel-step{min-height:72px;padding:9px 8px}
+.funnel-column .cv-transition-text{max-width:100px;font-size:9px}
+.funnel-column .funnel-results{gap:6px}
+}
 footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){main{padding:12px}.heading{display:block}.pill{display:inline-block;margin-top:10px}.kpis{gap:9px}.kpi{padding:14px}.kpi strong{font-size:21px}.status{grid-template-columns:repeat(2,1fr)}.barrow{grid-template-columns:1.2fr 1fr 75px;gap:7px}}
