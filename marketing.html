@@ -546,6 +546,7 @@ async function load(){
     const defaultStart=obj.period.since; // Primeiro acesso abre todo histórico sincronizado
     $('startDate').value=startChoice && startChoice>=obj.period.since && startChoice<=obj.period.until ? startChoice : defaultStart;
     await loadConversionMetrics();
+    await loadCvFunnel();
     await applyDate();
     await loadCampaigns();
   }catch(e){
