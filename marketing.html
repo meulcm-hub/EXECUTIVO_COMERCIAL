@@ -43,6 +43,9 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-cv .funnel-step.level-1{background:#e3f3df}
 .funnel-cv .funnel-step.level-2{background:#cde9c5}
 .funnel-cv .funnel-step.level-3{background:#b4dda7}
+.funnel-cv .funnel-step.level-4{width:62%;background:#a2d395}
+.funnel-cv .funnel-step.level-5{width:53%;background:#91c985}
+@media(max-width:640px){.funnel-cv .funnel-step.level-4{width:82%}.funnel-cv .funnel-step.level-5{width:76%}}
 .funnel-cv .funnel-rate{background:#a4d795;color:#235d36}
 .funnel-cv .funnel-value{font-size:27px}
 .funnel-cv .funnel-arrow{color:#5d9870}
@@ -121,14 +124,18 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-step level-3"><span class="funnel-label">03 · RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
 </div><p class="metric-note" id="caveat">Fonte: Meta Ads. Formulários e conversas não são pessoas únicas; cliques totais não equivalem a cliques no link.</p>
 </div>
-<div class="funnel-column funnel-cv"><h3>Indicadores comerciais — CV CRM</h3><p class="funnel-intro">Cadastros novos, retornos e dados comerciais disponíveis.</p>
+<div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Etapas oficiais do processo comercial. Contagens aguardam validação dos dados da API.</p>
 <div class="status">
-<div class="funnel-step level-1"><span class="funnel-label">01 · NOVOS CADASTROS</span><strong class="funnel-value" id="fCvNew">Em validação</strong><span class="funnel-desc">Facebook e Google · cadastros originais no período</span><span class="funnel-rate">WhatsApp Facebook: <b id="fCvWhatsApp">Em validação</b></span></div>
+<div class="funnel-step level-1"><span class="funnel-label">01 · PROSPECT</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade de clientes na etapa Prospect</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-2"><span class="funnel-label">02 · RETORNOS CONFIRMADOS</span><strong class="funnel-value" id="fCvReturned">Em validação</strong><span class="funnel-desc">Interações posteriores de clientes existentes</span><span class="funnel-rate">Não representam necessariamente os novos cadastros acima</span></div>
+<div class="funnel-step level-2"><span class="funnel-label">02 · AGENDAMENTO</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Agendamento</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-3"><span class="funnel-label">03 · RESERVAS E VENDAS</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Sem ligação validada entre estes leads e contratos</span></div>
-</div><p class="metric-note">Fonte: CV CRM. Os indicadores não são etapas comprovadas das mesmas pessoas. Não calcular conversão entre eles sem vínculo individual.</p>
+<div class="funnel-step level-3"><span class="funnel-label">03 · VISITA</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Visita</span></div>
+<div class="funnel-arrow" aria-hidden="true">↓</div>
+<div class="funnel-step level-4"><span class="funnel-label">04 · ANÁLISE DE CRÉDITO</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Análise de Crédito</span></div>
+<div class="funnel-arrow" aria-hidden="true">↓</div>
+<div class="funnel-step level-5"><span class="funnel-label">05 · VENDA REALIZADA</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Venda Realizada</span></div>
+</div><p class="metric-note">As etapas foram definidas. Os valores serão exibidos quando validarmos os status e as regras de contagem do CV CRM, sem presumir conversões entre etapas.</p>
 </div>
 </div>
 </div>
@@ -406,9 +413,6 @@ function render(){
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   renderConversionMetrics(visible);
   renderWhatsAppCV(visible);
-  $('fCvNew').textContent=$('cvNew').textContent;
-  $('fCvReturned').textContent=$('cvReturned').textContent;
-  $('fCvWhatsApp').textContent=$('cvWhatsAppNew').textContent;
   renderCampaigns(visible);
   $('caveat').textContent='Fonte: Meta Ads. Cliques totais ÷ impressões não é o CTR de link. Formulários ÷ cliques é uma razão indicativa; formulários e conversas WhatsApp são apresentados separadamente para evitar interpretação de pessoas únicas.';
 }
