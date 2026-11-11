@@ -106,7 +106,7 @@ def main():
         last_project=norm(row.get("empreendimento_ultimo"))
         if lead in original and (date,first_project)!=(original[lead][0],original[lead][1]):
             conflicting.add(lead)
-        original[lead]=(date,first_project,acquisition_channel(row))
+        original[lead]=(date,first_project,acquisition_channel(row),classify_channel(row)=="meta_whatsapp_cv")
         for id_field,name in (("idempreendimento_primeiro",first_project),("idempreendimento_ultimo",last_project)):
             project_id=row.get(id_field)
             if project_id is not None and name:
@@ -135,15 +135,17 @@ def main():
 
     dates=[(since+dt.timedelta(days=i)).isoformat() for i in range(DAYS)]
     new_by_date=collections.defaultdict(collections.Counter)
-    for lead,(first,first_project,channel) in original.items():
+    for lead,(first,first_project,channel,is_whatsapp) in original.items():
         if lead in conflicting:continue
         if first_project in PROJECTS and since<=first<=until and channel:
             new_by_date[first_project][first.isoformat()]+=1
             new_by_date[first_project][(first.isoformat(),channel)]+=1
+            if is_whatsapp:new_by_date[first_project][(first.isoformat(),"whatsapp")]+=1
 
     daily_events=collections.defaultdict(collections.Counter)
     daily_unique=collections.defaultdict(lambda:collections.defaultdict(set))
     daily_returning=collections.defaultdict(lambda:collections.defaultdict(set))
+    daily_returning_whatsapp=collections.defaultdict(lambda:collections.defaultdict(set))
     daily_unclassified=collections.defaultdict(lambda:collections.defaultdict(set))
     event_ids=set()
     invalid=0
@@ -212,6 +214,7 @@ def main():
             invalid_evidence["sem_original_ou_conflito"]+=1
         elif info[0]<date:
             daily_returning[project][day].add(lead)
+            if info[3]:daily_returning_whatsapp[project][day].add(lead)
 
     print("Cobertura de eventos (somente contagens): vinculados aos 4 projetos "+str(matched)+
           "; outros projetos reconhecidos "+str(external_mapped)+
@@ -229,30 +232,35 @@ def main():
     for i,first in enumerate(dates):
         sets={p:set() for p in PROJECTS}
         returned={p:set() for p in PROJECTS}
+        returned_whatsapp={p:set() for p in PROJECTS}
         unknown={p:set() for p in PROJECTS}
         for second in dates[i:]:
             for p in PROJECTS:
                 sets[p].update(daily_unique[p].get(second,()))
                 returned[p].update(daily_returning[p].get(second,()))
+                returned_whatsapp[p].update(daily_returning_whatsapp[p].get(second,()))
                 unknown[p].update(daily_unclassified[p].get(second,()))
             unique_ranges[first+"|"+second]={
                 "unique":{**{p:len(sets[p]) for p in PROJECTS},
                           "all":len(set().union(*sets.values()))},
                 "returning":{**{p:len(returned[p]) for p in PROJECTS},
                              "all":len(set().union(*returned.values()))},
+                "returning_whatsapp":{**{p:len(returned_whatsapp[p]) for p in PROJECTS},
+                                      "all":len(set().union(*returned_whatsapp.values()))},
                 "unclassified_return":{**{p:len(unknown[p]) for p in PROJECTS},
                                         "all":len(set().union(*unknown.values()))},
             }
     def daily_for(p):
         return {d:{"new":new_by_date[p][d],
                    "facebook_new":new_by_date[p][(d,"facebook")],
+                   "whatsapp_new":new_by_date[p][(d,"whatsapp")],
                    "google_new":new_by_date[p][(d,"google")],
                    "conversions":daily_events[p][d],
                    "facebook_conversions":daily_events[p][(d,"facebook")],
                    "google_conversions":daily_events[p][(d,"google")]}
                 for d in dates}
     report={
-        "schema_version":2,
+        "schema_version":3,
         "channel_scope":"facebook_google",
         "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
         "period":{"since":since.isoformat(),"until":until.isoformat()},
