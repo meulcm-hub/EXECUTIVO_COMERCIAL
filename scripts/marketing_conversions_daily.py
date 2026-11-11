@@ -100,7 +100,7 @@ def main():
         # "empreendimento" vários nomes. Usar apenas quando ambos são
         # inequívocos (um único identificador e um único nome).
         import re
-        extra_ids=re.findall(r"\\d+",str(row.get("idempreendimento") or ""))
+        extra_ids=re.findall(r"\d+",str(row.get("idempreendimento") or ""))
         extra_name=norm(row.get("empreendimento"))
         if len(extra_ids)==1 and extra_name and (
             extra_name==first_project or extra_name==last_project):
