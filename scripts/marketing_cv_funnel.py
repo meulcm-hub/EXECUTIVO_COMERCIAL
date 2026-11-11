@@ -75,12 +75,14 @@ def rows(payload, keys):
         return list(payload.values())
     raise RuntimeError("Chaves de resposta não reconhecidas")
 
-def paged(base, email, token, path, start, end, *, collection, commercial=False):
+def paged(base, email, token, path, start, end, *, collection, commercial=False, precadastro=False):
     seen = set()
     all_rows = []
     for page in range(1, MAX_PAGES + 1):
-        params = {"pagina": page, "registros_por_pagina": PAGE_SIZE}
-        if commercial:
+        params = {"pagina": page, "limite" if precadastro else "registros_por_pagina": PAGE_SIZE}
+        if precadastro:
+            pass  # Pré-cadastro v1 não documenta filtros por data; consultar tudo.
+        elif commercial:
             params.update({"situacao": "todas", "faturar": "false",
                            "retornar_integradas": "true"})
         else:
@@ -101,7 +103,13 @@ def paged(base, email, token, path, start, end, *, collection, commercial=False)
         pages = payload.get("total_de_paginas") or payload.get("totalPaginas")
         if isinstance(payload.get("pagination"), dict):
             pages = pages or payload["pagination"].get("totalPaginas")
-        if pages is not None:
+        if precadastro and "total" in payload:
+            total = int(payload["total"])
+            if total < 0:
+                raise RuntimeError("Total inválido em pré-cadastros")
+            if len(all_rows) >= total:
+                return all_rows
+        elif pages is not None:
             if page >= int(pages):
                 return all_rows
         elif len(batch) < PAGE_SIZE:
@@ -209,9 +217,8 @@ def main():
     tasks = paged(base, email, token, "/api/v1/cvdw/leads/tarefas",
                   begin, today, collection=("dados", "data", "tarefas"))
     precad = paged(base, email, token, "/api/v1/comercial/precadastro",
-                   begin, today, collection=("precadastros",), commercial=False)
-    # Este endpoint usa pagina/limite, não registros_por_pagina.
-    # Falhar se o formato de paginação difere, em vez de publicar dados parciais.
+                   begin, today, collection=("precadastros",), precadastro=True)
+    # O endpoint de pré-cadastro usa pagina/limite e campo total.
     reservations = paged(base, email, token, "/api/v1/comercial/reservas",
                          begin, today, collection=("reservas", "data"),
                          commercial=True)
