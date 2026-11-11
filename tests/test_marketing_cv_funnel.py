@@ -36,6 +36,25 @@ class FunnelRulesTests(unittest.TestCase):
             "leads_associados": [{"idlead": 77}, {"idlead": 77}, {"idlead": 88}]
         }), {"77", "88"})
 
+    def test_cvdw_reservas_response_dados(self):
+        payload = {"pagina": 1, "registros": 1,
+                   "total_de_registros": 1, "total_de_paginas": 1,
+                   "dados": [{"idreserva": 12414, "venda": "Sim",
+                              "situacao": "Vendida", "idlead": "168523,4322",
+                              "data_venda": "2026-11-11 00:00:00"}]}
+        self.assertEqual(len(funnel.rows(payload, ("dados",))), 1)
+        row = funnel.rows(payload, ("dados",))[0]
+        self.assertTrue(funnel.sold(row))
+        self.assertEqual(funnel.lead_ids(row), {"168523", "4322"})
+        with patch.object(funnel, "get", return_value=payload) as mocked:
+            got = funnel.paged("https://lcm.cvcrm.com.br", "a", "b",
+                              "/api/v1/cvdw/reservas",
+                              __import__("datetime").date(2026, 11, 1),
+                              __import__("datetime").date(2026, 11, 11),
+                              collection=("dados",))
+        self.assertEqual(len(got), 1)
+        self.assertEqual(mocked.call_count, 1)
+
     def test_precadastro_paginates_by_total(self):
         payloads = [
             {"total": 3, "limite": 2, "pagina": 1,
