@@ -10,7 +10,8 @@ import json
 import os
 import sys
 from cv_join_original_conversions import read_complete, get_lead_page, read_conversion_page
-from marketing_consolidate import norm, to_date
+from marketing_consolidate import norm, to_date, classify_channel
+from cv_conversion_audit import source as conversion_source
 
 PROJECTS=(
     "residencial flores do cerrado jacaranda",
@@ -19,6 +20,20 @@ PROJECTS=(
     "residencial jatoba",
 )
 DAYS=90
+
+def acquisition_channel(row):
+    """Facebook inclui Busca Compartilhada e WhatsApp Facebook; Google separado."""
+    kind=classify_channel(row)
+    if kind.startswith("meta_"):return "facebook"
+    if kind=="google_declarada":return "google"
+    return None
+
+def event_channel(row):
+    """Prioriza a origem e mídia da conversão, não o canal original do lead."""
+    kind=conversion_source(row)
+    if kind.startswith("meta_"):return "facebook"
+    if kind=="google_declarada":return "google"
+    return None
 
 def main():
     base=os.environ.get("CVCRM_DOMINIO","").strip().rstrip("/")
@@ -91,7 +106,7 @@ def main():
         last_project=norm(row.get("empreendimento_ultimo"))
         if lead in original and (date,first_project)!=original[lead]:
             conflicting.add(lead)
-        original[lead]=(date,first_project)
+        original[lead]=(date,first_project,acquisition_channel(row))
         for id_field,name in (("idempreendimento_primeiro",first_project),("idempreendimento_ultimo",last_project)):
             project_id=row.get(id_field)
             if project_id is not None and name:
@@ -120,10 +135,11 @@ def main():
 
     dates=[(since+dt.timedelta(days=i)).isoformat() for i in range(DAYS)]
     new_by_date=collections.defaultdict(collections.Counter)
-    for lead,(first,first_project) in original.items():
+    for lead,(first,first_project,channel) in original.items():
         if lead in conflicting:continue
-        if first_project in PROJECTS and since<=first<=until:
+        if first_project in PROJECTS and since<=first<=until and channel:
             new_by_date[first_project][first.isoformat()]+=1
+            new_by_date[first_project][(first.isoformat(),channel)]+=1
 
     daily_events=collections.defaultdict(collections.Counter)
     daily_unique=collections.defaultdict(lambda:collections.defaultdict(set))
@@ -182,9 +198,12 @@ def main():
             external_mapped+=1
             continue
         info=original.get(lead)
+        channel=event_channel(row)
+        if channel is None:continue
         day=date.isoformat()
         matched+=1
         daily_events[project][day]+=1
+        daily_events[project][(day,channel)]+=1
         daily_unique[project][day].add(lead)
         if info is None or lead in conflicting or info[0]>date:
             # Conversão e lead único são identificados pelo evento, mas
@@ -225,10 +244,16 @@ def main():
                                         "all":len(set().union(*unknown.values()))},
             }
     def daily_for(p):
-        return {d:{"new":new_by_date[p][d],"conversions":daily_events[p][d]}
+        return {d:{"new":new_by_date[p][d],
+                   "facebook_new":new_by_date[p][(d,"facebook")],
+                   "google_new":new_by_date[p][(d,"google")],
+                   "conversions":daily_events[p][d],
+                   "facebook_conversions":daily_events[p][(d,"facebook")],
+                   "google_conversions":daily_events[p][(d,"google")]}
                 for d in dates}
     report={
-        "schema_version":1,
+        "schema_version":2,
+        "channel_scope":"facebook_google",
         "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
         "period":{"since":since.isoformat(),"until":until.isoformat()},
         "validated":True,
@@ -237,7 +262,7 @@ def main():
         "projects":list(PROJECTS),
         "daily":{p:daily_for(p) for p in PROJECTS},
         "range_unique":unique_ranges,
-        "method":"Novos por data_cad original e primeiro empreendimento; conversões por referência/data e ID do empreendimento de conversão; retornos após o dia do cadastro; unicidade por ID deduplicada no runner privado.",
+        "method":"Novos por data_cad original, primeiro empreendimento e origem Facebook/Google; conversões com empreendimento e origem de evento Facebook/Google; retornos posteriores ao dia do cadastro; sem dupla contagem por ID.",
         "caveat":"Indicadores limitados a eventos com empreendimento de conversão identificado. Eventos sem vínculo de empreendimento foram excluídos; isso não indica que sejam antigos. Retornos sem cadastro original válido ficam indeterminados. Conversões múltiplas no dia do cadastro não contam como retorno; não há atribuição a campanhas Meta.",
     }
     os.makedirs("data",exist_ok=True)
@@ -245,7 +270,7 @@ def main():
     with open(path+".tmp","w",encoding="utf-8") as fh:
         json.dump(report,fh,ensure_ascii=False,separators=(",",":"))
     os.replace(path+".tmp",path)
-    print("CONSOLIDADO DE CONVERSÕES IDENTIFICADAS PREPARADO PARA PUBLICAÇÃO")
+    print("CONSOLIDADO CV - FACEBOOK E GOOGLE - PREPARADO PARA PUBLICAÇÃO")
     print("Dias: "+str(DAYS)+"; projetos: "+str(len(PROJECTS)))
     print("Leads históricos válidos: "+str(len(original)))
     print("Eventos CV de projetos vinculados: "+str(matched))
