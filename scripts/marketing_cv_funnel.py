@@ -178,7 +178,7 @@ def main():
     reservation_preflight = get(base, email, token, "/api/v1/cvdw/reservas",
                                 {"pagina": 1, "registros_por_pagina": 1})
     if reservation_preflight is not None:
-        rows(reservation_preflight, ("reservas", "data"))
+        rows(reservation_preflight, ("dados",))
     print("Pré-validação de reservas concluída.", flush=True)
     original = {}
     conflicts = set()
