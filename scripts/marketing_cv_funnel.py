@@ -163,6 +163,14 @@ def main():
     today = dt.date.today()
     begin = today - dt.timedelta(days=DAYS - 1)
     historical = dt.date(2022, 1, 1)
+    # Validar o endpoint de reservas primeiro: evita percorrer anos de leads
+    # antes de descobrir erros de parâmetros/autorização comercial.
+    reservation_preflight = get(base, email, token, "/api/v1/comercial/reservas",
+                                {"pagina": 1, "registros_por_pagina": 1,
+                                 "faturar": "false", "retornar_integradas": "true"})
+    if reservation_preflight is not None:
+        rows(reservation_preflight, ("reservas", "data"))
+    print("Pré-validação de reservas concluída.", flush=True)
     original = {}
     conflicts = set()
     aliases = collections.defaultdict(set)
