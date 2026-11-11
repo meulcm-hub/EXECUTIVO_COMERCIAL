@@ -36,7 +36,7 @@ def actions(row, kind):
     return number(items[0].get("value") if items else 0)
 
 def main():
-    last = dt.date.today() - dt.timedelta(days=1)
+    last = dt.date.today()
     first = last - dt.timedelta(days=DAYS - 1)
     catalog = accounts()
     if len(catalog) != 8:
