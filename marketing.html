@@ -47,7 +47,9 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-cv .funnel-step.level-5{width:53%;background:#91c985}
 @media(max-width:640px){.funnel-cv .funnel-step.level-4{width:82%}.funnel-cv .funnel-step.level-5{width:76%}}
 .funnel-cv .funnel-rate{background:#a4d795;color:#235d36}
-.funnel-cv .funnel-value{font-size:27px}
+.funnel-cv .funnel-label{font-size:32px;font-weight:850;line-height:1.18;letter-spacing:.01em}
+.funnel-cv .funnel-value{font-size:24px;font-weight:750;margin:9px 0 0}
+@media(max-width:640px){.funnel-cv .funnel-label{font-size:25px}.funnel-cv .funnel-value{font-size:20px}}
 .funnel-cv .funnel-arrow{color:#5d9870}
 .cv-transition{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;min-height:52px;gap:8px;color:#317b4b}
 .cv-transition-arrow{grid-column:2;font-size:28px;line-height:1;text-align:center}
@@ -132,15 +134,15 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </div>
 <div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Acompanhe a evolução da mesma safra de prospects, inclusive após o período selecionado.</p>
 <div class="status" id="cvFunnel">
-<div class="funnel-step level-1"><span class="funnel-label">01 · PROSPECT</span><strong class="funnel-value" id="cvFunnelProspect">Não apurado</strong></div>
+<div class="funnel-step level-1"><span class="funnel-label">PROSPECT</span><strong class="funnel-value" id="cvFunnelProspect">Não apurado</strong></div>
 <div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Prospect → Agendamento <strong id="cvRateProspect">—</strong></span></div>
-<div class="funnel-step level-2"><span class="funnel-label">02 · AGENDAMENTO</span><strong class="funnel-value" id="cvFunnelSchedule">Não apurado</strong></div>
+<div class="funnel-step level-2"><span class="funnel-label">AGENDAMENTO</span><strong class="funnel-value" id="cvFunnelSchedule">Não apurado</strong></div>
 <div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Agendamento → Visita <strong id="cvRateSchedule">—</strong></span></div>
-<div class="funnel-step level-3"><span class="funnel-label">03 · VISITA</span><strong class="funnel-value" id="cvFunnelVisit">Não apurado</strong></div>
+<div class="funnel-step level-3"><span class="funnel-label">VISITA</span><strong class="funnel-value" id="cvFunnelVisit">Não apurado</strong></div>
 <div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Visita → Análise <strong id="cvRateVisit">—</strong></span></div>
-<div class="funnel-step level-4"><span class="funnel-label">04 · ANÁLISE DE CRÉDITO</span><strong class="funnel-value" id="cvFunnelCredit">Não apurado</strong></div>
+<div class="funnel-step level-4"><span class="funnel-label">ANÁLISE DE CRÉDITO</span><strong class="funnel-value" id="cvFunnelCredit">Não apurado</strong></div>
 <div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Análise → Venda <strong id="cvRateCredit">—</strong></span></div>
-<div class="funnel-step level-5"><span class="funnel-label">05 · VENDA REALIZADA</span><strong class="funnel-value" id="cvFunnelSale">Não apurado</strong></div>
+<div class="funnel-step level-5"><span class="funnel-label">VENDA REALIZADA</span><strong class="funnel-value" id="cvFunnelSale">Não apurado</strong></div>
 </div><p class="metric-note">Taxa por etapa = clientes únicos na próxima etapa ÷ clientes únicos na etapa anterior. Cada cliente conta uma vez por etapa; quem avança à venda conta também nas anteriores. Valores dependem da integração validada.</p>
 </div>
 </div>
