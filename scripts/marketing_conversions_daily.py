@@ -104,7 +104,7 @@ def main():
         lead_records+=1
         first_project=norm(row.get("empreendimento_primeiro") or row.get("empreendimento"))
         last_project=norm(row.get("empreendimento_ultimo"))
-        if lead in original and (date,first_project)!=original[lead]:
+        if lead in original and (date,first_project)!=(original[lead][0],original[lead][1]):
             conflicting.add(lead)
         original[lead]=(date,first_project,acquisition_channel(row))
         for id_field,name in (("idempreendimento_primeiro",first_project),("idempreendimento_ultimo",last_project)):
