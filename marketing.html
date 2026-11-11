@@ -31,6 +31,15 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .summaryline{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;font-size:11px;color:#657b86}
 .metric-note{font-size:11px;line-height:1.5;color:#6b7f89;margin-top:13px}
 .highlight{color:var(--green)}
+.origin-chart{min-height:130px;overflow:hidden}
+.origin-legend{display:flex;flex-wrap:wrap;gap:15px;font-size:11px;color:#617982;margin-bottom:8px}
+.origin-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.origin-chart svg{width:100%;height:145px;display:block}
+.origin-labels{display:flex;justify-content:space-between;font-size:10px;color:#778a94}
+.cv-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cv-metrics .kpi{min-height:155px}
+@media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
 </style></head>
 <body><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
@@ -43,47 +52,28 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <button class="button alt" id="reload" type="button">Atualizar</button>
 </section>
 <section class="kpis">
-<div class="kpi"><small>Investimento Meta</small><strong id="spend">—</strong><span>Gastos da conta do empreendimento</span></div>
-<div class="kpi"><small>Leads Meta + Busca Compartilhada + WhatsApp</small><strong id="leadsMeta">—</strong><span>Inclui WhatsApp Facebook e Busca Compartilhada</span></div>
-<div class="kpi"><small>CPL geral da conta • CV</small><strong id="cpl">—</strong><span>Investimento Meta ÷ leads de origem Meta</span></div>
-<div class="kpi"><small>Leads totais CV CRM</small><strong id="leadsTotal">—</strong><span>Origem Meta, Google e outras</span></div>
+<div class="kpi"><small>Investimento em captação Meta</small><strong id="spend">—</strong><span>Campanhas de formulário e WhatsApp</span></div>
+<div class="kpi"><small>Leads de formulário</small><strong id="formsMeta">—</strong><span>Resultados de formulário da Meta Ads</span></div>
+<div class="kpi"><small>Conversas de WhatsApp</small><strong id="waMeta">—</strong><span>Conversas iniciadas atribuídas pela Meta</span></div>
+<div class="kpi"><small>CPL combinado indicativo</small><strong id="cpl">—</strong><span>Gasto em captação ÷ (formulários + conversas)</span></div>
 </section>
 <section class="panel" style="margin-top:15px">
 <h2>Novos cadastros x retornos no CV CRM</h2>
-<p class="sub">São dois eventos distintos: o primeiro cadastro identifica um novo cliente; a conversão posterior registra quando o cliente voltou a interagir com uma campanha.</p>
-<div class="kpis">
-<div class="kpi"><small>Novos cadastros no período</small><strong id="cvNew">Em validação</strong><span>Primeiro cadastro no CV e primeiro empreendimento</span></div>
-<div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Leads com conversão em data posterior ao cadastro</span></div>
-<div class="kpi"><small>Conversões identificadas</small><strong id="cvEvents">Em validação</strong><span>Eventos de conversão; um lead pode aparecer mais de uma vez</span></div>
-<div class="kpi"><small>Leads únicos identificados</small><strong id="cvUnique">Em validação</strong><span>Leads distintos deduplicados no período e empreendimento</span></div>
+<p class="sub">Apenas origens Facebook e Google. Busca Compartilhada e mídia WhatsApp Facebook são agrupadas em Facebook. Outras origens não entram nesta leitura.</p>
+<div class="cv-metrics">
+<div class="kpi"><small>Novos cadastros</small><strong id="cvNew">Em validação</strong><span>Facebook e Google · data original no CV</span></div>
+<div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Nova conversão após o cadastro inicial</span></div>
+<div class="kpi"><small>Conversões identificadas</small><strong id="cvEvents">Em validação</strong><span>Eventos com empreendimento e origem confirmados</span></div>
+<div class="kpi"><small>Origem dos novos leads</small><div class="origin-chart" id="cvOriginChart"><span class="note">Aguardando dados por dia</span></div></div>
 </div>
 <p class="metric-note" id="cvConversionNote">Aguardando publicação do cruzamento privado entre cadastro original, conversões e empreendimentos. Não presumir atribuição às campanhas da Meta.</p>
 </section>
-<section class="panel" style="margin-top:15px">
-<h2>Captação Meta Ads x CV CRM • Formulário e WhatsApp</h2>
-<p class="sub">Resultados de formulário da Meta por campanha, separados dos cadastros com origem Facebook/Meta no CV CRM. Mesmas datas selecionadas, métricas diferentes.</p>
-<div class="kpis">
-<div class="kpi"><small>Formulários Meta (API)</small><strong id="formsMeta">—</strong><span>Resultados atribuídos a campanhas de formulário</span></div>
-<div class="kpi"><small>Gasto em campanhas com formulários</small><strong id="formsSpend">—</strong><span>Campanhas com resultados de formulário no período</span></div>
-<div class="kpi"><small>CPL de formulário Meta</small><strong id="formsCpl">—</strong><span>Gasto nessas campanhas ÷ formulários</span></div>
-<div class="kpi"><small>Diferença bruta formulários − CV Meta</small><strong id="formsDiff">—</strong><span>Métricas não equivalentes; não significa leads perdidos</span></div>
-</div>
-<div class="kpis" style="margin-top:12px">
-<div class="kpi"><small>Leads CV · WhatsApp Facebook</small><strong id="waCv">—</strong><span>Subconjunto da origem Meta no CV</span></div>
-<div class="kpi"><small>Leads CV · Busca Compartilhada</small><strong id="sharedCv">—</strong><span>Subconjunto da origem Meta por regra LCM</span></div>
-<div class="kpi"><small>Gasto de captação (formulário + WADS)</small><strong id="captureSpend">—</strong><span>Campanhas selecionadas sem gasto duplicado</span></div>
-<div class="kpi"><small>CPL combinado • CV Meta</small><strong id="captureCpl">—</strong><span>Gasto captação ÷ leads Meta, incluindo WhatsApp</span></div>
-</div>
-<p id="formNote" class="metric-note">Aguardando histórico de resultados por campanha Meta.</p>
-</section>
+
 <section class="grid">
-<div class="panel"><h2>Campanhas de captação — Meta Ads</h2><p class="sub">Campanhas de formulário e WADS WhatsApp; gasto registrado uma vez por campanha. Conversas não são cadastros únicos no CV.</p>
-<div class="tablewrap"><table class="table"><thead><tr><th>Campanha</th><th style="text-align:right">Leads formulário</th><th style="text-align:right">Gasto</th><th style="text-align:right">Conversas Meta</th><th style="text-align:right">CPL formulário</th></tr></thead><tbody id="campaignTable"><tr><td colspan="4">Aguardando sincronização da Meta.</td></tr></tbody></table></div>
+<div class="panel" style="grid-column:1 / -1"><h2>Campanhas de captação — Meta Ads</h2><p class="sub">Formulários e WhatsApp: gasto de campanhas de captação, sem duplicar investimento. Conversas iniciadas não são necessariamente leads únicos.</p>
+<div class="tablewrap"><table class="table"><thead><tr><th>Campanha</th><th style="text-align:right">Leads formulário</th><th style="text-align:right">Gasto</th><th style="text-align:right">Conversas WhatsApp</th><th style="text-align:right">CPL formulário</th></tr></thead><tbody id="campaignTable"><tr><td colspan="4">Aguardando sincronização da Meta.</td></tr></tbody></table></div>
 </div>
-<div class="panel"><h2>Conferência dos resultados</h2><p class="sub">Compare as plataformas sem presumir que todos os cadastros são equivalentes.</p>
-<div id="compareRows" class="empty">Carregando resultados da API Meta.</div>
-<p class="metric-note">A divergência pode decorrer de atribuição, duplicidade, integração e datas. Apenas conciliação por identificador no ambiente privado comprovaria perda de cadastros.</p>
-</div>
+
 </section>
 <section class="grid">
 <div class="panel"><h2>Investimento por empreendimento</h2><p class="sub">Meta Ads, período selecionado, valores em BRL. Quando selecionar um empreendimento, só ele será exibido.</p><div id="chartSpend" class="empty">Aguardando consolidação.</div></div>
@@ -98,7 +88,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
 </div>
 </section>
-<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL Meta utiliza somente as campanhas que tiveram conversões de formulário no intervalo; uma divergência não comprova perda de leads. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
+<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado usa os gastos das campanhas de formulário e WhatsApp divididos pelos resultados de formulário e conversas iniciadas. Não equivale ao custo por lead único. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
 <script>
 (()=>{
