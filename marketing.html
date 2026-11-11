@@ -206,15 +206,19 @@ function renderConversionMetrics(visible){
    return;
  }
  const {since,until}=data.period;
- if(since<conversionSource.period.since||until>conversionSource.period.until){
-   missing('Cruzamento validado disponível somente de '+conversionSource.period.since+' até '+conversionSource.period.until+'. Ajuste o período ou aguarde nova coleta.');
+ const availableUntil=conversionSource.period.until;
+ if(since<conversionSource.period.since||since>availableUntil){
+   missing('Cruzamento validado disponível de '+conversionSource.period.since+' até '+availableUntil+'. Selecione um período nessa janela.');
    return;
  }
+ // Se a atualização do Marketing chegar antes do CV, mostrar somente os
+ // dias realmente consolidados, identificando explicitamente o corte.
+ const conversionUntil=until>availableUntil?availableUntil:until;
  if(!visible.length||visible.some(m=>!m.project||!conversionSource.daily[m.project])){
    missing('Empreendimento sem vinculação CV validada para conversões.');
    return;
  }
- const range=conversionSource.range_unique?.[since+'|'+until];
+ const range=conversionSource.range_unique?.[since+'|'+conversionUntil];
  if(!range){
    missing('Ainda não existe deduplicação validada para este intervalo de datas.');
    return;
@@ -229,7 +233,7 @@ function renderConversionMetrics(visible){
  for(const m of visible){
    const days=conversionSource.daily[m.project];
    for(const [date,v] of Object.entries(days)){
-     if(date>=since&&date<=until){
+     if(date>=since&&date<=conversionUntil){
        newCount+=Number(v.new||0);
        eventCount+=Number(v.conversions||0);
      }
@@ -241,7 +245,10 @@ function renderConversionMetrics(visible){
  $('cvUnique').textContent=nf(range.unique[key]);
  const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
  const pending=range.unclassified_return?.[key]||0;
- $('cvConversionNote').textContent='Fonte: CV CRM · cruzamento privado por ID, atualizado em '+when+
+ $('cvConversionNote').textContent=(conversionUntil<until?
+ 'Atenção: indicadores do CV disponíveis de '+since+' até '+conversionUntil+
+ ' (o filtro vai até '+until+'). A coleta do CV para os dias seguintes ainda não foi publicada. ':'')+
+ 'Fonte: CV CRM · cruzamento privado por ID, atualizado em '+when+
  '. Conversões e leads únicos: somente eventos com empreendimento confirmado no CV. Retornos confirmados: eventos em data posterior ao cadastro original'+
  (pending?'; '+nf(pending)+' lead(s) deste recorte não puderam ser classificados quanto ao retorno':'')+
  '. Não atribuímos conversões a anúncios Meta; retornos no dia do cadastro não são identificáveis por esta regra.';
