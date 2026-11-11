@@ -2,10 +2,17 @@ name: LCM - Consolidacao segura Meta e CV
 on:
   schedule:
     - cron: '15 11 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marketing_daily.py'
+      - 'scripts/marketing_campaigns.py'
+      - 'scripts/marketing_consolidate.py'
+      - '.github/workflows/marketing-consolidate.yml'
   workflow_dispatch:
     inputs:
       days:
-        description: 'Periodo em dias fechados (1 a 90)'
+        description: 'Periodo em dias ate a data da coleta (1 a 90)'
         required: true
         default: '30'
       cv_pages:
