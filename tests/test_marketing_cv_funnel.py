@@ -19,6 +19,14 @@ class FunnelRulesTests(unittest.TestCase):
         self.assertTrue(funnel.sold({"vendida": "S", "situacao": {"situacao": "Reserva"}}))
         self.assertTrue(funnel.sold({"status_reserva": "Pode Faturar"}))
 
+    def test_cvdw_reservations_multi_lead_string(self):
+        self.assertEqual(funnel.lead_ids({"idlead": "168523,4322"}), {"168523", "4322"})
+        self.assertEqual(funnel.lead_ids({"idlead": 168523}), {"168523"})
+
+    def test_cvdw_sale_flag(self):
+        self.assertTrue(funnel.sold({"venda": "Sim", "situacao": "Pré-vendas"}))
+        self.assertTrue(funnel.sold({"situacao": "Pode Faturar"}))
+
     def test_canceled_not_sale(self):
         for state in ("Cancelada", "Distrato", "Vencida", "Reservada"):
             self.assertFalse(funnel.sold({"situacao": {"situacao": state}}))
