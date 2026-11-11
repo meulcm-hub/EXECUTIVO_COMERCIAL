@@ -25,8 +25,8 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-step.level-1{width:100%;background:#dfecfc}
 .funnel-step.level-2{width:82%;background:#c7dcfa}
 .funnel-step.level-3{width:66%;background:#a9caf4}
-.funnel-label{font-size:13px;font-weight:800;letter-spacing:.03em}
-.funnel-value{font-size:29px;font-weight:800;margin:6px 0 3px;font-variant-numeric:tabular-nums}
+.funnel-label{font-size:24px;font-weight:850;line-height:1.2;letter-spacing:.01em}
+.funnel-value{font-size:21px;font-weight:750;margin:8px 0 3px;font-variant-numeric:tabular-nums}
 .funnel-desc{font-size:12px;line-height:1.5}
 .funnel-arrow{font-size:22px;color:#647985;line-height:1}
 .funnel-rate{display:inline-block;margin-top:7px;background:#94c5fa;color:#174c83;padding:4px 10px;border-radius:24px;font-size:11px;font-weight:750}
@@ -47,19 +47,19 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-cv .funnel-step.level-5{width:53%;background:#91c985}
 @media(max-width:640px){.funnel-cv .funnel-step.level-4{width:82%}.funnel-cv .funnel-step.level-5{width:76%}}
 .funnel-cv .funnel-rate{background:#a4d795;color:#235d36}
-.funnel-cv .funnel-label{font-size:32px;font-weight:850;line-height:1.18;letter-spacing:.01em}
-.funnel-cv .funnel-value{font-size:24px;font-weight:750;margin:9px 0 0}
-@media(max-width:640px){.funnel-cv .funnel-label{font-size:25px}.funnel-cv .funnel-value{font-size:20px}}
+.funnel-cv .funnel-label{font-size:24px;font-weight:850;line-height:1.2;letter-spacing:.01em}
+.funnel-cv .funnel-value{font-size:21px;font-weight:750;margin:8px 0 0}
+@media(max-width:640px){.funnel-label,.funnel-cv .funnel-label{font-size:20px}.funnel-value,.funnel-cv .funnel-value{font-size:18px}}
 .funnel-cv .funnel-arrow{color:#5d9870}
 .cv-transition{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;min-height:52px;gap:8px;color:#317b4b}
 .cv-transition-arrow{grid-column:2;font-size:28px;line-height:1;text-align:center}
 .cv-transition-text{grid-column:3;font-size:11px;line-height:1.35;color:#487b56;max-width:152px}
 .cv-transition-text strong{display:block;font-size:17px;color:#276942;margin-top:2px;font-variant-numeric:tabular-nums}
-@media(max-width:640px){.cv-transition-text{font-size:10px;max-width:110px}.cv-transition-text strong{font-size:15px}.funnel-cv .funnel-value{font-size:23px}}
+@media(max-width:640px){.cv-transition-text{font-size:10px;max-width:110px}.cv-transition-text strong{font-size:15px}}
 
 @media(max-width:950px){.funnel-columns{grid-template-columns:1fr}.funnel-column{padding:16px 12px}}
 
-@media(max-width:640px){.funnel-step.level-2{width:92%}.funnel-step.level-3{width:86%}.funnel-value{font-size:24px}}
+@media(max-width:640px){.funnel-step.level-2{width:92%}.funnel-step.level-3{width:86%}}
 footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){main{padding:12px}.heading{display:block}.pill{display:inline-block;margin-top:10px}.kpis{gap:9px}.kpi{padding:14px}.kpi strong{font-size:21px}.status{grid-template-columns:repeat(2,1fr)}.barrow{grid-template-columns:1.2fr 1fr 75px;gap:7px}}
@@ -125,11 +125,11 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-columns">
 <div class="funnel-column"><h3>Funil de captação — Meta Ads</h3><p class="funnel-intro">Impressões, cliques e resultados das campanhas ativas.</p>
 <div class="status">
-<div class="funnel-step level-1"><span class="funnel-label">01 · IMPRESSÕES</span><strong class="funnel-value" id="fImpressions">—</strong><span class="funnel-desc">Vezes que os anúncios foram exibidos</span></div>
+<div class="funnel-step level-1"><span class="funnel-label">IMPRESSÕES</span><strong class="funnel-value" id="fImpressions">—</strong><span class="funnel-desc">Vezes que os anúncios foram exibidos</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-2"><span class="funnel-label">02 · CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
+<div class="funnel-step level-2"><span class="funnel-label">CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-3"><span class="funnel-label">03 · RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
+<div class="funnel-step level-3"><span class="funnel-label">RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
 </div><p class="metric-note" id="caveat">Fonte: Meta Ads. Formulários e conversas não são pessoas únicas; cliques totais não equivalem a cliques no link.</p>
 </div>
 <div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Acompanhe a evolução da mesma safra de prospects, inclusive após o período selecionado.</p>
