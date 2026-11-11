@@ -53,9 +53,9 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <p class="sub">São dois eventos distintos: o primeiro cadastro identifica um novo cliente; a conversão posterior registra quando o cliente voltou a interagir com uma campanha.</p>
 <div class="kpis">
 <div class="kpi"><small>Novos cadastros no período</small><strong id="cvNew">Em validação</strong><span>Primeiro cadastro no CV e primeiro empreendimento</span></div>
-<div class="kpi"><small>Leads que retornaram</small><strong id="cvReturned">Em validação</strong><span>Leads com conversão em data posterior ao cadastro</span></div>
-<div class="kpi"><small>Conversões no período</small><strong id="cvEvents">Em validação</strong><span>Eventos de conversão; um lead pode aparecer mais de uma vez</span></div>
-<div class="kpi"><small>Leads únicos convertidos</small><strong id="cvUnique">Em validação</strong><span>Leads distintos deduplicados no período e empreendimento</span></div>
+<div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Leads com conversão em data posterior ao cadastro</span></div>
+<div class="kpi"><small>Conversões identificadas</small><strong id="cvEvents">Em validação</strong><span>Eventos de conversão; um lead pode aparecer mais de uma vez</span></div>
+<div class="kpi"><small>Leads únicos identificados</small><strong id="cvUnique">Em validação</strong><span>Leads distintos deduplicados no período e empreendimento</span></div>
 </div>
 <p class="metric-note" id="cvConversionNote">Aguardando publicação do cruzamento privado entre cadastro original, conversões e empreendimentos. Não presumir atribuição às campanhas da Meta.</p>
 </section>
@@ -240,8 +240,11 @@ function renderConversionMetrics(visible){
  $('cvEvents').textContent=nf(eventCount);
  $('cvUnique').textContent=nf(range.unique[key]);
  const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
+ const pending=range.unclassified_return?.[key]||0;
  $('cvConversionNote').textContent='Fonte: CV CRM · cruzamento privado por ID, atualizado em '+when+
- '. Retornos = conversões após o dia do primeiro cadastro. Eventos de conversão não equivalem a cadastros novos nem comprovam atribuição à Meta. Conversões no próprio dia do cadastro não são classificadas como retornos.';
+ '. Conversões e leads únicos: somente eventos com empreendimento confirmado no CV. Retornos confirmados: eventos em data posterior ao cadastro original'+
+ (pending?'; '+nf(pending)+' lead(s) deste recorte não puderam ser classificados quanto ao retorno':'')+
+ '. Não atribuímos conversões a anúncios Meta; retornos no dia do cadastro não são identificáveis por esta regra.';
 }
 function render(){
   if(!data)return;
