@@ -15,7 +15,8 @@ from cv_join_original_conversions import read_complete, get_lead_page, read_conv
 from marketing_consolidate import norm, to_date, classify_channel
 from cv_conversion_audit import source as conversion_source
 
-PROJECTS = ("residencial flores do cerrado jacaranda", "residencial village lagoas")
+PROJECTS = ("residencial flores do cerrado jacaranda", "residencial village lagoas",
+            "spe arraial costa verde club", "residencial jatoba")
 DAYS = 90
 PAGE_SIZE = 500
 MAX_PAGES = 200
