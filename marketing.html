@@ -458,10 +458,10 @@ function renderCvFunnel(visible){
   const values=keys.map(key=>rows.reduce((sum,row)=>sum+row.counts[key],0));
   // Rejeitar contagens que violem a estrutura cumulativa acordada.
   if(values.some((v,i)=>i>0&&v>values[i-1]))return;
-  ids.forEach((id,i)=>$(id).textContent=nf(values[i]));
-  rates.forEach((id,i)=>$(id).textContent=values[i]>0?
-    (values[i+1]/values[i]*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':
-    '—');
+  const salesVerified=cvFunnelSource.sales_link_validated===true;
+  ids.forEach((id,i)=>$(id).textContent=(i===4&&!salesVerified)?'Em auditoria':nf(values[i]));
+  rates.forEach((id,i)=>$(id).textContent=(i===3&&!salesVerified)?'—':
+    values[i]>0?(values[i+1]/values[i]*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':'—');
 }
 let dailySource=null;
 let validatedWindows={};
