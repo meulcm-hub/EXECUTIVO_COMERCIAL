@@ -32,7 +32,11 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .summaryline{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;font-size:11px;color:#657b86}
 .metric-note{font-size:11px;line-height:1.5;color:#6b7f89;margin-top:13px}
 .highlight{color:var(--green)}
-.origin-chart{min-height:130px;overflow:hidden}
+.daily-chart-card{min-width:0}
+.daily-chart{width:100%;min-width:0;margin-top:10px}
+.daily-bar-summary{font-size:11px;color:#6b7f89;margin-bottom:5px}
+.daily-bar-scroll{overflow-x:auto;overflow-y:hidden;max-width:100%;padding-bottom:5px}
+.daily-bar-scroll svg{display:block;max-width:none}
 .origin-legend{display:flex;flex-wrap:wrap;gap:15px;font-size:11px;color:#617982;margin-bottom:8px}
 .origin-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
 .origin-chart svg{width:100%;height:145px;display:block}
@@ -69,7 +73,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="kpi"><small>Novos cadastros</small><strong id="cvNew">Em validação</strong><span>Facebook e Google · data original no CV</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppNew">Em validação</b> são da mídia WhatsApp Facebook</div></details></div>
 <div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Nova conversão após o cadastro inicial</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppReturning">Não apurado</b> são da mídia WhatsApp Facebook</div></details></div>
 
-<div class="kpi"><small>Origem dos novos leads</small><div class="origin-chart" id="cvOriginChart"><span class="note">Aguardando dados por dia</span></div></div>
+<div class="kpi daily-chart-card"><small>LEADS POR DIA</small><div class="daily-chart" id="cvLeadsDailyChart"><span class="note">Aguardando dados por dia</span></div></div>
 </div>
 <p class="metric-note" id="cvConversionNote">Aguardando publicação do cruzamento privado entre cadastro original, conversões e empreendimentos. Não presumir atribuição às campanhas da Meta.</p>
 </section>
@@ -183,72 +187,82 @@ function renderCampaigns(visible){
  addTotal(nf(forms),money(expense),nf(wa),combined===null?'—':money(combined));
 }
 let conversionSource=null;
-function drawOriginChart(dailyByProject,visible,since,until){
- const host=$('cvOriginChart');host.replaceChildren();
- const totals={facebook:0,google:0},byDate=new Map();
- for(const m of visible){
-   const days=dailyByProject[m.project]||{};
-   for(const [date,v] of Object.entries(days)){
-     if(date<since||date>until)continue;
-     const entry=byDate.get(date)||{facebook:0,google:0};
-     entry.facebook+=Number(v.facebook_new||0);
-     entry.google+=Number(v.google_new||0);
-     totals.facebook+=Number(v.facebook_new||0);
-     totals.google+=Number(v.google_new||0);
-     byDate.set(date,entry);
-   }
- }
- const legend=el('div','origin-legend');
- for(const [name,count,color] of [['Facebook',totals.facebook,'#67ae42'],['Google',totals.google,'#2874aa']]){
-   if(name==='Google'&&!totals.google)continue;
-   const item=el('span'),dot=el('span','origin-dot');
-   dot.style.background=color;
-   item.append(dot,document.createTextNode(name+' · '+nf(count)));
-   legend.append(item);
- }
- host.append(legend);
- const dates=[...byDate.keys()].sort();
- if(!dates.length){host.append(el('p','note','Sem novos cadastros para este período.'));return;}
- const width=330,height=125,left=24,right=10,top=8,bottom=18;
- const max=Math.max(1,...dates.flatMap(d=>[byDate.get(d).facebook,byDate.get(d).google]));
- const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
- svg.setAttribute('viewBox','0 0 '+width+' '+height);
- svg.setAttribute('role','img');
- svg.setAttribute('aria-label','Novos cadastros por dia: Facebook '+totals.facebook+', Google '+totals.google);
- const ns='http://www.w3.org/2000/svg';
- const line=(coords,color,strokeWidth,dash)=>{
-   const el=document.createElementNS(ns,'polyline');
-   el.setAttribute('points',coords);
-   el.setAttribute('fill','none');el.setAttribute('stroke',color);
-   el.setAttribute('stroke-width',String(strokeWidth));
-   el.setAttribute('stroke-linecap','round');el.setAttribute('stroke-linejoin','round');
-   if(dash)el.setAttribute('stroke-dasharray',dash);
-   svg.append(el);
- };
- for(let i=0;i<=2;i++){
-   const y=top+(height-top-bottom)*i/2;
-   line(left+','+y+' '+(width-right)+','+y,'#e7eeeb',1);
-   const label=document.createElementNS(ns,'text');
-   label.setAttribute('x','1');label.setAttribute('y',String(y+3));
-   label.setAttribute('font-size','9');label.setAttribute('fill','#70838e');
-   label.textContent=String(Math.round(max*(1-i/2)));
-   svg.append(label);
- }
- const coord=(key)=>dates.map((date,i)=>{
-   const x=left+(width-left-right)*(dates.length===1?0.5:i/(dates.length-1));
-   const y=top+(height-top-bottom)*(1-byDate.get(date)[key]/max);
-   return x.toFixed(1)+','+y.toFixed(1);
- }).join(' ');
- line(coord('facebook'),'#67ae42',2.5);
- if(totals.google)line(coord('google'),'#2874aa',2.2);
- const title=document.createElementNS(ns,'title');
- title.textContent='Evolução diária de novos cadastros por origem';
- svg.prepend(title);
- host.append(svg);
- const ticks=el('div','origin-labels');
- const fmt=date=>date.slice(8,10)+'/'+date.slice(5,7);
- ticks.append(el('span','',fmt(dates[0])),el('span','',fmt(dates[dates.length-1])));
- host.append(ticks);
+function drawLeadsPerDay(dailyByProject,visible,since,until){
+  const host=$('cvLeadsDailyChart');
+  host.replaceChildren();
+  const daily=new Map();
+  const from=new Date(since+'T12:00:00Z');
+  const to=new Date(until+'T12:00:00Z');
+  if(!Number.isFinite(from.getTime())||!Number.isFinite(to.getTime())||to<from){
+    host.append(el('span','note','Período indisponível.'));return;
+  }
+  for(let d=new Date(from);d<=to;d.setUTCDate(d.getUTCDate()+1)){
+    daily.set(d.toISOString().slice(0,10),0);
+  }
+  for(const m of visible){
+    for(const [date,row] of Object.entries(dailyByProject[m.project]||{})){
+      if(daily.has(date))daily.set(date,daily.get(date)+Number(row.new||0));
+    }
+  }
+  const dates=[...daily.keys()];
+  if(!dates.length){host.append(el('span','note','Sem dados por dia neste período.'));return;}
+  const max=Math.max(1,...daily.values());
+  const total=[...daily.values()].reduce((sum,v)=>sum+v,0);
+  const caption=el('div','daily-bar-summary','Novos cadastros no período: '+nf(total));
+  host.append(caption);
+  const viewport=el('div','daily-bar-scroll');
+  const width=Math.max(340,dates.length*31+35),height=196;
+  const left=8,right=8,top=25,bottom=29,plotHeight=height-top-bottom;
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 '+width+' '+height);
+  svg.setAttribute('width',String(width));svg.setAttribute('height',String(height));
+  svg.setAttribute('role','img');
+  svg.setAttribute('aria-label','Novos cadastros por dia, total '+total+', de '+since+' a '+until);
+  const title=document.createElementNS(ns,'title');
+  title.textContent='Novos cadastros diários no CV CRM: '+total+' no período';
+  svg.append(title);
+  const baseline=document.createElementNS(ns,'line');
+  for(const [attr,val] of [['x1',left],['x2',width-right],['y1',height-bottom],['y2',height-bottom],['stroke','#dbe6e0']]){
+    baseline.setAttribute(attr,String(val));
+  }
+  svg.append(baseline);
+  const slot=(width-left-right)/dates.length,barWidth=Math.min(21,slot*.72);
+  const labelEvery=dates.length<=16?1:dates.length<=40?3:Math.ceil(dates.length/14);
+  dates.forEach((date,i)=>{
+    const value=daily.get(date),x=left+i*slot+(slot-barWidth)/2;
+    const barHeight=value?Math.max(2,value/max*plotHeight):0;
+    const rect=document.createElementNS(ns,'rect');
+    rect.setAttribute('x',x.toFixed(2));
+    rect.setAttribute('y',(height-bottom-barHeight).toFixed(2));
+    rect.setAttribute('width',barWidth.toFixed(2));
+    rect.setAttribute('height',barHeight.toFixed(2));
+    rect.setAttribute('fill','#ff9100');
+    rect.setAttribute('rx','1');
+    const tooltip=document.createElementNS(ns,'title');
+    tooltip.textContent=date.split('-').reverse().join('/')+': '+nf(value)+' novo(s) cadastro(s)';
+    rect.append(tooltip);svg.append(rect);
+    if(value>0){
+      const count=document.createElementNS(ns,'text');
+      count.setAttribute('x',(x+barWidth/2).toFixed(2));
+      count.setAttribute('y',String(Math.max(12,height-bottom-barHeight-5)));
+      count.setAttribute('text-anchor','middle');
+      count.setAttribute('font-size','10');
+      count.setAttribute('fill','#5b6870');
+      count.textContent=nf(value);svg.append(count);
+    }
+    if(i%labelEvery===0||i===dates.length-1){
+      const label=document.createElementNS(ns,'text');
+      label.setAttribute('x',(x+barWidth/2).toFixed(2));
+      label.setAttribute('y',String(height-9));
+      label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-size','10');
+      label.setAttribute('fill','#74838b');
+      label.textContent=date.slice(8,10)+'/'+date.slice(5,7);
+      svg.append(label);
+    }
+  });
+  viewport.append(svg);host.append(viewport);
 }
 function renderWhatsAppCV(visible){
   // Cadastros do CV CRM com mídia WhatsApp Facebook, não eventos de conversão.
@@ -280,7 +294,7 @@ function renderConversionMetrics(visible){
  $('cvWhatsAppReturning').textContent='Não apurado';
  const missing=reason=>{
    ids.forEach(id=>$(id).textContent='Em validação');
-   $('cvOriginChart').replaceChildren(el('span','note','Sem dados para gráfico'));
+   $('cvLeadsDailyChart').replaceChildren(el('span','note','Sem dados para gráfico'));
    $('cvConversionNote').textContent=reason;
  };
  if(!conversionSource||!data||conversionSource.validated!==true||
@@ -315,7 +329,7 @@ function renderConversionMetrics(visible){
  $('cvReturned').textContent=nf(range.returning[key]);
  $('cvWhatsAppReturning').textContent=Number.isInteger(range.returning_whatsapp?.[key])?nf(range.returning_whatsapp[key]):'Não apurado';
  
- drawOriginChart(conversionSource.daily,visible,since,cut);
+ drawLeadsPerDay(conversionSource.daily,visible,since,cut);
  const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
  const pending=range.unclassified_return?.[key]||0;
  $('cvConversionNote').textContent=(cut<until?
