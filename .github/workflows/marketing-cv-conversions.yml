@@ -3,6 +3,9 @@ on:
   # Agendamento suspenso até que os eventos sem empreendimento
   # tenham fonte/critério de associação validado.
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/marketing_conversions_daily.py', '.github/workflows/marketing-cv-conversions.yml']
 concurrency:
   group: marketing-cv-conversions-publication
   cancel-in-progress: false
