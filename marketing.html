@@ -32,7 +32,6 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .summaryline{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;font-size:11px;color:#657b86}
 .metric-note{font-size:11px;line-height:1.5;color:#6b7f89;margin-top:13px}
 .highlight{color:var(--green)}
-.cv-metrics{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2.65fr)}
 .daily-chart-card{min-width:0}
 .daily-chart{width:100%;min-width:0;margin-top:10px}
 .daily-bar-summary{font-size:11px;color:#6b7f89;margin-bottom:5px}
@@ -42,7 +41,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .origin-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
 .origin-chart svg{width:100%;height:145px;display:block}
 .origin-labels{display:flex;justify-content:space-between;font-size:10px;color:#778a94}
-.cv-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cv-metrics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2.65fr);gap:14px;width:100%}
 .cv-metrics .kpi{min-height:155px}
 .cv-breakdown{margin-top:14px;border-top:1px solid #e6ecec;padding-top:9px;font-size:12px;color:#405965}
 .cv-breakdown summary{cursor:pointer;font-weight:650;color:#237a6a}
@@ -238,7 +237,7 @@ function drawLeadsPerDay(dailyByProject,visible,since,until){
     const day=i+1,x=left+i*slot+(slot-barWidth)/2;
     const barHeight=value?Math.max(2,value/max*plotHeight):0;
     const rect=document.createElementNS(ns,'rect');
-    [['x',x],['y',height-bottom-barHeight],['width',barWidth],['height',barHeight],['fill','#ff9100'],['rx',1]].forEach(([k,v])=>rect.setAttribute(k,String(v)));
+    [['x',x],['y',height-bottom-barHeight],['width',barWidth],['height',barHeight],['fill','#67ae42'],['rx',1]].forEach(([k,v])=>rect.setAttribute(k,String(v)));
     const tooltip=document.createElementNS(ns,'title');
     tooltip.textContent='Dia '+day+': '+nf(value)+' novos cadastros'+
       (multipleMonths?' somados em '+datesByDay[i].length+' data(s) do período':'');
