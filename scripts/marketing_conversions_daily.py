@@ -67,16 +67,15 @@ def main():
           str(preflight["associacao_invalida"])+
           "; associações múltiplas "+
           str(preflight["mais_de_um_empreendimento"])+".",flush=True)
-    if (preflight["registro_invalido"] or preflight["sem_id_evento"] or
-        preflight["associacao_invalida"] or
-        preflight["empreendimento_nao_registrado"] or
-        preflight["mais_de_um_empreendimento"]):
-        raise RuntimeError(
-            "Cobertura por empreendimento insuficiente: a API não informa "+
-            "o empreendimento de todos os eventos. Consulta histórica desde "+
-            "2022 dispensada para evitar execução longa. Nenhum dado incompleto "+
-            "foi publicado. É necessária uma regra de atribuição validada "+
-            "ou uma fonte adicional do CV CRM.")
+    # Eventos sem empreendimento são excluídos dos indicadores por projeto.
+    # Isso NÃO prova que são antigos. Não precisamos ler os cadastros para
+    # descobrir isso; a avaliação completa de qualidade segue abaixo.
+    if preflight["registro_invalido"] or preflight["sem_id_evento"]:
+        raise RuntimeError("Existem conversões sem ID de evento; deduplicação insegura.")
+    if preflight["empreendimento_nao_registrado"]:
+        print("Eventos sem empreendimento do evento serão excluídos dos indicadores por empreendimento, sem inferir idade do lead.",flush=True)
+    if preflight["associacao_invalida"] or preflight["mais_de_um_empreendimento"]:
+        print("Associações inválidas ou múltiplas serão tratadas como não atribuíveis.",flush=True)
 
     original={}
     project_alias=collections.defaultdict(set)
@@ -129,6 +128,7 @@ def main():
     daily_events=collections.defaultdict(collections.Counter)
     daily_unique=collections.defaultdict(lambda:collections.defaultdict(set))
     daily_returning=collections.defaultdict(lambda:collections.defaultdict(set))
+    daily_unclassified=collections.defaultdict(lambda:collections.defaultdict(set))
     event_ids=set()
     invalid=0
     unknown_project=0
@@ -182,30 +182,27 @@ def main():
             external_mapped+=1
             continue
         info=original.get(lead)
-        if info is None or lead in conflicting or info[0]>date:
-            invalid+=1
-            invalid_evidence["sem_original_ou_conflito"]+=1
-            continue
         day=date.isoformat()
         matched+=1
         daily_events[project][day]+=1
         daily_unique[project][day].add(lead)
-        if info[0]<date:
+        if info is None or lead in conflicting or info[0]>date:
+            # Conversão e lead único são identificados pelo evento, mas
+            # retorno não pode ser inferido sem cadastro original coerente.
+            daily_unclassified[project][day].add(lead)
+            invalid_evidence["sem_original_ou_conflito"]+=1
+        elif info[0]<date:
             daily_returning[project][day].add(lead)
 
-    # Cobertura: IDs de empreendimento que não foram mapeados poderiam
-    # corresponder aos projetos mostrados; nessas condições não publicar.
-    if invalid or ambiguous or unknown_project:
-        print("Diagnóstico agregado: projetos externos reconhecidos "+str(external_mapped)+
-              "; motivos de falta de correspondência "+str(dict(unknown_evidence))+
-              "; motivos de registros inválidos "+str(dict(invalid_evidence)),flush=True)
-        raise RuntimeError(
-            "Cobertura de conversões não validada: "+str(invalid)+
-            " registros inválidos; "+str(ambiguous)+
-            " projetos ambíguos; "+str(unknown_project)+
-            " projetos sem correspondência. Nenhum novo agregado publicado.")
-    if conflicting:
-        raise RuntimeError("Datas originais conflitantes: classificação bloqueada")
+    print("Cobertura de eventos (somente contagens): vinculados aos 4 projetos "+str(matched)+
+          "; outros projetos reconhecidos "+str(external_mapped)+
+          "; sem empreendimento ou sem mapeamento "+str(unknown_project)+
+          "; associações múltiplas "+str(ambiguous)+
+          "; não classificáveis quanto ao retorno "+str(invalid_evidence.get("sem_original_ou_conflito",0)),flush=True)
+    # Não usar os registros sem empreendimento como prova de retorno ou
+    # como conversões atribuídas a um dos quatro projetos.
+    if invalid:
+        raise RuntimeError("Existem eventos sem ID, data ou estrutura válida. Consolidação bloqueada.")
 
     # Unicidade no período: não somar 'leads únicos por dia', pois um lead
     # pode converter em dois dias da seleção. Pré-calcular todos os intervalos.
@@ -213,15 +210,19 @@ def main():
     for i,first in enumerate(dates):
         sets={p:set() for p in PROJECTS}
         returned={p:set() for p in PROJECTS}
+        unknown={p:set() for p in PROJECTS}
         for second in dates[i:]:
             for p in PROJECTS:
                 sets[p].update(daily_unique[p].get(second,()))
                 returned[p].update(daily_returning[p].get(second,()))
+                unknown[p].update(daily_unclassified[p].get(second,()))
             unique_ranges[first+"|"+second]={
                 "unique":{**{p:len(sets[p]) for p in PROJECTS},
                           "all":len(set().union(*sets.values()))},
                 "returning":{**{p:len(returned[p]) for p in PROJECTS},
                              "all":len(set().union(*returned.values()))},
+                "unclassified_return":{**{p:len(unknown[p]) for p in PROJECTS},
+                                        "all":len(set().union(*unknown.values()))},
             }
     def daily_for(p):
         return {d:{"new":new_by_date[p][d],"conversions":daily_events[p][d]}
@@ -231,18 +232,20 @@ def main():
         "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
         "period":{"since":since.isoformat(),"until":until.isoformat()},
         "validated":True,
+        "coverage":"identified_events_only",
+        "identification_scope":"Conversões incluídas somente se o empreendimento da conversão for identificado inequivocamente. Retornos somente com cadastro original consistente.",
         "projects":list(PROJECTS),
         "daily":{p:daily_for(p) for p in PROJECTS},
         "range_unique":unique_ranges,
         "method":"Novos por data_cad original e primeiro empreendimento; conversões por referência/data e ID do empreendimento de conversão; retornos após o dia do cadastro; unicidade por ID deduplicada no runner privado.",
-        "caveat":"Conversões múltiplas no dia do cadastro não contam como retornos; origens Meta não foram atribuídas a campanhas.",
+        "caveat":"Indicadores limitados a eventos com empreendimento de conversão identificado. Eventos sem vínculo de empreendimento foram excluídos; isso não indica que sejam antigos. Retornos sem cadastro original válido ficam indeterminados. Conversões múltiplas no dia do cadastro não contam como retorno; não há atribuição a campanhas Meta.",
     }
     os.makedirs("data",exist_ok=True)
     path="data/marketing-conversions.json"
     with open(path+".tmp","w",encoding="utf-8") as fh:
         json.dump(report,fh,ensure_ascii=False,separators=(",",":"))
     os.replace(path+".tmp",path)
-    print("CONSOLIDADO DE CONVERSÕES VALIDADO PARA PUBLICAÇÃO")
+    print("CONSOLIDADO DE CONVERSÕES IDENTIFICADAS PREPARADO PARA PUBLICAÇÃO")
     print("Dias: "+str(DAYS)+"; projetos: "+str(len(PROJECTS)))
     print("Leads históricos válidos: "+str(len(original)))
     print("Eventos CV de projetos vinculados: "+str(matched))
