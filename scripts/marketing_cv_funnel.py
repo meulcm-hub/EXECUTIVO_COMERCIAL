@@ -129,11 +129,13 @@ def conversion_channel(row):
     return kind.startswith("meta_") or kind == "google_declarada"
 
 def sold(row):
-    value = row.get("situacao")
+    # O CV também expõe a flag de venda efetivada, além da situação comercial.
+    if norm(row.get("vendida")) in ("s", "sim", "true", "1"):
+        return True
+    value = row.get("situacao") or row.get("status_reserva") or row.get("situacao_reserva")
     if isinstance(value, dict):
-        value = value.get("situacao") or value.get("nome") or ""
+        value = value.get("situacao") or value.get("status") or value.get("nome") or ""
     state = norm(value).upper()
-    # norm removes accents and punctuation; preserve the approved matching rules.
     terms = tuple(norm(s).upper() for s in SOLD)
     return any(term in state for term in terms)
 
@@ -271,14 +273,36 @@ def main():
             raise RuntimeError("Pré-cadastro sem data")
         for lead in lead_ids(row):
             stage_by_lead[lead].append((day, 3))
+    sales_audit = collections.Counter()
+    prospective_ids = {lead for _, lead in entry}
     for row in reservations:
+        sales_audit["reservas_consultadas"] += 1
         if not sold(row):
             continue
+        sales_audit["reservas_classificadas_venda"] += 1
+        ids = lead_ids(row)
+        if not ids:
+            sales_audit["vendas_sem_idlead"] += 1
+            continue
+        sales_audit["vendas_com_idlead"] += 1
         day = to_date(row.get("data_venda") or row.get("data_contrato") or row.get("data"))
         if day is None:
-            raise RuntimeError("Venda sem data")
-        for lead in lead_ids(row):
+            sales_audit["vendas_sem_data"] += 1
+            continue
+        if ids.isdisjoint(prospective_ids):
+            sales_audit["vendas_sem_prospect_na_safra"] += 1
+        else:
+            sales_audit["vendas_com_prospect_na_safra"] += 1
+        for lead in ids:
             stage_by_lead[lead].append((day, 4))
+    sale_ids = {lead for lead, events in stage_by_lead.items()
+                if any(level == 4 for _, level in events)}
+    matched_sales = sum(1 for (project, lead), first in entry.items()
+                        if any(day >= first and level == 4
+                               for day, level in stage_by_lead.get(lead, ())))
+    sales_audit["prospects_com_venda_validada"] = matched_sales
+    print("Auditoria vendas CV (somente contagens): " +
+          json.dumps(dict(sales_audit), sort_keys=True), flush=True)
     # Um mesmo cliente pode entrar por cadastro novo e depois retornar:
     # usar a primeira entrada elegível por empreendimento; não somar eventos.
     dates = [begin + dt.timedelta(days=i) for i in range(DAYS)]
@@ -305,7 +329,14 @@ def main():
                                 "validated": True, "counts": counts})
     if not cohorts:
         raise RuntimeError("Coortes não produzidas")
+    # Sem vínculo confiável de vendas, não publicar um zero como resultado definitivo.
+    sales_link_validated = bool(sales_audit["reservas_classificadas_venda"]
+                                and sales_audit["vendas_com_idlead"]
+                                and matched_sales)
+    if not sales_link_validated:
+        print("ATENÇÃO: venda da safra não confirmada; indicador de vendas permanece em auditoria.", flush=True)
     report = {"schema_version": 1, "validated": True,
+              "sales_link_validated": sales_link_validated,
               "cohort_mode": "prospect_date", "as_of": today.isoformat(),
               "period": {"since": begin.isoformat(), "until": today.isoformat()},
               "cohorts": cohorts,
