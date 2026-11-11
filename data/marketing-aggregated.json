@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-11T11:21:30.332692+00:00",
+  "generated_at_utc": "2026-11-11T12:02:47.023179+00:00",
   "period": {
     "since": "2026-10-13",
     "until": "2026-11-11"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3348.36",
-      "impressions": 364287,
-      "clicks": 3306
+      "spend": "3352.52",
+      "impressions": 364480,
+      "clicks": 3310
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "3991.33",
-      "impressions": 503567,
-      "clicks": 3185
+      "spend": "3994.14",
+      "impressions": 503951,
+      "clicks": 3190
     },
     {
       "account_id": "272429171879216",
@@ -68,18 +68,18 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "2680.35",
-      "impressions": 274676,
-      "clicks": 1820
+      "spend": "2683.27",
+      "impressions": 274899,
+      "clicks": 1821
     }
   ],
   "cv_by_project_normalized": {
     "spe arraial costa verde club": {
-      "leads_period": 70,
-      "meta_declarada": 55,
+      "leads_period": 71,
+      "meta_declarada": 56,
       "meta_whatsapp_cv": 1,
       "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 53,
+      "meta_outros_cv": 54,
       "google_declarada": 0,
       "outra_ou_nao_informada": 15
     },
@@ -111,13 +111,13 @@
       "outra_ou_nao_informada": 38
     },
     "residencial terra solis": {
-      "leads_period": 22,
+      "leads_period": 23,
       "meta_declarada": 2,
       "meta_whatsapp_cv": 2,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 0,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 19
+      "outra_ou_nao_informada": 20
     },
     "residencial jatoba": {
       "leads_period": 115,
