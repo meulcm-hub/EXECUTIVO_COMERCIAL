@@ -76,15 +76,15 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 
 </section>
 <section class="grid">
-<div class="panel"><h2>Investimento por empreendimento</h2><p class="sub">Meta Ads, período selecionado, valores em BRL. Quando selecionar um empreendimento, só ele será exibido.</p><div id="chartSpend" class="empty">Aguardando consolidação.</div></div>
-<div class="panel"><h2>Origem dos leads por empreendimento</h2><p class="sub">Classificação do CV CRM, sem presumir atribuição a campanhas pagas.</p><div id="chartOrigin" class="empty">Aguardando consolidação.</div></div>
+<div class="panel" style="grid-column:1 / -1"><h2>Investimento por empreendimento</h2><p class="sub">Meta Ads, período selecionado, valores em BRL. Quando selecionar um empreendimento, só ele será exibido.</p><div id="chartSpend" class="empty">Aguardando consolidação.</div></div>
+
 </section>
 <section class="grid">
-<div class="panel"><h2>Desempenho por empreendimento</h2><p class="sub">O mapeamento de quatro contas ao CV CRM foi proposto por correspondência de nomes e precisa de confirmação operacional. Contas sem correspondência ficam pendentes.</p>
-<div class="tablewrap"><table class="table"><thead><tr><th>Empreendimento</th><th style="text-align:right">Investimento</th><th style="text-align:right">Leads Meta</th><th style="text-align:right">CPL indicativo</th></tr></thead><tbody id="projectsTable"><tr><td colspan="4">Aguardando indicadores.</td></tr></tbody></table></div></div>
+<div class="panel"><h2>Desempenho de captação por empreendimento</h2><p class="sub">Resultados e investimento das campanhas Meta; conversas não equivalem a leads únicos.</p>
+<div class="tablewrap"><table class="table"><thead><tr><th>Empreendimento</th><th style="text-align:right">Gasto de captação</th><th style="text-align:right">Formulários</th><th style="text-align:right">Conversas WhatsApp</th><th style="text-align:right">CPL combinado</th></tr></thead><tbody id="projectsTable"><tr><td colspan="5">Aguardando indicadores.</td></tr></tbody></table></div></div>
 <div class="panel"><h2>Funil e etapas de atribuição</h2><p class="sub">Números disponíveis nas APIs separados de reservas e vendas, que exigem vínculo comprovado.</p>
 <div class="status">
-<div class="step"><strong>Impressões</strong><p id="fImpressions">—</p></div><div class="step"><strong>Cliques Meta</strong><p id="fClicks">—</p></div><div class="step"><strong>Leads origem Meta</strong><p id="fLeads">—</p></div><div class="step"><strong>Reservas e vendas atribuídas</strong><p>Não apuradas</p></div>
+<div class="step"><strong>Impressões</strong><p id="fImpressions">—</p></div><div class="step"><strong>Cliques Meta</strong><p id="fClicks">—</p></div><div class="step"><strong>Formulários Meta</strong><p id="fLeads">—</p></div><div class="step"><strong>Reservas e vendas atribuídas</strong><p>Não apuradas</p></div>
 </div><p class="metric-note" id="caveat">O CPL é um indicador operacional aproximado, não custo por lead atribuído a campanha específica.</p>
 </div>
 </section>
@@ -159,6 +159,7 @@ function renderCampaigns(visible){
  const expense=parts.reduce((n,p)=>n+p.value.spend,0);
  $('spend').textContent=money(expense);
  $('formsMeta').textContent=nf(forms);
+ $('fLeads').textContent=nf(forms);
  $('waMeta').textContent=nf(wa);
  $('cpl').textContent=forms+wa>0?money(expense/(forms+wa)):'—';
  const rows=parts.flatMap(p=>p.value.campaigns.map(c=>({...c,project:p.name})))
@@ -307,22 +308,17 @@ function render(){
   // Os leads do CV são independentes, sem atribuição publicitária individual.
   $('fImpressions').textContent=validMeta?nf(impressions):'—';
   $('fClicks').textContent=validMeta?nf(clicks):'—';
-  $('fLeads').textContent=facebook===null?'—':nf(facebook);
+  // Formulários Meta atualizados por renderCampaigns, com a mesma janela.
 
   bars('chartSpend',metaRows.filter(x=>x.a).map(x=>({name:x.m.name,value:Number(x.a.spend)})).sort((a,b)=>b.value-a.value),v=>money(v));
-  if(cvComplete){
-    const cats=[{name:'Facebook/Meta (origem CV)',value:facebook},{name:'Google (origem CV)',value:cvRows.reduce((s,x)=>s+Number(x.cv.google_declarada||0),0)},{name:'Outras origens',value:cvRows.reduce((s,x)=>s+Number(x.cv.outra_ou_nao_informada||0),0)}];
-    bars('chartOrigin',cats,v=>nf(v));
-  }else{$('chartOrigin').className='empty';$('chartOrigin').textContent='Leads indisponíveis: histórico ainda não validado ou empreendimento não mapeado no CV CRM.'}
   const tbody=$('projectsTable');tbody.replaceChildren();
-  for(const {m,a} of metaRows){
-    const cv=m.project&&cvReady?data.cv_by_project_normalized[m.project]:null;
-    const leads=cv?Number(cv.meta_declarada||0):null;
-    const cplrow=a&&a.currency==='BRL'&&leads>0?Number(a.spend)/leads:null;
+  for(const {m} of metaRows){
+    const t=campaignTotals(m.id,data.period.since,data.period.until);
     const tr=el('tr');
-    for(const [v,i] of [[m.name,0],[a&&a.currency==='BRL'?money(a.spend):'—',1],[leads===null?'—':nf(leads),2],[cplrow===null?'—':money(cplrow),3]]){
-      tr.append(el('td',i?'num':'',v));
-    }
+    const combined=t&&t.formLeads+t.whatsapp>0?t.spend/(t.formLeads+t.whatsapp):null;
+    for(const [v,i] of [[m.name,0],[t?money(t.spend):'—',1],
+      [t?nf(t.formLeads):'—',2],[t?nf(t.whatsapp):'—',3],
+      [combined===null?'—':money(combined),4]])tr.append(el('td',i?'num':'',v));
     tbody.append(tr);
   }
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
@@ -330,7 +326,7 @@ function render(){
   $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. No topo, resultados da Meta Ads (formulários e conversas WhatsApp) e gasto em campanhas de captação. O CPL combinado é indicativo, pois conversas não são leads únicos. No CV CRM, apenas origens Facebook e Google com empreendimento identificado. O dia atual é parcial.';
   renderConversionMetrics(visible);
   renderCampaigns(visible);
-  $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
+  $('caveat').textContent='CPL combinado indicativo = gasto de campanhas de formulário e WhatsApp ÷ formulários e conversas iniciadas. Conversas não são necessariamente leads únicos.';
 }
 let dailySource=null;
 let validatedWindows={};
