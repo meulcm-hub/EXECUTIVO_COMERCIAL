@@ -222,6 +222,14 @@ def main():
     reservations = paged(base, email, token, "/api/v1/comercial/reservas",
                          begin, today, collection=("reservas", "data"),
                          commercial=True)
+    # Nunca interpretar alteração inesperada no esquema como zero conversões.
+    for label, records in (("visitas", visits), ("tarefas", tasks)):
+        if records and not any(r.get("idlead") is not None for r in records):
+            raise RuntimeError("API de " + label + " não retornou ID Lead")
+    if precad and not any(lead_ids(r) for r in precad):
+        raise RuntimeError("Pré-cadastros sem vínculos de leads reconhecíveis")
+    if reservations and not any("situacao" in r for r in reservations):
+        raise RuntimeError("Reservas sem situação reconhecível")
     stage_by_lead = collections.defaultdict(list)
     for row in visits:
         lead = row.get("idlead")
