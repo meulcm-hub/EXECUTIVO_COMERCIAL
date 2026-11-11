@@ -39,6 +39,10 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .origin-labels{display:flex;justify-content:space-between;font-size:10px;color:#778a94}
 .cv-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .cv-metrics .kpi{min-height:155px}
+.cv-breakdown{margin-top:14px;border-top:1px solid #e6ecec;padding-top:9px;font-size:12px;color:#405965}
+.cv-breakdown summary{cursor:pointer;font-weight:650;color:#237a6a}
+.cv-breakdown div{padding-top:9px;line-height:1.5}
+.cv-breakdown b{color:#163d4c}
 @media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
 </style></head>
@@ -62,9 +66,9 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <h2>Novos cadastros x retornos no CV CRM</h2>
 <p class="sub">Apenas origens Facebook e Google. Busca Compartilhada e mídia WhatsApp Facebook são agrupadas em Facebook. Outras origens não entram nesta leitura.</p>
 <div class="cv-metrics">
-<div class="kpi"><small>Novos cadastros</small><strong id="cvNew">Em validação</strong><span>Facebook e Google · data original no CV</span></div>
-<div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Nova conversão após o cadastro inicial</span></div>
-<div class="kpi"><small>Leads WhatsApp — CV CRM</small><strong id="cvWhatsApp">Em validação</strong><span>Cadastros com mídia WhatsApp Facebook</span></div>
+<div class="kpi"><small>Novos cadastros</small><strong id="cvNew">Em validação</strong><span>Facebook e Google · data original no CV</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppNew">Em validação</b> são da mídia WhatsApp Facebook</div></details></div>
+<div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Nova conversão após o cadastro inicial</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppReturning">Não apurado</b> são da mídia WhatsApp Facebook</div></details></div>
+
 <div class="kpi"><small>Origem dos novos leads</small><div class="origin-chart" id="cvOriginChart"><span class="note">Aguardando dados por dia</span></div></div>
 </div>
 <p class="metric-note" id="cvConversionNote">Aguardando publicação do cruzamento privado entre cadastro original, conversões e empreendimentos. Não presumir atribuição às campanhas da Meta.</p>
@@ -248,7 +252,7 @@ function drawOriginChart(dailyByProject,visible,since,until){
 }
 function renderWhatsAppCV(visible){
   // Cadastros do CV CRM com mídia WhatsApp Facebook, não eventos de conversão.
-  const target=$('cvWhatsApp');
+  const target=$('cvWhatsAppNew');
   if(!dailySource||dailySource.schema_version<3||
       dailySource.cv_counts_validated!==true||
       dailySource.cv_daily_groups_suppressed!==false||
@@ -269,6 +273,7 @@ function renderWhatsAppCV(visible){
 }
 function renderConversionMetrics(visible){
  const ids=['cvNew','cvReturned'];
+ $('cvWhatsAppReturning').textContent='Não apurado';
  const missing=reason=>{
    ids.forEach(id=>$(id).textContent='Em validação');
    $('cvOriginChart').replaceChildren(el('span','note','Sem dados para gráfico'));
@@ -304,6 +309,7 @@ function renderConversionMetrics(visible){
  }
  $('cvNew').textContent=nf(newCount);
  $('cvReturned').textContent=nf(range.returning[key]);
+ $('cvWhatsAppReturning').textContent=Number.isInteger(range.returning_whatsapp?.[key])?nf(range.returning_whatsapp[key]):'Não apurado';
  
  drawOriginChart(conversionSource.daily,visible,since,cut);
  const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
