@@ -33,7 +33,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .highlight{color:var(--green)}
 </style></head>
 <body><main>
-<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p></div><span class="pill" id="status">Sincronização automática</span></header>
+<header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="banner"><strong>Meta Ads + CV CRM • painel executivo</strong><span id="notice">Os números de investimento vêm da Meta Ads. Os quatro vínculos entre conta e empreendimento foram propostos pelos nomes e ainda precisam ser confirmados. Origem Facebook no CV não prova anúncio pago.</span></section>
 <section class="toolbar">
 <div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os 4 empreendimentos vinculados</option></select></div>
@@ -289,7 +289,7 @@ function render(){
   }
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
-  $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos.';
+  $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos. O dia da coleta é parcial, sujeito a atualizações posteriores.';
   renderConversionMetrics(visible);
   renderCampaigns(visible,facebook,cvComplete,cvRows);
   $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
@@ -372,6 +372,9 @@ async function load(){
     if(obj.schema_version<2||obj.meta_accounts?.length!==8||!obj.period||!obj.meta_accounts.every(a=>allids.has(String(a.account_id))))throw Error('Histórico incompleto');
     $('notice').textContent='Histórico diário: '+obj.period.since+' a '+obj.period.until+'. Os indicadores Meta e CV serão recalculados para o intervalo aplicado quando o histórico completo de contagens agregadas estiver disponível.';
     dailySource=obj;
+    const brazilNow=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const stamp=obj.generated_at_utc?new Date(obj.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'não informado';
+    $('lastSync').textContent='Última coleta publicada: '+stamp+' • Dados até '+obj.period.until+(obj.period.until===brazilNow?' (dia atual, parcial)':'');
     for(const id of ['startDate','endDate']){$(id).min=obj.period.since;$(id).max=obj.period.until;}
     // Preservar a seleção quando o usuário clica em Atualizar
     const startChoice=$('startDate').value;
@@ -384,6 +387,7 @@ async function load(){
     await loadCampaigns();
   }catch(e){
     dailySource=null;
+    $('lastSync').textContent='Última coleta diária: indisponível';
     $('status').textContent='Histórico diário não carregado';
     $('appliedPeriod').textContent='Histórico não carregou: '+String(e.message||'falha');
     $('notice').textContent='O calendário está pronto, mas o GitHub Actions ainda precisa publicar o histórico diário de 90 dias. Enquanto isso, o último período fechado de 30 dias continua disponível.';
