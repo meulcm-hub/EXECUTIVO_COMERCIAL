@@ -113,9 +113,8 @@ function bars(id,rows,fmt){const host=$(id);host.replaceChildren();if(!rows.leng
 function campaignTotals(id,since,until){
  const account=campaignSource?.accounts?.find(a=>String(a.account_id)===String(id));
  if(!account)return null;
- let formLeads=0,spend=0;
+ let formLeads=0,whatsapp=0,spend=0;
  const campaigns=[];
- let captureSpend=0;
  for(const campaign of account.campaigns||[]){
    let leads=0,cost=0,messages=0;
    for(const [date,v] of Object.entries(campaign.daily||{})){
@@ -125,123 +124,168 @@ function campaignTotals(id,since,until){
        cost+=Number(v.spend||0);
      }
    }
+   // Campanhas com resultados de formulário ou classificadas explicitamente
+   // como WADS WhatsApp. Gasto incluído uma única vez.
    const isWhatsapp=campaign.is_whatsapp_campaign===true;
-   if(leads>0||isWhatsapp){
-     campaigns.push({name:campaign.campaign_name||'Campanha',leads,messages,spend:cost,cpl:leads>0?cost/leads:null,isWhatsapp});
-     if(leads>0){formLeads+=leads;spend+=cost}
-     // A campanha entra uma única vez no gasto total combinado.
-     captureSpend+=cost;
+   const isForm=Object.values(campaign.daily||{}).some(v=>Number(v.form_leads||0)>0);
+   if(isForm||isWhatsapp){
+     formLeads+=leads;
+     if(isWhatsapp)whatsapp+=messages;
+     spend+=cost;
+     campaigns.push({name:campaign.campaign_name||'Campanha',leads,messages:isWhatsapp?messages:0,
+       spend:cost,cpl:leads>0?cost/leads:null,isWhatsapp});
    }
  }
- return {formLeads,spend,captureSpend,campaigns};
+ return {formLeads,whatsapp,spend,campaigns};
 }
-function renderCampaigns(visible,facebook,cvComplete,cvRows){
- const ids=['formsMeta','formsSpend','formsCpl','formsDiff','waCv','sharedCv','captureSpend','captureCpl'];
- const blank=()=>ids.forEach(id=>$(id).textContent='—');
+function renderCampaigns(visible){
+ const blank=()=>{
+   $('spend').textContent='—';$('formsMeta').textContent='—';
+   $('waMeta').textContent='—';$('cpl').textContent='—';
+ };
  const table=$('campaignTable');table.replaceChildren();
- if(!campaignSource||!data||!visible.length||campaignSource.period.since>data.period.since||campaignSource.period.until<data.period.until){
-   blank();$('formNote').textContent='Histórico de campanhas ainda não sincronizado para este período.';
-   $('compareRows').className='empty';$('compareRows').textContent='Sem resultados de campanhas publicados.';
-   table.append(Object.assign(el('tr'),{innerHTML:'<td colspan="4">Aguardando nova coleta.</td>'}));return;
- }
- const parts=visible.map(m=>({name:m.name,value:campaignTotals(m.id,data.period.since,data.period.until)}));
- if(parts.some(p=>p.value===null)){
-   blank();$('formNote').textContent='Algumas contas ainda não constam no histórico de campanhas.';
-   $('compareRows').className='empty';$('compareRows').textContent='Cobertura parcial de contas.';
+ if(!campaignSource||!data||!visible.length||
+    campaignSource.period.since>data.period.since||
+    campaignSource.period.until<data.period.until){
+   blank();
+   const tr=el('tr'),td=el('td','', 'Dados de campanhas indisponíveis para este período.');
+   td.colSpan=5;tr.append(td);table.append(tr);
    return;
  }
- const forms=parts.reduce((sum,p)=>sum+p.value.formLeads,0);
- const expense=parts.reduce((sum,p)=>sum+p.value.spend,0);
- const combinedExpense=parts.reduce((sum,p)=>sum+p.value.captureSpend,0);
- const rulesReady=cvComplete&&data.cv_channel_rules_version===2;
- const whatsapp=rulesReady?cvRows.reduce((sum,x)=>sum+Number(x.cv.meta_whatsapp_cv||0),0):null;
- const shared=rulesReady?cvRows.reduce((sum,x)=>sum+Number(x.cv.meta_busca_compartilhada_cv||0),0):null;
+ const parts=visible.map(m=>({name:m.name,value:campaignTotals(m.id,data.period.since,data.period.until)}));
+ if(parts.some(p=>p.value===null)){blank();return}
+ const forms=parts.reduce((n,p)=>n+p.value.formLeads,0);
+ const wa=parts.reduce((n,p)=>n+p.value.whatsapp,0);
+ const expense=parts.reduce((n,p)=>n+p.value.spend,0);
+ $('spend').textContent=money(expense);
  $('formsMeta').textContent=nf(forms);
- $('formsSpend').textContent=money(expense);
- $('formsCpl').textContent=forms>0?money(expense/forms):'—';
- $('formsDiff').textContent=rulesReady?nf(forms-facebook):'—';
- $('waCv').textContent=whatsapp===null?'—':nf(whatsapp);
- $('sharedCv').textContent=shared===null?'—':nf(shared);
- $('captureSpend').textContent=money(combinedExpense);
- $('captureCpl').textContent=rulesReady&&facebook>0?money(combinedExpense/facebook):'—';
- $('formNote').textContent='CPL formulário: apenas campanhas com formulário. CPL combinado: gasto de campanhas com formulário + WADS WhatsApp, sem somar gasto duplicado, dividido pelos leads classificados Meta no CV (inclui Busca Compartilhada e WhatsApp Facebook). Conversas Meta não são automaticamente leads CV.';
- const rows=parts.flatMap(p=>p.value.campaigns.map(x=>({...x,project:p.name}))).sort((a,b)=>b.leads-a.leads);
- if(!rows.length){const tr=el('tr'),td=el('td','', 'Sem campanhas de captação no período.');td.colSpan=5;tr.append(td);table.append(tr)}
- else for(const c of rows){
+ $('waMeta').textContent=nf(wa);
+ $('cpl').textContent=forms+wa>0?money(expense/(forms+wa)):'—';
+ const rows=parts.flatMap(p=>p.value.campaigns.map(c=>({...c,project:p.name})))
+   .sort((a,b)=>(b.leads+b.messages)-(a.leads+a.messages));
+ if(!rows.length){
+   const tr=el('tr'),td=el('td','', 'Sem campanhas de captação neste período.');
+   td.colSpan=5;tr.append(td);table.append(tr);
+ }else for(const c of rows){
    const tr=el('tr');
-   for(const [v,i] of [[c.project+' · '+c.name+(c.isWhatsapp?' · WhatsApp':''),0],[nf(c.leads),1],[money(c.spend),2],[nf(c.messages),3],[c.cpl===null?'—':money(c.cpl),4]])tr.append(el('td',i?'num':'',v));
+   for(const [v,i] of [[c.project+' · '+c.name+(c.isWhatsapp?' · WhatsApp':''),0],
+      [nf(c.leads),1],[money(c.spend),2],[nf(c.messages),3],
+      [c.cpl===null?'—':money(c.cpl),4]])tr.append(el('td',i?'num':'',v));
    table.append(tr);
  }
- const host=$('compareRows');host.className='';host.replaceChildren();
- const comparisons=[
-   {name:'Meta · resultados de formulário',value:forms},
-   {name:'CV · origem Facebook/Meta',value:cvComplete?facebook:null}
- ];
- const max=Math.max(1,...comparisons.map(x=>x.value||0));
- for(const item of comparisons){
-   const line=el('div','barrow'),name=el('div','barname',item.name),track=el('div','track'),fill=el('div','fill'),label=el('div','barvalue',item.value===null?'—':nf(item.value));
-   fill.style.width=item.value===null?'0%':(item.value/max*100)+'%';
-   track.append(fill);line.append(name,track,label);host.append(line);
- }
 }
+
 let conversionSource=null;
+function drawOriginChart(dailyByProject,visible,since,until){
+ const host=$('cvOriginChart');host.replaceChildren();
+ const totals={facebook:0,google:0},byDate=new Map();
+ for(const m of visible){
+   const days=dailyByProject[m.project]||{};
+   for(const [date,v] of Object.entries(days)){
+     if(date<since||date>until)continue;
+     const entry=byDate.get(date)||{facebook:0,google:0};
+     entry.facebook+=Number(v.facebook_new||0);
+     entry.google+=Number(v.google_new||0);
+     totals.facebook+=Number(v.facebook_new||0);
+     totals.google+=Number(v.google_new||0);
+     byDate.set(date,entry);
+   }
+ }
+ const legend=el('div','origin-legend');
+ for(const [name,count,color] of [['Facebook',totals.facebook,'#67ae42'],['Google',totals.google,'#2874aa']]){
+   if(name==='Google'&&!totals.google)continue;
+   const item=el('span'),dot=el('span','origin-dot');
+   dot.style.background=color;
+   item.append(dot,document.createTextNode(name+' · '+nf(count)));
+   legend.append(item);
+ }
+ host.append(legend);
+ const dates=[...byDate.keys()].sort();
+ if(!dates.length){host.append(el('p','note','Sem novos cadastros para este período.'));return;}
+ const width=330,height=125,left=24,right=10,top=8,bottom=18;
+ const max=Math.max(1,...dates.flatMap(d=>[byDate.get(d).facebook,byDate.get(d).google]));
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 '+width+' '+height);
+ svg.setAttribute('role','img');
+ svg.setAttribute('aria-label','Novos cadastros por dia: Facebook '+totals.facebook+', Google '+totals.google);
+ const ns='http://www.w3.org/2000/svg';
+ const line=(coords,color,strokeWidth,dash)=>{
+   const el=document.createElementNS(ns,'polyline');
+   el.setAttribute('points',coords);
+   el.setAttribute('fill','none');el.setAttribute('stroke',color);
+   el.setAttribute('stroke-width',String(strokeWidth));
+   el.setAttribute('stroke-linecap','round');el.setAttribute('stroke-linejoin','round');
+   if(dash)el.setAttribute('stroke-dasharray',dash);
+   svg.append(el);
+ };
+ for(let i=0;i<=2;i++){
+   const y=top+(height-top-bottom)*i/2;
+   line(left+','+y+' '+(width-right)+','+y,'#e7eeeb',1);
+ }
+ const coord=(key)=>dates.map((date,i)=>{
+   const x=left+(width-left-right)*(dates.length===1?0.5:i/(dates.length-1));
+   const y=top+(height-top-bottom)*(1-byDate.get(date)[key]/max);
+   return x.toFixed(1)+','+y.toFixed(1);
+ }).join(' ');
+ line(coord('facebook'),'#67ae42',2.5);
+ if(totals.google)line(coord('google'),'#2874aa',2.2);
+ const title=document.createElementNS(ns,'title');
+ title.textContent='Evolução diária de novos cadastros por origem';
+ svg.prepend(title);
+ host.append(svg);
+ const ticks=el('div','origin-labels');
+ const fmt=date=>date.slice(8,10)+'/'+date.slice(5,7);
+ ticks.append(el('span','',fmt(dates[0])),el('span','',fmt(dates[dates.length-1])));
+ host.append(ticks);
+}
 function renderConversionMetrics(visible){
- const ids=['cvNew','cvReturned','cvEvents','cvUnique'];
+ const ids=['cvNew','cvReturned','cvEvents'];
  const missing=reason=>{
    ids.forEach(id=>$(id).textContent='Em validação');
+   $('cvOriginChart').replaceChildren(el('span','note','Sem dados para gráfico'));
    $('cvConversionNote').textContent=reason;
  };
- if(!conversionSource||!data||conversionSource.validated!==true){
-   missing('Cruzamento de conversões aguardando publicação validada pelo GitHub Actions. Os demais indicadores continuam disponíveis.');
+ if(!conversionSource||!data||conversionSource.validated!==true||
+    conversionSource.schema_version<2||conversionSource.channel_scope!=='facebook_google'){
+   missing('Aguardando sincronização do CV CRM com a nova regra de origem Facebook e Google.');
    return;
  }
  const {since,until}=data.period;
  const availableUntil=conversionSource.period.until;
  if(since<conversionSource.period.since||since>availableUntil){
-   missing('Cruzamento validado disponível de '+conversionSource.period.since+' até '+availableUntil+'. Selecione um período nessa janela.');
+   missing('Cruzamento disponível de '+conversionSource.period.since+' até '+availableUntil+'.');
    return;
  }
- // Se a atualização do Marketing chegar antes do CV, mostrar somente os
- // dias realmente consolidados, identificando explicitamente o corte.
- const conversionUntil=until>availableUntil?availableUntil:until;
+ const cut=until>availableUntil?availableUntil:until;
  if(!visible.length||visible.some(m=>!m.project||!conversionSource.daily[m.project])){
-   missing('Empreendimento sem vinculação CV validada para conversões.');
-   return;
+   missing('Empreendimento sem vinculação CV validada.');return;
  }
- const range=conversionSource.range_unique?.[since+'|'+conversionUntil];
- if(!range){
-   missing('Ainda não existe deduplicação validada para este intervalo de datas.');
-   return;
- }
- const choice=$('project').value;
- const key=choice==='all'?'all':visible[0].project;
- if(!Number.isInteger(range.unique?.[key])||!Number.isInteger(range.returning?.[key])){
-   missing('Deduplicação de pessoas ou retornos não validada para esta seleção.');
-   return;
+ const range=conversionSource.range_unique?.[since+'|'+cut];
+ if(!range){missing('Não existe deduplicação validada para este período.');return;}
+ const key=$('project').value==='all'?'all':visible[0].project;
+ if(!Number.isInteger(range.returning?.[key])){
+   missing('Retornos ainda não validados nesta seleção.');return;
  }
  let newCount=0,eventCount=0;
- for(const m of visible){
-   const days=conversionSource.daily[m.project];
-   for(const [date,v] of Object.entries(days)){
-     if(date>=since&&date<=conversionUntil){
-       newCount+=Number(v.new||0);
-       eventCount+=Number(v.conversions||0);
-     }
+ for(const m of visible)for(const [date,v] of Object.entries(conversionSource.daily[m.project])){
+   if(date>=since&&date<=cut){
+     newCount+=Number(v.new||0);
+     eventCount+=Number(v.conversions||0);
    }
  }
  $('cvNew').textContent=nf(newCount);
  $('cvReturned').textContent=nf(range.returning[key]);
  $('cvEvents').textContent=nf(eventCount);
- $('cvUnique').textContent=nf(range.unique[key]);
+ drawOriginChart(conversionSource.daily,visible,since,cut);
  const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
  const pending=range.unclassified_return?.[key]||0;
- $('cvConversionNote').textContent=(conversionUntil<until?
- 'Atenção: indicadores do CV disponíveis de '+since+' até '+conversionUntil+
- ' (o filtro vai até '+until+'). A coleta do CV para os dias seguintes ainda não foi publicada. ':'')+
- 'Fonte: CV CRM · cruzamento privado por ID, atualizado em '+when+
- '. Conversões e leads únicos: somente eventos com empreendimento confirmado no CV. Retornos confirmados: eventos em data posterior ao cadastro original'+
- (pending?'; '+nf(pending)+' lead(s) deste recorte não puderam ser classificados quanto ao retorno':'')+
- '. Não atribuímos conversões a anúncios Meta; retornos no dia do cadastro não são identificáveis por esta regra.';
+ $('cvConversionNote').textContent=(cut<until?
+  'Dados CV disponíveis até '+cut+'; o período selecionado termina em '+until+'. ':'')+
+  'Fonte: CV CRM · última consolidação '+when+
+  '. Somente Facebook (inclui Busca Compartilhada e WhatsApp Facebook) e Google. '+
+  'Retornos são conversões posteriores à data de cadastro.'+
+  (pending?' '+nf(pending)+' lead(s) sem condição de retorno identificada.':'')+
+  ' Conversões sem empreendimento e outras origens não entram neste bloco.';
 }
 function render(){
   if(!data)return;
@@ -259,11 +303,8 @@ function render(){
   const cvComplete=cvReady&&missing===0&&cvRows.length>0;
   const total=cvComplete?cvRows.reduce((s,x)=>s+Number(x.cv.leads_period||0),0):null;
   const facebook=cvComplete?cvRows.reduce((s,x)=>s+Number(x.cv.meta_declarada||0),0):null;
-  const cpl=validMeta&&cvComplete&&facebook>0?spend/facebook:null;
-  $('spend').textContent=validMeta?money(spend):'—';
-  $('leadsTotal').textContent=total===null?'—':nf(total);
-  $('leadsMeta').textContent=facebook===null?'—':nf(facebook);
-  $('cpl').textContent=cpl===null?'—':money(cpl);
+  // Os KPIs principais são resultados por campanha da Meta.
+  // Os leads do CV são independentes, sem atribuição publicitária individual.
   $('fImpressions').textContent=validMeta?nf(impressions):'—';
   $('fClicks').textContent=validMeta?nf(clicks):'—';
   $('fLeads').textContent=facebook===null?'—':nf(facebook);
@@ -286,9 +327,9 @@ function render(){
   }
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
-  $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. Investimento, cliques e impressões vêm da(s) conta(s) Meta selecionada(s). Leads são consultados no CV CRM para o mesmo intervalo de cadastro; data de referência pode limitar a cobertura. CPL indicativo = gasto Meta ÷ leads com origem declarada Meta. Valores publicados são agregados e públicos. O dia da coleta é parcial, sujeito a atualizações posteriores.';
+  $('notice').textContent='Período: '+data.period.since+' a '+data.period.until+'. No topo, resultados da Meta Ads (formulários e conversas WhatsApp) e gasto em campanhas de captação. O CPL combinado é indicativo, pois conversas não são leads únicos. No CV CRM, apenas origens Facebook e Google com empreendimento identificado. O dia atual é parcial.';
   renderConversionMetrics(visible);
-  renderCampaigns(visible,facebook,cvComplete,cvRows);
+  renderCampaigns(visible);
   $('caveat').textContent=missing>0?'Há empreendimentos sem correspondência de leads no consolidado; totais gerais e CPL permanecem indisponíveis. Filtre um empreendimento com dados.':'CPL indicativo, não atribuição por campanha. Gastos e leads têm janelas iguais, mas datas de entrega de anúncios e cadastro de leads representam eventos diferentes.';
 }
 let dailySource=null;
@@ -336,7 +377,7 @@ async function loadConversionMetrics(){
    const r=await fetch('data/marketing-conversions.json?version='+Date.now(),{cache:'no-store'});
    if(!r.ok)throw Error('Não publicado');
    const x=await r.json();
-   if(x.schema_version!==1||x.validated!==true||!x.period||!x.range_unique||!x.daily||
+   if(x.schema_version<2||x.channel_scope!=='facebook_google'||x.validated!==true||!x.period||!x.range_unique||!x.daily||
       !map.filter(m=>m.project).every(m=>Array.isArray(x.projects)&&x.projects.includes(m.project)&&x.daily[m.project]))
      throw Error('Estrutura de conversões não validada');
    conversionSource=x;
@@ -347,18 +388,13 @@ async function loadCampaigns(){
    const response=await fetch('data/marketing-campaigns.json?version='+Date.now(),{cache:'no-store'});
    if(!response.ok)throw Error('Ainda não publicado');
    const x=await response.json();
-   if(x.schema_version!==1||x.action_type!=='onsite_conversion.lead_grouped'||x.action_report_time!=='impression'||x.accounts?.length!==8||!x.period||!x.accounts.every(a=>allids.has(String(a.account_id))&&Array.isArray(a.campaigns)))throw Error('Arquivo de campanhas inválido');
+   if(x.schema_version!==1||x.action_type!=='onsite_conversion.lead_grouped'||
+      x.action_report_time!=='impression'||x.accounts?.length!==8||!x.period||
+      !x.accounts.every(a=>allids.has(String(a.account_id))&&Array.isArray(a.campaigns)))
+       throw Error('Arquivo de campanhas inválido');
    campaignSource=x;
  }catch(err){campaignSource=null}
- if(data){
-   const choice=$('project').value;
-   const visible=map.filter(m=>choice==='all'?Boolean(m.project):m.id===choice);
-   const cvReady=data.cv_counts_validated===true&&!data.cv_more_pages_possible;
-   const cvRows=visible.filter(m=>m.project).map(m=>data.cv_by_project_normalized[m.project]);
-   const complete=cvReady&&cvRows.length>0&&cvRows.every(Boolean);
-   const facebook=complete?cvRows.reduce((sum,c)=>sum+Number(c.meta_declarada||0),0):null;
-   renderCampaigns(visible,facebook,complete,cvRows.map((cv,i)=>({cv})));
- }
+ if(data)render();
 }
 async function load(){
   $('status').textContent='Verificando histórico...';
