@@ -28,7 +28,7 @@ def main():
     u=urlsplit(base)
     if u.scheme!="https" or u.hostname!="lcm.cvcrm.com.br" or u.path not in ("","/") or u.query or u.fragment or u.username or u.password or not email or not token:
         raise RuntimeError("Credenciais CV CRM indisponíveis")
-    until=dt.date.today()-dt.timedelta(days=1)
+    until=dt.date.today()
     since=until-dt.timedelta(days=DAYS-1)
     history_start=dt.date(2022,1,1)
     if since<history_start:raise RuntimeError("Histórico ainda não disponível")
