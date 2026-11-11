@@ -93,7 +93,7 @@ def main():
         published=[]
         for row in active_rows:
             cid=str(row.get("id") or "")
-            if not re.fullmatch(r"\\d+",cid):
+            if not re.fullmatch(r"\d+",cid):
                 raise RuntimeError("Meta retornou campanha ativa sem identificador")
             if row.get("effective_status")!="ACTIVE":
                 continue
