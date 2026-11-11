@@ -49,6 +49,12 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-cv .funnel-rate{background:#a4d795;color:#235d36}
 .funnel-cv .funnel-value{font-size:27px}
 .funnel-cv .funnel-arrow{color:#5d9870}
+.cv-transition{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;min-height:52px;gap:8px;color:#317b4b}
+.cv-transition-arrow{grid-column:2;font-size:28px;line-height:1;text-align:center}
+.cv-transition-text{grid-column:3;font-size:11px;line-height:1.35;color:#487b56;max-width:152px}
+.cv-transition-text strong{display:block;font-size:17px;color:#276942;margin-top:2px;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.cv-transition-text{font-size:10px;max-width:110px}.cv-transition-text strong{font-size:15px}.funnel-cv .funnel-value{font-size:23px}}
+
 @media(max-width:950px){.funnel-columns{grid-template-columns:1fr}.funnel-column{padding:16px 12px}}
 
 @media(max-width:640px){.funnel-step.level-2{width:92%}.funnel-step.level-3{width:86%}.funnel-value{font-size:24px}}
@@ -124,18 +130,18 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-step level-3"><span class="funnel-label">03 · RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
 </div><p class="metric-note" id="caveat">Fonte: Meta Ads. Formulários e conversas não são pessoas únicas; cliques totais não equivalem a cliques no link.</p>
 </div>
-<div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Etapas oficiais do processo comercial. Contagens aguardam validação dos dados da API.</p>
-<div class="status">
-<div class="funnel-step level-1"><span class="funnel-label">01 · PROSPECT</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade de clientes na etapa Prospect</span></div>
-<div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-2"><span class="funnel-label">02 · AGENDAMENTO</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Agendamento</span></div>
-<div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-3"><span class="funnel-label">03 · VISITA</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Visita</span></div>
-<div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-4"><span class="funnel-label">04 · ANÁLISE DE CRÉDITO</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Análise de Crédito</span></div>
-<div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-5"><span class="funnel-label">05 · VENDA REALIZADA</span><strong class="funnel-value">Não apurado</strong><span class="funnel-desc">Quantidade na etapa Venda Realizada</span></div>
-</div><p class="metric-note">As etapas foram definidas. Os valores serão exibidos quando validarmos os status e as regras de contagem do CV CRM, sem presumir conversões entre etapas.</p>
+<div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Acompanhe a evolução da mesma safra de prospects, inclusive após o período selecionado.</p>
+<div class="status" id="cvFunnel">
+<div class="funnel-step level-1"><span class="funnel-label">01 · PROSPECT</span><strong class="funnel-value" id="cvFunnelProspect">Não apurado</strong></div>
+<div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Prospect → Agendamento <strong id="cvRateProspect">—</strong></span></div>
+<div class="funnel-step level-2"><span class="funnel-label">02 · AGENDAMENTO</span><strong class="funnel-value" id="cvFunnelSchedule">Não apurado</strong></div>
+<div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Agendamento → Visita <strong id="cvRateSchedule">—</strong></span></div>
+<div class="funnel-step level-3"><span class="funnel-label">03 · VISITA</span><strong class="funnel-value" id="cvFunnelVisit">Não apurado</strong></div>
+<div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Visita → Análise <strong id="cvRateVisit">—</strong></span></div>
+<div class="funnel-step level-4"><span class="funnel-label">04 · ANÁLISE DE CRÉDITO</span><strong class="funnel-value" id="cvFunnelCredit">Não apurado</strong></div>
+<div class="cv-transition"><span class="cv-transition-arrow" aria-hidden="true">↓</span><span class="cv-transition-text">Análise → Venda <strong id="cvRateCredit">—</strong></span></div>
+<div class="funnel-step level-5"><span class="funnel-label">05 · VENDA REALIZADA</span><strong class="funnel-value" id="cvFunnelSale">Não apurado</strong></div>
+</div><p class="metric-note">Taxa por etapa = clientes únicos na próxima etapa ÷ clientes únicos na etapa anterior. Cada cliente conta uma vez por etapa; quem avança à venda conta também nas anteriores. Valores dependem da integração validada.</p>
 </div>
 </div>
 </div>
@@ -414,7 +420,46 @@ function render(){
   renderConversionMetrics(visible);
   renderWhatsAppCV(visible);
   renderCampaigns(visible);
+  renderCvFunnel(visible);
   $('caveat').textContent='Fonte: Meta Ads. Cliques totais ÷ impressões não é o CTR de link. Formulários ÷ cliques é uma razão indicativa; formulários e conversas WhatsApp são apresentados separadamente para evitar interpretação de pessoas únicas.';
+}
+// As métricas do funil por safra só são mostradas quando a integração
+// publicar contagens de IDs únicos consistentes, incluindo retroprogressão.
+let cvFunnelSource=null;
+async function loadCvFunnel(){
+  try{
+    const r=await fetch('data/cv-funnel.json?version='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw Error('Funil ainda não publicado');
+    const payload=await r.json();
+    if(payload.schema_version!==1||payload.validated!==true||
+       payload.cohort_mode!=='prospect_date'||!Array.isArray(payload.cohorts)){
+      throw Error('Funil não validado');
+    }
+    cvFunnelSource=payload;
+  }catch(_){cvFunnelSource=null;}
+}
+function renderCvFunnel(visible){
+  const ids=['cvFunnelProspect','cvFunnelSchedule','cvFunnelVisit','cvFunnelCredit','cvFunnelSale'];
+  const rates=['cvRateProspect','cvRateSchedule','cvRateVisit','cvRateCredit'];
+  ids.forEach(id=>$(id).textContent='Não apurado');
+  rates.forEach(id=>$(id).textContent='—');
+  if(!cvFunnelSource||!data||!visible.length)return;
+  const {since,until}=data.period;
+  const projects=visible.map(m=>m.project);
+  if(projects.some(p=>!p))return;
+  const rows=projects.map(project=>cvFunnelSource.cohorts.find(row=>
+    row.project===project && row.since===since && row.until===until &&
+    row.validated===true && row.as_of));
+  if(rows.some(row=>!row))return;
+  const keys=['prospect','agendamento','visita','analise_credito','venda_realizada'];
+  if(rows.some(row=>keys.some(k=>!Number.isSafeInteger(row.counts?.[k])||row.counts[k]<0)))return;
+  const values=keys.map(key=>rows.reduce((sum,row)=>sum+row.counts[key],0));
+  // Rejeitar contagens que violem a estrutura cumulativa acordada.
+  if(values.some((v,i)=>i>0&&v>values[i-1]))return;
+  ids.forEach((id,i)=>$(id).textContent=nf(values[i]));
+  rates.forEach((id,i)=>$(id).textContent=values[i]>0?
+    (values[i+1]/values[i]*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':
+    '—');
 }
 let dailySource=null;
 let validatedWindows={};
@@ -514,6 +559,7 @@ async function load(){
       $('startDate').min=x.period.since;$('startDate').max=x.period.until;
       $('endDate').min=x.period.since;$('endDate').max=x.period.until;
       await loadConversionMetrics();
+     await loadCvFunnel();
       render();
       await loadCampaigns();
       $('status').textContent='Somente período consolidado disponível';
