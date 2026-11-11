@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-11T12:02:24.713211+00:00",
+  "generated_at_utc": "2026-11-11T12:16:28.984020+00:00",
   "period": {
     "since": "2026-11-05",
     "until": "2026-11-11"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "812.53",
-      "impressions": 76858,
+      "spend": "813.56",
+      "impressions": 76914,
       "clicks": 718
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "977.47",
-      "impressions": 114269,
-      "clicks": 870
+      "spend": "978.66",
+      "impressions": 114437,
+      "clicks": 874
     },
     {
       "account_id": "272429171879216",
@@ -68,8 +68,8 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "717.85",
-      "impressions": 57757,
+      "spend": "719.87",
+      "impressions": 57810,
       "clicks": 426
     }
   ],
@@ -93,11 +93,11 @@
       "outra_ou_nao_informada": 15
     },
     "residencial village lagoas": {
-      "leads_period": 37,
-      "meta_declarada": 31,
+      "leads_period": 38,
+      "meta_declarada": 32,
       "meta_whatsapp_cv": 3,
       "meta_busca_compartilhada_cv": 0,
-      "meta_outros_cv": 28,
+      "meta_outros_cv": 29,
       "google_declarada": 2,
       "outra_ou_nao_informada": 4
     },
