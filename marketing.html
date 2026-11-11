@@ -464,12 +464,14 @@ function renderCvFunnel(visible){
   const {since,until}=data.period;
   const projects=visible.map(m=>m.project);
   if(projects.some(p=>!p))return;
-  const rows=projects.map(project=>cvFunnelSource.cohorts.find(row=>
+  const found=projects.map(project=>({project,row:cvFunnelSource.cohorts.find(row=>
     row.project===project && row.since===since && row.until===until &&
-    row.validated===true && row.as_of));
-  if(rows.some(row=>!row)){
-    if(note)note.textContent='Funil ainda sem coorte para '+since+' a '+until+
-      '. Cobertura publicada: '+cvFunnelSource.period.since+' a '+cvFunnelSource.period.until+'.';
+    row.validated===true && row.as_of)}));
+  const rows=found.filter(item=>item.row).map(item=>item.row);
+  const missing=found.filter(item=>!item.row).map(item=>item.project);
+  if(!rows.length){
+    if(note)note.textContent='Sem dados desta safra para os empreendimentos selecionados. '+
+      'Cobertura disponível: '+cvFunnelSource.period.since+' a '+cvFunnelSource.period.until+'.';
     return;
   }
   const keys=['prospect','agendamento','visita','analise_credito','venda_realizada'];
@@ -481,7 +483,10 @@ function renderCvFunnel(visible){
     return;
   }
   if(note)note.textContent='Dados CV CRM até '+cvFunnelSource.as_of+
-    ' · Safra de '+since+' a '+until+' · Venda em auditoria quando não vinculada.';
+    ' · Safra de '+since+' a '+until+
+    (missing.length?' · COBERTURA PARCIAL: '+rows.length+' de '+projects.length+
+      ' empreendimentos; faltam '+missing.join(', ')+'.':' · Todos os empreendimentos selecionados cobertos.')+
+    ' · Vendas em auditoria até validação do vínculo.';
   const salesVerified=cvFunnelSource.sales_link_validated===true;
   ids.forEach((id,i)=>$(id).textContent=(i===4&&!salesVerified)?'Em auditoria':nf(values[i]));
   rates.forEach((id,i)=>$(id).textContent=(i===3&&!salesVerified)?'—':
