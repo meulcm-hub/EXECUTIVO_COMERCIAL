@@ -85,6 +85,8 @@ def paged(base, email, token, path, start, end, *, collection, commercial=False,
         params = {"pagina": page, "limite" if precadastro else "registros_por_pagina": PAGE_SIZE}
         if precadastro:
             pass  # Pré-cadastro v1 não documenta filtros por data; consultar tudo.
+        elif path == "/api/v1/cvdw/reservas":
+            pass  # Snapshot CVDW: consultar histórico completo, filtrar safra após obter IDs.
         elif commercial:
             # CV CRM: 'situacao' e 'faturar' são filtros mutuamente exclusivos.
             # 'faturar=false' abrange diferentes situações; incluir integradas.
@@ -131,7 +133,7 @@ def conversion_channel(row):
 
 def sold(row):
     # O CV também expõe a flag de venda efetivada, além da situação comercial.
-    if norm(row.get("vendida")) in ("s", "sim", "true", "1"):
+    if norm(row.get("venda") or row.get("vendida")) in ("s", "sim", "true", "1"):
         return True
     value = row.get("situacao") or row.get("status_reserva") or row.get("situacao_reserva")
     if isinstance(value, dict):
@@ -158,7 +160,12 @@ def lead_ids(row):
             if isinstance(element, dict) and element.get("idlead") is not None:
                 ids.add(str(element["idlead"]))
     if row.get("idlead") is not None:
-        ids.add(str(row["idlead"]))
+        value = row["idlead"]
+        # CVDW reservas: idlead pode conter "168523,4322", não apenas ID único.
+        if isinstance(value, (str, int)):
+            ids.update(re.findall(r"\d+", str(value)))
+        elif isinstance(value, list):
+            ids.update(str(v) for v in value if isinstance(v, int) and v>0)
     return ids
 
 def main():
@@ -168,9 +175,8 @@ def main():
     historical = dt.date(2022, 1, 1)
     # Validar o endpoint de reservas primeiro: evita percorrer anos de leads
     # antes de descobrir erros de parâmetros/autorização comercial.
-    reservation_preflight = get(base, email, token, "/api/v1/comercial/reservas",
-                                {"pagina": 1, "registros_por_pagina": 1,
-                                 "faturar": "false", "retornar_integradas": "true"})
+    reservation_preflight = get(base, email, token, "/api/v1/cvdw/reservas",
+                                {"pagina": 1, "registros_por_pagina": 1})
     if reservation_preflight is not None:
         rows(reservation_preflight, ("reservas", "data"))
     print("Pré-validação de reservas concluída.", flush=True)
@@ -233,9 +239,8 @@ def main():
     precad = paged(base, email, token, "/api/v1/comercial/precadastro",
                    begin, today, collection=("precadastros",), precadastro=True)
     # O endpoint de pré-cadastro usa pagina/limite e campo total.
-    reservations = paged(base, email, token, "/api/v1/comercial/reservas",
-                         begin, today, collection=("reservas", "data"),
-                         commercial=True)
+    reservations = paged(base, email, token, "/api/v1/cvdw/reservas",
+                         begin, today, collection=("dados",))
     # Nunca interpretar alteração inesperada no esquema como zero conversões.
     for label, records in (("visitas", visits), ("tarefas", tasks)):
         if records and not any(r.get("idlead") is not None for r in records):
@@ -276,8 +281,26 @@ def main():
             stage_by_lead[lead].append((day, 3))
     sales_audit = collections.Counter()
     prospective_ids = {lead for _, lead in entry}
+    # CVDW pode devolver múltiplas referências da mesma reserva.
+    # Considerar a versão mais recente de cada idreserva, sem somar snapshots.
+    latest_reservations={}
     for row in reservations:
+        rid=row.get("idreserva")
+        if rid is None:
+            continue
+        key=str(rid)
+        reference=str(row.get("referencia_data") or "")
+        if key not in latest_reservations or reference>str(latest_reservations[key].get("referencia_data") or ""):
+            latest_reservations[key]=row
+    sales_audit["snapshots_consultados"]=len(reservations)
+    for row in latest_reservations.values():
         sales_audit["reservas_consultadas"] += 1
+        if norm(row.get("ativo")) == "n":
+            sales_audit["reservas_inativas"] += 1
+            continue
+        if row.get("data_cancelamento") or row.get("data_distrato"):
+            sales_audit["reservas_canceladas"] += 1
+            continue
         if not sold(row):
             continue
         sales_audit["reservas_classificadas_venda"] += 1
