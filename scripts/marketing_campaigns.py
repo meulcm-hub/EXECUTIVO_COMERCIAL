@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Relatório agregado de formulários Meta por campanha e data (ads_read).
+"""Relatório das campanhas ATIVAS da Meta por conta e data (ads_read).
 
 Não acessa, persiste ou publica leads individuais. Os indicadores de formulário
 são actions.onsite_conversion.lead_grouped, validados contra o Gerenciador da
 Meta no Jacarandá (outubro/2026). Outros tipos são diagnóstico, sem somá-los.
-O gasto para CPL é SOMENTE das campanhas que geraram leads de formulário
-no período selecionado, não de campanhas de reconhecimento ou mensagens.
+Inclui campanhas ativas de qualquer objetivo, mesmo sem resultados; o CPL
+combinado dos painéis é indicativo e inclui reconhecimento no gasto total.
 """
 import datetime as dt
 import json
@@ -83,15 +83,32 @@ def main():
                 "form_leads": int(forms),
                 "messages": int(messages)
             }
-        # IDs de campanhas não são exportados: somente nome e contagens agregadas.
-        published = []
-        for item in campaign_data.values():
-            name=item["campaign_name"].casefold()
-            # Classificação explícita de campanha LCM, não inferência por conversões.
-            item["is_whatsapp_campaign"] = (
-                "wads" in name and ("whatsapp" in name or "whats app" in name)
-            )
-            published.append(item)
+        # O endpoint de campanhas informa o status efetivo ATUAL; insights
+        # sozinho não permite distinguir campanhas ativas das pausadas.
+        active_rows=request(account_id+"/campaigns", {
+            "fields":"id,name,effective_status,objective",
+            "effective_status":json.dumps(["ACTIVE"]),
+            "limit":200
+        })
+        published=[]
+        for row in active_rows:
+            cid=str(row.get("id") or "")
+            if not re.fullmatch(r"\\d+",cid):
+                raise RuntimeError("Meta retornou campanha ativa sem identificador")
+            if row.get("effective_status")!="ACTIVE":
+                continue
+            item=campaign_data.get(cid,{"daily":{}})
+            name=str(row.get("name") or item.get("campaign_name") or "Campanha")[:120]
+            lower=name.casefold()
+            published.append({
+                "campaign_name":name,
+                "objective":str(row.get("objective") or "")[:50],
+                "status":"ACTIVE",
+                "is_whatsapp_campaign":("wads" in lower and
+                    ("whatsapp" in lower or "whats app" in lower)),
+                "daily":item["daily"]
+            })
+        published.sort(key=lambda x:x["campaign_name"].casefold())
         result.append({
             "account_id": account_id[4:],
             "campaigns": published
@@ -99,14 +116,14 @@ def main():
         print("Conta consultada: campanhas "+str(len(published))+
               "; dias de campanha "+str(sum(len(x["daily"]) for x in published)))
     output = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "period": {"since": first.isoformat(), "until": last.isoformat()},
         "action_type": FORM_ACTION,
         "action_report_time": "impression",
         "attribution": "use_unified_attribution_setting=true",
         "accounts": result,
-        "warning": "Campanhas WADS WhatsApp classificadas pelo nome; seus gastos entram no CPL combinado sem dupla contagem com formulários. Conversas Meta não equivalem a cadastros únicos CV."
+        "warning": "Lista apenas campanhas efetivamente ACTIVE no momento da coleta, com qualquer objetivo, incluindo reconhecimento. A soma do gasto das campanhas ativas pode diferir do total da conta, porque campanhas pausadas podem ter gasto no período. Conversas Meta não são leads únicos CV."
     }
     os.makedirs("data", exist_ok=True)
     filename = "data/marketing-campaigns.json"
