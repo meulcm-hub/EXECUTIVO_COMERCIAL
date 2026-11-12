@@ -11,23 +11,19 @@ on:
       - '.github/workflows/marketing-consolidate.yml'
   workflow_dispatch:
     inputs:
-      days:
-        description: 'Periodo em dias ate a data da coleta (1 a 90)'
-        required: true
-        default: '30'
       cv_pages:
         description: 'Paginas de leads CV para amostragem (1 a 50)'
         required: true
         default: '50'
 concurrency:
   group: marketing-aggregated-publication
-  cancel-in-progress: false
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
   consolidate:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,23 +59,23 @@ jobs:
         run: python scripts/marketing_campaigns.py
       - name: Publicar somente JSON agregado validado
         run: |
+          publication_dir="${{ runner.temp }}/annual-publication"
+          mkdir -p "$publication_dir"
+          cp data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json data/marketing-campaigns.json "$publication_dir/"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json data/marketing-campaigns.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Atualiza indicadores agregados de Marketing"
-            for attempt in 1 2 3; do
-              git fetch origin main
-              if git rebase origin/main && git push origin HEAD:main; then
-                echo "Indicadores publicados com sucesso"
-                exit 0
-              fi
-              echo "Tentativa de publicação não concluída: $attempt"
-              git rebase --abort 2>/dev/null || true
-              sleep 4
-            done
-            echo "Falha ao publicar após três tentativas"
-            exit 1
-          else
-            echo "Nenhuma alteração em indicadores"
-          fi
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$publication_dir/marketing-aggregated.json" data/marketing-aggregated.json
+            cp "$publication_dir/marketing-7.json" data/marketing-7.json
+            cp "$publication_dir/marketing-30.json" data/marketing-30.json
+            cp "$publication_dir/marketing-daily.json" data/marketing-daily.json
+            cp "$publication_dir/marketing-campaigns.json" data/marketing-campaigns.json
+            git add data/marketing-aggregated.json data/marketing-7.json data/marketing-30.json data/marketing-daily.json data/marketing-campaigns.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Atualiza histórico acumulado desde janeiro de 2026"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 5
+          done
+          exit 1

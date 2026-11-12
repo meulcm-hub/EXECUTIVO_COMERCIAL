@@ -144,16 +144,18 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .cv-breakdown b{color:#163d4c}
 @media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-chart-card{grid-column:1/-1}}
 @media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
-</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=6d79f937cb9f" defer></script></head>
+</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=bedfe63b61ce" defer></script></head>
 <body data-lcm-page="marketing"><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="toolbar">
 <div class="field"><label for="project">Empreendimento (Meta + CV)</label><select id="project"><option value="all">Todos os 4 empreendimentos vinculados</option></select></div>
 <div class="field"><label for="startDate">Data inicial</label><input type="date" id="startDate"></div>
 <div class="field"><label for="endDate">Data final</label><input type="date" id="endDate"></div>
+<button class="button alt" id="yearRange" type="button" disabled>Ano de 2026</button>
 <button class="button" id="apply" type="button">Aplicar período</button><span id="appliedPeriod" style="align-self:center;font-size:11px;color:#647887">Período aplicado: aguardando</span>
 <button class="button alt" id="reload" type="button">Atualizar</button>
 </section>
+<p id="yearSync" class="note" role="status" style="margin:0 0 14px"></p>
 <section class="kpis">
 <div class="kpi"><small>Investimento das campanhas ativas</small><strong id="spend">—</strong><span>Inclui reconhecimento, formulário e WhatsApp</span></div>
 <div class="kpi"><small>Leads de formulário</small><strong id="formsMeta">—</strong><span>Resultados de formulário da Meta Ads</span></div>
@@ -232,9 +234,10 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </details>
 </div>
 </section>
-<footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. A auditoria individual com os nomes dos clientes também é publicada nesta página pública. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
+<footer>Atualização automática por GitHub Actions. Histórico acumulado desde janeiro de 2026, conforme a cobertura publicada de todas as fontes. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. A auditoria individual com os nomes dos clientes também é publicada nesta página pública. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
-<script src="lcm-date-range.js?v=08f2d50e7afe"></script>
+<script src="lcm-cv-query.js?v=c541cb05b8ef"></script>
+<script src="lcm-date-range.js?v=6d4dff9ed8a1"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
@@ -403,6 +406,14 @@ function drawLeadsPerDay(dailyByProject,visible,since,until){
 function renderWhatsAppCV(visible){
   // Cadastros do CV CRM com mídia WhatsApp Facebook, não eventos de conversão.
   const target=$('cvWhatsAppNew');
+  if(data&&visible.length&&conversionSource?.validated===true&&conversionSource.schema_version>=3&&
+     data.period.since>=conversionSource.period.since&&data.period.until<=conversionSource.period.until&&
+     visible.every(m=>m.project&&conversionSource.daily?.[m.project])){
+    let count=0;
+    for(const m of visible)for(const [date,value]of Object.entries(conversionSource.daily[m.project]))
+      if(date>=data.period.since&&date<=data.period.until)count+=Number(value.whatsapp_new)||0;
+    target.textContent=nf(count);return;
+  }
   if(!dailySource||dailySource.schema_version<3||
       dailySource.cv_counts_validated!==true||
       dailySource.cv_daily_groups_suppressed!==false||
@@ -448,7 +459,7 @@ function renderConversionMetrics(visible){
  if(!visible.length||visible.some(m=>!m.project||!conversionSource.daily[m.project])){
    missing('Empreendimento sem vinculação CV validada.');return;
  }
- const range=conversionSource.range_unique?.[since+'|'+cut];
+ const range=LcmCvQuery.conversions(conversionSource,since,cut);
  if(!range){missing('Não existe deduplicação validada para este período.');return;}
  const key=$('project').value==='all'?'all':visible[0].project;
  if(!Number.isInteger(range.returning?.[key])){
@@ -530,9 +541,7 @@ async function loadCvFunnel(){
       const r=await fetch(source,{cache:'no-store'});
       if(!r.ok)throw Error('HTTP '+r.status);
       const payload=await r.json();
-      if(payload.schema_version!==1||payload.validated!==true||
-         payload.cohort_mode!=='prospect_date'||!Array.isArray(payload.cohorts)||
-         payload.cohorts.length===0)throw Error('JSON sem coortes validadas');
+      if(!LcmCvQuery.validFunnel(payload))throw Error('JSON sem coortes validadas');
       cvFunnelSource=payload;
       cvFunnelError='';
       return;
@@ -569,9 +578,7 @@ function renderCvFunnel(visible){
     return;
   }
   const partial=checkedSince!==since||checkedUntil!==until;
-  const found=projects.map(project=>({project,row:cvFunnelSource.cohorts.find(row=>
-    row.project===project && row.since===checkedSince && row.until===checkedUntil &&
-    row.validated===true && row.as_of)}));
+  const found=projects.map(project=>({project,row:LcmCvQuery.funnelRow(cvFunnelSource,project,checkedSince,checkedUntil)}));
   const rows=found.filter(item=>item.row).map(item=>item.row);
   const missing=found.filter(item=>!item.row).map(item=>item.project);
   if(!rows.length){
@@ -628,7 +635,8 @@ function renderCvAuditDetails(visible){
   if(!data||!visible.length){message('Selecione um período e empreendimento.');return;}
   const allowed=new Set(visible.map(m=>m.project).filter(Boolean));
   const inPeriod=cvAuditData.rows.filter(row=>allowed.has(row.project)&&
-    row.data_entrada>=data.period.since&&row.data_entrada<=data.period.until);
+    LcmCvQuery.auditDate(row,data.period.since,data.period.until)).map(row=>({...row,
+      data_entrada:LcmCvQuery.auditDate(row,data.period.since,data.period.until)}));
   const choice=$('cvAuditReservationStatus').value;
   const rows=inPeriod.filter(row=>!choice||reservationLabel(row)===choice);
   const period=cvAuditData.period||{};
@@ -704,7 +712,7 @@ function renderCvAudit(visible){
   const missing=[];
   let found=0;
   for(const m of projects){
-    const match=cvFunnelSource.cohorts.find(r=>r.project===m.project&&r.since===since&&r.until===until&&r.validated===true);
+    const match=LcmCvQuery.funnelRow(cvFunnelSource,m.project,since,until);
     if(!match){missing.push(m.name);continue;}
     const tr=el('tr');tr.append(el('td','',m.name));found++;
     labels.forEach((key,i)=>{const value=match.counts[key];totals[i]+=value;
@@ -738,6 +746,8 @@ function syncDateCoverage(){
   const unavailable=!selected;
   document.body.classList.toggle('date-range-unavailable',unavailable);
   $('apply').disabled=unavailable;
+  $('yearRange').disabled=unavailable||next.since>'2026-01-01'||next.until<'2026-01-01';
+  $('yearSync').textContent=next&&next.since>'2026-01-01'?'Histórico anual em sincronização. Cobertura comum disponível: '+next.since+' a '+next.until+'.':'';
   for(const id of ['startDate','endDate']){
     $(id).min=next?.since||'';$(id).max=next?.until||'';
     $(id).disabled=unavailable;
@@ -796,7 +806,7 @@ async function loadConversionMetrics(){
    const r=await fetch('data/marketing-conversions.json?version='+Date.now(),{cache:'no-store'});
    if(!r.ok)throw Error('Não publicado');
    const x=await r.json();
-   if(x.schema_version<2||x.channel_scope!=='facebook_google'||x.validated!==true||!x.period||!x.range_unique||!x.daily||
+   if(x.schema_version<2||x.channel_scope!=='facebook_google'||x.validated!==true||!x.period||(x.schema_version>=4?!Array.isArray(x.unique_groups):!x.range_unique)||!x.daily||
       !map.filter(m=>m.project).every(m=>Array.isArray(x.projects)&&x.projects.includes(m.project)&&x.daily[m.project]))
      throw Error('Estrutura de conversões não validada');
    conversionSource=x;
@@ -869,7 +879,6 @@ async function applyDate(){
  if(!dateCoverage||since<dateCoverage.since||until>dateCoverage.until){
    $('appliedPeriod').textContent='Escolha datas dentro do histórico comum: '+(dateCoverage?dateCoverage.since+' a '+dateCoverage.until:'aguardando sincronização')+'.';return;
  }
- if((parseISO(until)-parseISO(since))/86400000>89){alert('Máximo de 90 dias por consulta.');return}
  data=dailyExtract(since,until);
  // Janela exata 7/30 dias pode usar contagens CV completas previamente validadas.
  const count=Math.round((parseISO(until)-parseISO(since))/86400000)+1;
@@ -894,6 +903,7 @@ async function applyDate(){
 map.forEach(m=>$('project').add(new Option(m.name+(m.project?'':' • vínculo CV pendente'),m.id)));
 $('project').addEventListener('change',render);
 $('apply').addEventListener('click',applyDate);
+$('yearRange').addEventListener('click',()=>{$('startDate').value='2026-01-01';$('endDate').value=dateCoverage.until<'2026-12-31'?dateCoverage.until:'2026-12-31';applyDate();});
 for(const id of ['startDate','endDate']){
   $(id).addEventListener('change',()=>{applyDate().catch(e=>{$('appliedPeriod').textContent='Falha ao aplicar período';})});
 }

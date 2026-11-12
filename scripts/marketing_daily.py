@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Janela histórica diária agregada para o GitHub Pages.
 
-Consulta 90 dias completos de Meta Ads e CV CRM em ambiente GitHub Actions.
+Consulta o histórico desde janeiro de 2026 de Meta Ads e CV CRM em ambiente GitHub Actions.
 Não exporta registros individuais, IDs de leads, campanhas nem credenciais.
 Os períodos no navegador são recortes desse histórico. Fonte CV: CVDW por
 referência com segunda checagem de data de cadastro; cobertura pode divergir.
@@ -18,13 +18,13 @@ from meta_ads_collector import accounts, request
 from marketing_consolidate import cv_page, cv_project, guess_channel, classify_channel, norm, to_date
 
 D=Decimal
-DAYS=90
+HISTORY_START=dt.date(2026,1,1)
 MAX_PAGES=50
 SIZE=500
 
 def main():
     end=dt.date.today()
-    start=end-dt.timedelta(days=DAYS-1)
+    start=HISTORY_START
     ads=accounts()
     if len(ads)!=8:
         raise RuntimeError("São necessárias exatamente 8 contas para publicar o histórico")
@@ -154,7 +154,7 @@ def main():
     with open(path+".tmp","w",encoding="utf-8") as fh:
         json.dump(report,fh,ensure_ascii=False,separators=(",",":"))
     os.replace(path+".tmp",path)
-    print("Histórico agregado gerado: "+str(DAYS)+" dias; contas Meta: "+str(len(summary))+".")
+    print("Histórico agregado gerado: "+str((end-start).days+1)+" dias; contas Meta: "+str(len(summary))+".")
     print("CV: "+("contagens diárias agregadas disponíveis" if cv_ready else "indisponível por cobertura incompleta")+".")
     print("Nenhum registro de lead, token ou nome de campanha publicado.")
     print("Atenção: apenas contagens diárias por empreendimento e origem são publicadas.")

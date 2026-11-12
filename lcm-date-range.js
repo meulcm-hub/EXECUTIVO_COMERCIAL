@@ -8,13 +8,15 @@ function validDay(value){
  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;
 }
 function validPeriod(period){return period&&validDay(period.since)&&validDay(period.until)&&period.since<=period.until}
-function intersect(periods,maxDays=90){
+function intersect(periods,maxDays=Infinity){
  const valid=periods.filter(validPeriod);
  if(!valid.length)return null;
  let since=valid.map(p=>p.since).sort().at(-1),until=valid.map(p=>p.until).sort()[0];
  if(since>until)return null;
+ if(Number.isFinite(maxDays)){
  const floor=new Date(new Date(until+'T00:00:00Z').getTime()-(maxDays-1)*DAY).toISOString().slice(0,10);
  if(since<floor)since=floor;
+ }
  return {since,until};
 }
 function select(bounds,previous,choice={}){

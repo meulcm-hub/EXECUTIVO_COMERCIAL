@@ -19,7 +19,7 @@ PROJECTS=(
     "spe arraial costa verde club",
     "residencial jatoba",
 )
-DAYS=90
+HISTORY_START=dt.date(2026,1,1)
 
 def acquisition_channel(row):
     """Facebook inclui Busca Compartilhada e WhatsApp Facebook; Google separado."""
@@ -44,7 +44,7 @@ def main():
     if u.scheme!="https" or u.hostname!="lcm.cvcrm.com.br" or u.path not in ("","/") or u.query or u.fragment or u.username or u.password or not email or not token:
         raise RuntimeError("Credenciais CV CRM indisponíveis")
     until=dt.date.today()
-    since=until-dt.timedelta(days=DAYS-1)
+    since=HISTORY_START
     history_start=dt.date(2022,1,1)
     if since<history_start:raise RuntimeError("Histórico ainda não disponível")
 
@@ -133,7 +133,7 @@ def main():
         elif relevant:
             ambiguous_ids.add(project_id)
 
-    dates=[(since+dt.timedelta(days=i)).isoformat() for i in range(DAYS)]
+    dates=[(since+dt.timedelta(days=i)).isoformat() for i in range((until-since).days+1)]
     new_by_date=collections.defaultdict(collections.Counter)
     for lead,(first,first_project,channel,is_whatsapp) in original.items():
         if lead in conflicting:continue
@@ -148,6 +148,7 @@ def main():
     daily_returning_whatsapp=collections.defaultdict(lambda:collections.defaultdict(set))
     daily_unclassified=collections.defaultdict(lambda:collections.defaultdict(set))
     event_ids=set()
+    grouped_events=collections.defaultdict(dict)
     invalid=0
     unknown_project=0
     ambiguous=0
@@ -207,6 +208,11 @@ def main():
         daily_events[project][day]+=1
         daily_events[project][(day,channel)]+=1
         daily_unique[project][day].add(lead)
+        kind_unknown=info is None or lead in conflicting or info[0]>date
+        kind_return=not kind_unknown and info[0]<date
+        grouped_events[lead][(day,project)]={"date":day,"project":project,
+            "returning":kind_return,"whatsapp":bool(kind_return and info[3]),
+            "unclassified":kind_unknown}
         if info is None or lead in conflicting or info[0]>date:
             # Conversão e lead único são identificados pelo evento, mas
             # retorno não pode ser inferido sem cadastro original coerente.
@@ -227,29 +233,9 @@ def main():
         raise RuntimeError("Existem eventos sem ID, data ou estrutura válida. Consolidação bloqueada.")
 
     # Unicidade no período: não somar 'leads únicos por dia', pois um lead
-    # pode converter em dois dias da seleção. Pré-calcular todos os intervalos.
-    unique_ranges={}
-    for i,first in enumerate(dates):
-        sets={p:set() for p in PROJECTS}
-        returned={p:set() for p in PROJECTS}
-        returned_whatsapp={p:set() for p in PROJECTS}
-        unknown={p:set() for p in PROJECTS}
-        for second in dates[i:]:
-            for p in PROJECTS:
-                sets[p].update(daily_unique[p].get(second,()))
-                returned[p].update(daily_returning[p].get(second,()))
-                returned_whatsapp[p].update(daily_returning_whatsapp[p].get(second,()))
-                unknown[p].update(daily_unclassified[p].get(second,()))
-            unique_ranges[first+"|"+second]={
-                "unique":{**{p:len(sets[p]) for p in PROJECTS},
-                          "all":len(set().union(*sets.values()))},
-                "returning":{**{p:len(returned[p]) for p in PROJECTS},
-                             "all":len(set().union(*returned.values()))},
-                "returning_whatsapp":{**{p:len(returned_whatsapp[p]) for p in PROJECTS},
-                                      "all":len(set().union(*returned_whatsapp.values()))},
-                "unclassified_return":{**{p:len(unknown[p]) for p in PROJECTS},
-                                        "all":len(set().union(*unknown.values()))},
-            }
+    # pode converter em dois dias. Publicar grupos sem IDs permite consultar qualquer período.
+    # Um grupo anônimo por lead: deduplicação por período sem matriz quadrática.
+    unique_groups=[{"events":list(events.values())} for events in grouped_events.values()]
     def daily_for(p):
         return {d:{"new":new_by_date[p][d],
                    "facebook_new":new_by_date[p][(d,"facebook")],
@@ -260,7 +246,7 @@ def main():
                    "google_conversions":daily_events[p][(d,"google")]}
                 for d in dates}
     report={
-        "schema_version":3,
+        "schema_version":4,
         "channel_scope":"facebook_google",
         "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
         "period":{"since":since.isoformat(),"until":until.isoformat()},
@@ -269,7 +255,7 @@ def main():
         "identification_scope":"Conversões incluídas somente se o empreendimento da conversão for identificado inequivocamente. Retornos somente com cadastro original consistente.",
         "projects":list(PROJECTS),
         "daily":{p:daily_for(p) for p in PROJECTS},
-        "range_unique":unique_ranges,
+        "unique_groups":unique_groups,
         "method":"Novos por data_cad original, primeiro empreendimento e origem Facebook/Google; conversões com empreendimento e origem de evento Facebook/Google; retornos posteriores ao dia do cadastro; sem dupla contagem por ID.",
         "caveat":"Indicadores limitados a eventos com empreendimento de conversão identificado. Eventos sem vínculo de empreendimento foram excluídos; isso não indica que sejam antigos. Retornos sem cadastro original válido ficam indeterminados. Conversões múltiplas no dia do cadastro não contam como retorno; não há atribuição a campanhas Meta.",
     }
@@ -279,11 +265,11 @@ def main():
         json.dump(report,fh,ensure_ascii=False,separators=(",",":"))
     os.replace(path+".tmp",path)
     print("CONSOLIDADO CV - FACEBOOK E GOOGLE - PREPARADO PARA PUBLICAÇÃO")
-    print("Dias: "+str(DAYS)+"; projetos: "+str(len(PROJECTS)))
+    print("Dias: "+str((until-since).days+1)+"; projetos: "+str(len(PROJECTS)))
     print("Leads históricos válidos: "+str(len(original)))
     print("Eventos CV de projetos vinculados: "+str(matched))
     print("Registros de cadastro lidos: "+str(lead_records))
-    print("Intervalos únicos calculados: "+str(len(unique_ranges)))
+    print("Grupos anônimos publicados: "+str(len(unique_groups)))
     print("Somente contagens agregadas, sem IDs, nomes ou contatos no arquivo.")
 if __name__=="__main__":
     try:main()

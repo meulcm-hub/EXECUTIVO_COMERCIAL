@@ -29,7 +29,6 @@ if(start>end){$('ovStatus').textContent='As fontes ainda não têm um período e
 const dates=days(start,end);const defaultSince=dates[Math.max(0,dates.length-30)];
 for(const id of ['ovSince','ovUntil']){$(id).min=start;$(id).max=end}
 $('ovSince').value=defaultSince;$('ovUntil').value=end;
-const cohorts=new Map((funnel?.cohorts||[]).map(c=>[c.project+'|'+c.since+'|'+c.until,c]));
 function spendFor(p,since,until){
  if(!campaigns?.period||since<campaigns.period.since||until>campaigns.period.until)return null;
  const account=campaigns.accounts?.find(a=>String(a.account_id)===p.account);
@@ -37,9 +36,9 @@ function spendFor(p,since,until){
  return account.campaigns.filter(c=>c.status==='ACTIVE').reduce((sum,c)=>sum+Object.entries(c.daily||{}).filter(([d])=>d>=since&&d<=until).reduce((a,[,v])=>a+(Number(v.spend)||0),0),0);
 }
 function cohortFor(p,since,until){
- const c=cohorts.get(p.key+'|'+since+'|'+until);
+ const c=LcmCvQuery.funnelRow(funnel,p.key,since,until);
  const keys=['prospect','agendamento','visita','analise_credito','venda_realizada'];
- return funnel?.validated===true&&funnel.schema_version===1&&c?.validated===true&&keys.every(k=>Number.isInteger(c.counts?.[k])&&c.counts[k]>=0)?c.counts:null;
+ return funnel?.validated===true&&LcmCvQuery.validFunnel(funnel)&&c?.validated===true&&keys.every(k=>Number.isInteger(c.counts?.[k])&&c.counts[k]>=0)?c.counts:null;
 }
 function chart(selected,since,until){
  if(conversions?.validated!==true||!conversions.period||since<conversions.period.since||until>conversions.period.until||

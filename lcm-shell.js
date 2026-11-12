@@ -16,7 +16,7 @@ money:'<circle cx="12" cy="12" r="9"/><path d="M15 8H10a2 2 0 0 0 0 4h4a2 2 0 0 
 window.LcmIcon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(icons[name]||icons.home)+'</svg>';
 const body=document.body;
 // A navegação entre visões também precisa renovar o HTML em cache.
-const uiVersion='20261112-colunas';
+const uiVersion='20261112-anual';
 function pageUrl(href){
  const url=new URL(href,location.href);
  url.searchParams.set('ui',uiVersion);

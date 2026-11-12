@@ -65,9 +65,9 @@ class AuditCohortTests(unittest.TestCase):
         by_id = {row["idlead"]: row for row in private["rows"]}
         returned = by_id["1"]
         self.assertEqual(returned["origem"], "Google")  # Leads, não a conversão Facebook.
-        self.assertEqual(returned["data_entrada"], return_day.isoformat())
-        self.assertNotEqual(returned["data_entrada"], original_day.isoformat())
-        self.assertEqual(returned["tipo_entrada"], "Retorno")
+        self.assertEqual(returned["data_entrada"], original_day.isoformat())
+        self.assertEqual(returned["entry_dates"], [original_day.isoformat(),return_day.isoformat(),today.isoformat()])
+        self.assertEqual(returned["tipo_entrada"], "Novo cadastro")
         self.assertEqual(returned["situacao_lead"], "Em atendimento")
         self.assertEqual(returned["situacao_precadastro"], "Aprovado")
         self.assertEqual(returned["situacao_reserva"], "Vendida")
@@ -76,16 +76,17 @@ class AuditCohortTests(unittest.TestCase):
         self.assertEqual(by_id["2"]["tipo_entrada"], "Novo cadastro")
         self.assertEqual(by_id["2"]["data_venda"], "")
 
-        for since in (return_day, new_day, today):
-            selected = [row for row in private["rows"]
-                        if row["project"] == project
-                        and since.isoformat() <= row["data_entrada"] <= today.isoformat()]
-            cohort = next(row for row in public["cohorts"]
-                          if row["project"] == project and row["since"] == since.isoformat()
-                          and row["until"] == today.isoformat())
-            self.assertEqual(len(selected), cohort["counts"]["prospect"])
-            self.assertEqual(sum(bool(row["data_venda"]) for row in selected),
-                             cohort["counts"]["venda_realizada"])
+        self.assertEqual(public["schema_version"],2)
+        self.assertEqual(public["period"]["since"],"2026-01-01")
+        self.assertNotIn("cohorts",public)
+        self.assertNotIn('"idlead":',json.dumps(public))
+        self.assertEqual(len(public["prospects"]),2)
+        for since,expected in [(original_day,2),(return_day,2),(new_day,2),(today,1)]:
+            selected=[group for group in public["prospects"] if any(
+                since.isoformat()<=entry["date"]<=today.isoformat() for entry in group["entries"])]
+            self.assertEqual(len(selected),expected)
+        group=next(group for group in public["prospects"] if len(group["entries"])==3)
+        self.assertTrue(all(entry["stage"]==4 for entry in group["entries"]))
         self.assertTrue(public["sales_link_validated"])
         self.assertNotIn("Cliente fictício", json.dumps(public))
 

@@ -17,7 +17,7 @@ from cv_conversion_audit import source as conversion_source
 
 PROJECTS = ("residencial flores do cerrado jacaranda", "residencial village lagoas",
             "spe arraial costa verde club", "residencial jatoba")
-DAYS = 90
+HISTORY_START = dt.date(2026,1,1)
 PAGE_SIZE = 500
 MAX_PAGES = 200
 SOLD = ("VENDID", "CONTRATO ASSINADO", "ASSINADO POR CLIENTES E ASSOCIADOS",
@@ -171,7 +171,7 @@ def lead_ids(row):
 def main():
     base, email, token = credentials()
     today = dt.date.today()
-    begin = today - dt.timedelta(days=DAYS - 1)
+    begin = HISTORY_START
     historical = dt.date(2022, 1, 1)
     # Validar o endpoint de reservas primeiro: evita percorrer anos de leads
     # antes de descobrir erros de parâmetros/autorização comercial.
@@ -183,6 +183,7 @@ def main():
     original = {}
     original_details = {}
     entry_origins = {}
+    entry_dates = collections.defaultdict(set)
     conflicts = set()
     aliases = collections.defaultdict(set)
     for row in read_complete(base, email, token, historical, today,
@@ -216,6 +217,7 @@ def main():
     for lead, (day, project, accepted) in original.items():
         if lead not in conflicts and accepted and project in PROJECTS and begin <= day <= today:
             entry[(project, lead)] = day
+            entry_dates[(project, lead)].add(day)
             entry_origins[(project, lead)] = "Novo cadastro"
     possible = {k: next(iter(v)) for k, v in aliases.items() if len(v) == 1}
     seen_events = set()
@@ -238,6 +240,7 @@ def main():
         if (project not in PROJECTS or not first or lead in conflicts or first[0] >= day):
             continue
         key = (project, lead)
+        entry_dates[key].add(day)
         entry[key] = min(day, entry.get(key, day))
         if entry[key] == day:
             entry_origins[key] = "Retorno"
@@ -369,41 +372,25 @@ def main():
           json.dumps(dict(sales_audit), sort_keys=True), flush=True)
     # Um mesmo cliente pode entrar por cadastro novo e depois retornar:
     # usar a primeira entrada elegível por empreendimento; não somar eventos.
-    dates = [begin + dt.timedelta(days=i) for i in range(DAYS)]
-    cohorts = []
-    for project in PROJECTS:
-        per_day = collections.defaultdict(list)
-        for (p, lead), first in entry.items():
-            if p != project:
-                continue
-            # Só eventos após entrada do prospect podem fazê-lo avançar.
-            level = max((stage for day, stage in stage_by_lead.get(lead, ())
-                         if day >= first), default=0)
-            per_day[first].append(level)
-        for i, first in enumerate(dates):
-            levels = []
-            for last in dates[i:]:
-                levels.extend(per_day[last])
-                counts = {key: sum(level >= n for level in levels)
-                          for n, key in enumerate((
-                              "prospect", "agendamento", "visita",
-                              "analise_credito", "venda_realizada"))}
-                cohorts.append({"project": project, "since": first.isoformat(),
-                                "until": last.isoformat(), "as_of": today.isoformat(),
-                                "validated": True, "counts": counts})
-    if not cohorts:
-        raise RuntimeError("Coortes não produzidas")
+    # Um grupo anônimo por cliente/empreendimento mantém todas as entradas.
+    # A primeira entrada dentro do filtro é escolhida no navegador.
+    prospects=[]
+    for (project,lead), dates in sorted(entry_dates.items()):
+        events=stage_by_lead.get(lead, ())
+        prospects.append({"project":project,"entries":[
+            {"date":day.isoformat(),"stage":max((level for event,level in events if event>=day),default=0)}
+            for day in sorted(dates)]})
     # Sem vínculo confiável de vendas, não publicar um zero como resultado definitivo.
     sales_link_validated = bool(sales_audit["reservas_classificadas_venda"]
                                 and sales_audit["vendas_com_idlead"]
                                 and matched_sales)
     if not sales_link_validated:
         print("ATENÇÃO: venda da safra não confirmada; indicador de vendas permanece em auditoria.", flush=True)
-    report = {"schema_version": 1, "validated": True,
+    report = {"schema_version": 2, "validated": True,
               "sales_link_validated": sales_link_validated,
               "cohort_mode": "prospect_date", "as_of": today.isoformat(),
               "period": {"since": begin.isoformat(), "until": today.isoformat()},
-              "cohorts": cohorts,
+              "prospects": prospects,
               # Somente totais não identificáveis. Nunca publicar idlead,
               # cliente, telefone, e-mail, CPF ou linhas individuais.
               "reservation_link_audit": {
@@ -458,6 +445,7 @@ def main():
             "origem": detail.get("origem", "Não informado"),
             "tipo_entrada": entry_origins.get((project, lead), "Novo cadastro"),
             "data_entrada": first.isoformat(),
+            "entry_dates": [day.isoformat() for day in sorted(entry_dates[(project,lead)])],
             "data_venda": sale_record[0].isoformat() if sale_record else "",
             "situacao_lead": situation(detail.get("situacao_lead")),
             "situacao_precadastro": situation(precad_value.get("situacao") or precad_value.get("status")),
@@ -481,7 +469,7 @@ def main():
     os.makedirs("data", exist_ok=True)
     with open(target, "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, separators=(",", ":"))
-    print("Funil agregado validado: " + str(len(cohorts)) + " recortes publicados; nenhum ID exportado.")
+    print("Funil agregado validado: " + str(len(prospects)) + " grupos anônimos publicados; nenhum ID exportado.")
 
 if __name__ == "__main__":
     try:
