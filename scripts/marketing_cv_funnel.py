@@ -181,6 +181,8 @@ def main():
         rows(reservation_preflight, ("dados",))
     print("Pré-validação de reservas concluída.", flush=True)
     original = {}
+    original_details = {}
+    entry_origins = {}
     conflicts = set()
     aliases = collections.defaultdict(set)
     for row in read_complete(base, email, token, historical, today,
@@ -197,6 +199,11 @@ def main():
             conflicts.add(lead)
         else:
             original[lead] = current
+            original_details[lead] = {
+                "cliente": str(row.get("nome") or row.get("nome_lead") or row.get("cliente") or "Não informado"),
+                "situacao_lead": str(row.get("situacao") or row.get("status") or row.get("situacao_lead") or "Não informado"),
+                "origem": str(row.get("origem") or row.get("midia") or row.get("origem_cadastro") or "Não informado")
+            }
         for idkey, projectkey in (
             ("idempreendimento_primeiro", "empreendimento_primeiro"),
             ("idempreendimento_ultimo", "empreendimento_ultimo")):
@@ -209,6 +216,7 @@ def main():
     for lead, (day, project, accepted) in original.items():
         if lead not in conflicts and accepted and project in PROJECTS and begin <= day <= today:
             entry[(project, lead)] = day
+            entry_origins[(project, lead)] = "Novo cadastro"
     possible = {k: next(iter(v)) for k, v in aliases.items() if len(v) == 1}
     seen_events = set()
     for row in read_complete(base, email, token, begin, today,
@@ -231,6 +239,8 @@ def main():
             continue
         key = (project, lead)
         entry[key] = min(day, entry.get(key, day))
+        if entry[key] == day:
+            entry_origins[key] = "Retorno"
     # IDs de fontes comerciais nunca vão para o arquivo de saída.
     visits = paged(base, email, token, "/api/v1/cvdw/leads/visitas",
                    begin, today, collection=("dados", "data", "visitas"))
@@ -272,6 +282,7 @@ def main():
         state = norm(row.get("situacao") or "").upper()
         if lead is not None and day and "agend" in title and state not in ("CA", "CANCELADA"):
             stage_by_lead[str(lead)].append((day, 1))
+    precad_by_lead = {}
     for row in precad:
         day = event_day(row)
         # data_cad is the creation of the pre-registration (not the original lead).
@@ -279,6 +290,10 @@ def main():
             raise RuntimeError("Pré-cadastro sem data")
         for lead in lead_ids(row):
             stage_by_lead[lead].append((day, 3))
+            current = precad_by_lead.get(lead)
+            if current is None or day >= current[0]:
+                precad_by_lead[lead] = (day, row)
+    sale_by_lead = {}
     sales_audit = collections.Counter()
     # O vínculo é puramente por ID. Filtros comerciais e datas são verificados
     # somente depois de confirmar que a reserva encontrou um lead do funil.
@@ -335,6 +350,9 @@ def main():
             sales_audit["vendas_sem_prospect_na_safra"] += 1
         for lead in ids:
             stage_by_lead[lead].append((day, 4))
+            current = sale_by_lead.get(lead)
+            if current is None or day >= current[0]:
+                sale_by_lead[lead] = (day, row)
     sale_ids = {lead for lead, events in stage_by_lead.items()
                 if any(level == 4 for _, level in events)}
     matched_sales = sum(1 for (project, lead), first in entry.items()
@@ -400,6 +418,56 @@ def main():
               },
               "method": "IDs de prospects por empreendimento e período de entrada. Etapa máxima alcançada após a entrada, contabilizada cumulativamente nas anteriores.",
               "source": "CV CRM v1; contagens agregadas sem IDs ou PII"}
+    # Arquivo individual LOCAL: jamais comitar em data/ ou publicar no Pages.
+    # É possível importá-lo no dashboard diretamente do computador autorizado.
+    project_titles = {
+        "residencial flores do cerrado jacaranda": "Jacarandá",
+        "residencial village lagoas": "Village Lagoas",
+        "spe arraial costa verde club": "Arraial Costa Verde",
+        "residencial jatoba": "Jatobá"
+    }
+    def situation(value):
+        if isinstance(value, dict):
+            return str(value.get("situacao") or value.get("nome") or value.get("status") or "Não informado")
+        return str(value) if value is not None and str(value).strip() else "Não informado"
+
+    detail_rows = []
+    for (project, lead), first in sorted(entry.items(), key=lambda kv: (kv[0][0], kv[1], kv[0][1])):
+        detail = original_details.get(lead, {})
+        precad_record = precad_by_lead.get(lead)
+        sale_record = sale_by_lead.get(lead)
+        precad_value = precad_record[1] if precad_record else {}
+        sale_value = sale_record[1] if sale_record else {}
+        # Uma reserva sem status de venda ainda pode explicar a situação atual.
+        # O vínculo prioritário é por ID; não inventar situação para leads sem reserva.
+        reservation_status = situation(sale_value.get("situacao") or sale_value.get("status_reserva"))
+        detail_rows.append({
+            "idlead": lead,
+            "cliente": detail.get("cliente", "Não informado"),
+            "empreendimento": project_titles.get(project, project),
+            "project": project,
+            "origem": detail.get("origem", "Não informado"),
+            "tipo_entrada": entry_origins.get((project, lead), "Novo cadastro"),
+            "data_entrada": first.isoformat(),
+            "data_venda": sale_record[0].isoformat() if sale_record and sale_record[0] >= first else "",
+            "situacao_lead": situation(detail.get("situacao_lead")),
+            "situacao_precadastro": situation(precad_value.get("situacao") or precad_value.get("status")),
+            "situacao_reserva": reservation_status
+        })
+    audit_path = os.getenv("CV_AUDIT_PRIVATE_PATH", "").strip()
+    if audit_path:
+        directory = os.path.dirname(os.path.abspath(audit_path))
+        os.makedirs(directory, exist_ok=True)
+        with open(audit_path, "w", encoding="utf-8") as private_file:
+            json.dump({
+                "schema_version": 1, "source": "CV CRM - dados individuais privados",
+                "period": {"since": begin.isoformat(), "until": today.isoformat()},
+                "rows": detail_rows
+            }, private_file, ensure_ascii=False)
+        print("Auditoria individual privada gerada: " + str(len(detail_rows)) +
+              " linhas; caminho definido por CV_AUDIT_PRIVATE_PATH.", flush=True)
+    else:
+        print("Auditoria individual preparada em memória; exportação privada desabilitada.", flush=True)
     target = "data/cv-funnel.json"
     os.makedirs("data", exist_ok=True)
     with open(target, "w", encoding="utf-8") as fh:
