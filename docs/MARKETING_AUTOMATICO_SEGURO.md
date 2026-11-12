@@ -1,6 +1,8 @@
 # Visão de Marketing LCM — atualização automática protegida
 
-## Estado atual (10/11/2026)
+Agendamento atual: **06h, 12h e 18h de Brasília**, todos os dias. Veja [Agendamento das atualizações](AGENDAMENTO_ATUALIZACOES.md).
+
+## Estado registrado em 10/11/2026
 - GitHub Pages: interface pública; **não** publicar dados comerciais sensíveis, tokens ou leads individuais.
 - Meta Ads: 8 contas consultáveis com token `ads_read`.
 - CV CRM CVDW: endpoint de leads acessível; não há atribuição de campanhas validada.
@@ -35,3 +37,4 @@ A rotina somente envia dados quando ambos os novos segredos estão configurados,
 ## Como testar
 Ações → `LCM - Consolidacao segura Meta e CV` → Executar fluxo de trabalho (30 dias, 10 páginas).
 Verificar logs agregados. Não copiar tokens, payloads, URLs privadas ou informações pessoais em issues ou comentários.
+
