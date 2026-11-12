@@ -294,6 +294,7 @@ def main():
             if current is None or day >= current[0]:
                 precad_by_lead[lead] = (day, row)
     sale_by_lead = {}
+    reservation_by_lead = {}
     sales_audit = collections.Counter()
     # O vínculo é puramente por ID. Filtros comerciais e datas são verificados
     # somente depois de confirmar que a reserva encontrou um lead do funil.
@@ -314,6 +315,11 @@ def main():
     for row in latest_reservations.values():
         sales_audit["reservas_consultadas"] += 1
         ids = lead_ids(row)
+        for lead in ids:
+            current = reservation_by_lead.get(lead)
+            reference = str(row.get("referencia_data") or "")
+            if current is None or reference >= current[0]:
+                reservation_by_lead[lead] = (reference, row)
         linked_original = ids & original_ids
         linked_cohort = ids & prospective_ids
         if not ids:
@@ -437,10 +443,11 @@ def main():
         precad_record = precad_by_lead.get(lead)
         sale_record = sale_by_lead.get(lead)
         precad_value = precad_record[1] if precad_record else {}
-        sale_value = sale_record[1] if sale_record else {}
-        # Uma reserva sem status de venda ainda pode explicar a situação atual.
-        # O vínculo prioritário é por ID; não inventar situação para leads sem reserva.
-        reservation_status = situation(sale_value.get("situacao") or sale_value.get("status_reserva"))
+        reservation_record = reservation_by_lead.get(lead)
+        reservation_value = reservation_record[1] if reservation_record else {}
+        # Situação Reserva reflete a última referência da reserva encontrada por ID,
+        # mesmo que não tenha sido classificada como venda.
+        reservation_status = situation(reservation_value.get("situacao") or reservation_value.get("status_reserva"))
         detail_rows.append({
             "idlead": lead,
             "cliente": detail.get("cliente", "Não informado"),
