@@ -15,6 +15,13 @@ money:'<circle cx="12" cy="12" r="9"/><path d="M15 8H10a2 2 0 0 0 0 4h4a2 2 0 0 
 };
 window.LcmIcon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(icons[name]||icons.home)+'</svg>';
 const body=document.body;
+// A navegação entre visões também precisa renovar o HTML em cache.
+const uiVersion='20261112-colunas';
+function pageUrl(href){
+ const url=new URL(href,location.href);
+ url.searchParams.set('ui',uiVersion);
+ return url.pathname+url.search+url.hash;
+}
 const root=body.dataset.lcmPage==='executive';
 const menu=[
 ['overview','Visão Geral','index.html#overview','home'],
@@ -24,11 +31,15 @@ const menu=[
 ];
 body.classList.add('lcm-app');
 const sidebar=document.createElement('aside');sidebar.className='lcm-sidebar';sidebar.id='lcmSidebar';
-sidebar.innerHTML='<button type="button" class="lcm-mobile-close" aria-label="Fechar menu">×</button><a class="lcm-brand" href="index.html#overview"><span class="lcm-brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><b>LCM</b><small>Inteligência Comercial</small></span></a><div class="lcm-sidebar-label">Seu negócio, em perspectiva</div><nav class="lcm-nav" aria-label="Navegação principal">'+menu.map(([key,label,href,icon])=>'<a data-lcm-view="'+key+'" href="'+href+'">'+LcmIcon(icon)+'<span>'+label+'</span></a>').join('')+'</nav><div class="lcm-sidebar-bottom"><b>Comercial + Marketing</b>Indicadores para decidir melhor.</div>';
+sidebar.innerHTML='<button type="button" class="lcm-mobile-close" aria-label="Fechar menu">×</button><a class="lcm-brand" href="'+pageUrl('index.html#overview')+'"><span class="lcm-brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><b>LCM</b><small>Inteligência Comercial</small></span></a><div class="lcm-sidebar-label">Seu negócio, em perspectiva</div><nav class="lcm-nav" aria-label="Navegação principal">'+menu.map(([key,label,href,icon])=>'<a data-lcm-view="'+key+'" href="'+pageUrl(href)+'">'+LcmIcon(icon)+'<span>'+label+'</span></a>').join('')+'</nav><div class="lcm-sidebar-bottom"><b>Comercial + Marketing</b>Indicadores para decidir melhor.</div>';
 const topbar=document.createElement('div');topbar.className='lcm-topbar';
 topbar.innerHTML='<button class="lcm-menu-toggle" type="button" aria-label="Abrir menu" aria-controls="lcmSidebar" aria-expanded="false">'+LcmIcon('menu')+'</button><strong id="lcmBreadcrumb">LCM / Visão Geral</strong><span>Painel de inteligência</span><button id="lcmThemeToggle" class="lcm-theme-toggle" type="button" aria-label="Ativar tema escuro" title="Alternar tema">'+LcmIcon('moon')+'<span>Alternar tema</span></button>';
 const scrim=document.createElement('button');scrim.className='lcm-scrim';scrim.hidden=true;scrim.setAttribute('aria-label','Fechar menu');
 body.prepend(sidebar,topbar,scrim);
+document.querySelectorAll('a.lcm-overview-link[href]').forEach(link=>{
+ const href=link.getAttribute('href');
+ if(href&&!href.startsWith('#'))link.setAttribute('href',pageUrl(href));
+});
 const toggle=topbar.querySelector('.lcm-menu-toggle');
 function closeMenu(){body.classList.remove('lcm-menu-open');scrim.hidden=true;toggle.setAttribute('aria-expanded','false')}
 toggle.addEventListener('click',()=>{const open=body.classList.toggle('lcm-menu-open');scrim.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open)sidebar.querySelector('a').focus()});
