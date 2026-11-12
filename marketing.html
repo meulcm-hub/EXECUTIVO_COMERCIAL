@@ -92,6 +92,16 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 }
 .audit-full{width:100%;min-width:0}
 .audit-table{min-width:650px;width:100%}
+.audit-detail{min-width:1120px;table-layout:auto}
+.audit-detail th{white-space:nowrap;text-align:left!important}
+.audit-detail th:nth-child(1){min-width:155px}
+.audit-detail th:nth-child(2){min-width:130px}
+.audit-detail th:nth-child(7){min-width:148px}
+.audit-detail th:nth-child(8){min-width:130px}
+.audit-detail .audit-empty{text-align:left!important;padding:17px 12px;color:#657b86;line-height:1.5}
+.audit-summary{margin-top:17px;border-top:1px solid #e6ece8;padding-top:12px}
+.audit-summary summary{cursor:pointer;font-size:12px;font-weight:750;color:#276942;margin-bottom:10px}
+
 .audit-table th,.audit-table td{padding:11px 9px}
 .audit-table th{font-size:11px}
 .audit-table td{font-size:12px}
@@ -192,13 +202,19 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </section>
 <section class="panel" id="cvAuditPanel" style="margin-top:15px">
 <h2>Auditoria do Funil CV CRM</h2>
-<p class="sub">Conferência das pessoas únicas por etapa, com os mesmos filtros de período e empreendimento do funil acima. Quem alcançou uma etapa avançada também conta nas anteriores.</p>
+<p class="sub">Estrutura de conferência individual do funil, com período e empreendimento definidos nos filtros superiores. A lista nominal requer acesso privado ao CV CRM.</p>
 <div class="audit-full">
-<h3 style="font-size:14px;margin:4px 0 12px">Clientes por empreendimento e etapa</h3>
+<h3 style="font-size:14px;margin:4px 0 12px">Clientes do Funil CV CRM</h3>
+<div class="tablewrap"><table class="table audit-table audit-detail"><thead><tr>
+<th>Cliente</th><th>Empreendimento</th><th>Origem</th><th>Data da Entrada</th><th>Data da Venda</th><th>Situação Lead</th><th>Situação Pré-Cadastro</th><th>Situação Reserva</th>
+</tr></thead><tbody id="cvAuditDetailRows"><tr><td colspan="8" class="audit-empty">A relação individual ainda não está disponível nesta página pública. Não são publicados nomes, IDs ou dados pessoais de clientes.</td></tr></tbody></table></div>
+<p class="audit-note">A página pública contém apenas dados agregados. Para preencher as oito colunas com clientes reais, será necessária uma fonte privada com controle de acesso. Nenhum registro fictício será apresentado como real.</p>
+<details class="audit-summary"><summary>Ver resumo por empreendimento e etapa</summary>
 <div class="tablewrap"><table class="table audit-table"><thead><tr><th>Empreendimento</th><th class="num">Prospect</th><th class="num">Agend.</th><th class="num">Visita</th><th class="num">Análise</th><th class="num">Venda</th></tr></thead>
 <tbody id="cvAuditRows"><tr><td colspan="6">Aguardando leitura do funil.</td></tr></tbody>
 <tfoot id="cvAuditTotals"></tfoot></table></div>
-<p class="audit-note" id="cvAuditCoverage">O detalhamento individual de clientes exige acesso autenticado; não disponibilizamos IDs nem informações pessoais nesta página pública.</p>
+<p class="audit-note" id="cvAuditCoverage">Aguardando dados agregados do funil.</p>
+</details>
 </div>
 </section>
 <footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
