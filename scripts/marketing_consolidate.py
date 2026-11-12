@@ -11,6 +11,8 @@ import collections
 import datetime as dt
 import decimal
 import json
+import http.client
+import time
 import os
 import re
 import sys
@@ -63,13 +65,22 @@ def cv_page(base,email,token,page,size,start,end):
         headers={"email":email,"token":token,"Accept":"application/json"})
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self,req,fp,code,msg,headers,newurl): return None
-    try:
-        with urllib.request.build_opener(NoRedirect()).open(req,timeout=45) as resp:
-            payload=json.load(resp)
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError("CV CVDW: HTTP "+str(exc.code)) from None
-    except (urllib.error.URLError,TimeoutError,ValueError):
-        raise RuntimeError("CV CVDW: consulta falhou ou JSON inválido") from None
+    opener=urllib.request.build_opener(NoRedirect())
+    for attempt in range(4):
+        delay=2**attempt
+        try:
+            with opener.open(req,timeout=45) as resp:
+                payload=json.load(resp)
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (429,500,502,503,504) or attempt==3:
+                raise RuntimeError("CV CVDW: HTTP "+str(exc.code)) from None
+            try: delay=min(60,max(delay,int(exc.headers.get("Retry-After",delay))))
+            except (AttributeError,TypeError,ValueError): pass
+        except (urllib.error.URLError,TimeoutError,ValueError,http.client.IncompleteRead,ConnectionResetError):
+            if attempt==3:
+                raise RuntimeError("CV CVDW: resposta incompleta ou indisponível após quatro tentativas") from None
+        time.sleep(delay)
     if not isinstance(payload,dict): raise RuntimeError("CV CVDW: formato inesperado")
     records=payload.get("dados",[])
     if isinstance(records,dict): records=[records]
@@ -157,7 +168,12 @@ def main():
     pages_announced=None
     page_end_seen=False
     for page in range(1,args.cv_pages+1):
-        rows,payload=cv_page(url,email,token,page,size,start,end)
+        try:
+            rows,payload=cv_page(url,email,token,page,size,start,end)
+        except RuntimeError:
+            print("Resumo CV não validado nesta coleta; indicadores Meta completos serão preservados.",flush=True)
+            exhausted=False
+            break
         scanned_pages+=1
         if "total_de_paginas" in payload:
             try:

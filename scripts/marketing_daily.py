@@ -79,7 +79,14 @@ def main():
     invalid_dates=0
     count=0
     for page in range(1,MAX_PAGES+1):
-        rows,payload=cv_page(base,email,token,page,SIZE,start,end)
+        try:
+            rows,payload=cv_page(base,email,token,page,SIZE,start,end)
+        except RuntimeError:
+            # A amostragem diária CV é complementar às conversões/funil.
+            # Nunca publicar contagens parciais nem bloquear a coleta Meta válida.
+            print("Resumo diário CV indisponível; contagens CV não serão publicadas neste arquivo.",flush=True)
+            complete=False
+            break
         announced=payload.get("total_de_paginas")
         if announced is not None:
             try:
