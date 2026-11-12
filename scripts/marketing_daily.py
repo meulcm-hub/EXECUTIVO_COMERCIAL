@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 from decimal import Decimal, InvalidOperation
 
 from meta_ads_collector import accounts, request
@@ -73,12 +74,24 @@ def main():
     u=urlsplit(base)
     if u.scheme!="https" or u.hostname!="lcm.cvcrm.com.br" or u.path not in ("","/") or u.query or u.fragment or u.username or u.password or not email or not token:
         raise RuntimeError("Credenciais CV inválidas")
+    # Conversões/funil têm coleta completa própria. Não refazer a mesma
+    # leitura anual apenas para a amostragem legada deste arquivo Meta.
+    dedicated_cv=False
+    try:
+        dedicated=json.loads(Path("data/marketing-conversions.json").read_text(encoding="utf-8"))
+        dedicated_cv=(dedicated.get("validated") is True and dedicated.get("schema_version",0)>=3
+                      and dedicated.get("channel_scope")=="facebook_google"
+                      and isinstance(dedicated.get("daily"),dict))
+    except (OSError,ValueError,TypeError):
+        pass
+    if dedicated_cv:
+        print("CV consultado pelos relatórios dedicados; coleta Meta não repete a leitura anual CV.",flush=True)
     seen=set()
     byday=collections.defaultdict(lambda:collections.Counter())
     complete=False
     invalid_dates=0
     count=0
-    for page in range(1,MAX_PAGES+1):
+    for page in range(1,(0 if dedicated_cv else MAX_PAGES)+1):
         try:
             rows,payload=cv_page(base,email,token,page,SIZE,start,end)
         except RuntimeError:

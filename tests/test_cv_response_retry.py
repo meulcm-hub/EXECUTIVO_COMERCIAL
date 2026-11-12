@@ -33,6 +33,10 @@ class CvRetryTests(unittest.TestCase):
                 os.chdir(directory)
                 with patch.object(daily,'accounts',return_value=catalog),patch.object(daily,'request',return_value=[{'date_start':'2026-01-02','spend':'1','impressions':2,'clicks':1}]),patch.object(daily,'cv_page',side_effect=RuntimeError('unavailable')),patch.dict(os.environ,{'CVCRM_DOMINIO':'https://lcm.cvcrm.com.br','CVCRM_EMAIL':'ficticio','CVCRM_TOKEN':'ficticio'}),contextlib.redirect_stdout(io.StringIO()):
                     daily.main()
+                # Com relatório CV dedicado validado, a chamada secundária é dispensada.
+                Path('data/marketing-conversions.json').write_text(json.dumps({'schema_version':4,'validated':True,'channel_scope':'facebook_google','daily':{}}))
+                with patch.object(daily,'accounts',return_value=catalog),patch.object(daily,'request',return_value=[{'date_start':'2026-01-02','spend':'1','impressions':2,'clicks':1}]),patch.object(daily,'cv_page',side_effect=AssertionError('Leitura duplicada não deve ocorrer')),patch.dict(os.environ,{'CVCRM_DOMINIO':'https://lcm.cvcrm.com.br','CVCRM_EMAIL':'ficticio','CVCRM_TOKEN':'ficticio'}),contextlib.redirect_stdout(io.StringIO()):
+                    daily.main()
                 report=json.loads(Path('data/marketing-daily.json').read_text())
             finally:os.chdir(old)
         self.assertEqual(report['period']['since'],'2026-01-01')
