@@ -635,6 +635,8 @@ _FUNIL_LOCK = __import__("threading").Lock()
 _FUNIL_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 _FUNIL_FUTURE = None
 _FUNIL_LAST_OK = 0.0
+_FUNIL_LAST_TRY = 0.0
+_FUNIL_LAST_PAIR = None
 _FUNIL_ERROR = None
 _FUNIL_DIR = Path(__import__("tempfile").gettempdir()) / "executivo-lcm-funil"
 _FUNIL_DIR.mkdir(parents=True, exist_ok=True)
@@ -670,23 +672,26 @@ def _generate_funil():
 
 
 def _funil_snapshot():
-    global _FUNIL_FUTURE, _FUNIL_LAST_OK, _FUNIL_ERROR
+    global _FUNIL_FUTURE, _FUNIL_LAST_OK, _FUNIL_LAST_TRY, _FUNIL_LAST_PAIR, _FUNIL_ERROR
     with _FUNIL_LOCK:
-        expired = not _FUNIL_LAST_OK or time.time() - _FUNIL_LAST_OK > 6 * 3600
-        if expired and (_FUNIL_FUTURE is None or _FUNIL_FUTURE.done()):
-            # Preserva o último resultado válido enquanto revalida os dados.
+        now = time.time()
+        expired = not _FUNIL_LAST_OK or now - _FUNIL_LAST_OK > 6 * 3600
+        allowed = not _FUNIL_LAST_TRY or now - _FUNIL_LAST_TRY > 300
+        if expired and allowed and (_FUNIL_FUTURE is None or _FUNIL_FUTURE.done()):
+            _FUNIL_LAST_TRY = now
             _FUNIL_FUTURE = _FUNIL_EXECUTOR.submit(_generate_funil)
         future = _FUNIL_FUTURE
-    if future is None or not future.done():
-        return None
-    try:
-        pair = future.result()
-    except Exception:
-        _FUNIL_ERROR = "Coleta automática CV CRM indisponível."
-        return None
-    _FUNIL_LAST_OK = time.time()
-    _FUNIL_ERROR = None
-    return pair
+        if future is not None and future.done():
+            try:
+                pair = future.result()
+                if pair is not _FUNIL_LAST_PAIR:
+                    _FUNIL_LAST_PAIR = pair
+                    _FUNIL_LAST_OK = now
+                _FUNIL_ERROR = None
+            except Exception:
+                _FUNIL_ERROR = "Coleta automática CV CRM indisponível."
+            _FUNIL_FUTURE = None
+        return _FUNIL_LAST_PAIR
 
 
 @app.get("/api/funil/publico")
@@ -697,8 +702,8 @@ def funil_publico():
             {"status": "sincronizando" if _FUNIL_ERROR is None else "erro",
              "mensagem": _FUNIL_ERROR or "Consultando as APIs do CV CRM."},
             status_code=202 if _FUNIL_ERROR is None else 503,
-            headers={"Cache-Control": "no-store"})
-    return JSONResponse(pair[0], headers={"Cache-Control": "no-store"})
+            headers={"Cache-Control": "no-store", "Access-Control-Allow-Origin": "*"})
+    return JSONResponse(pair[0], headers={"Cache-Control": "no-store", "Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/api/funil/privado")
