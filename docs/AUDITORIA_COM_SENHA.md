@@ -1,11 +1,5 @@
 # Auditoria automática com senha no GitHub Pages
 
-> Implantação pendente: esta proposta contém a tela e os testes. A alteração do
-> workflow para publicar o arquivo criptografado depende de autorização explícita
-> para publicar dados individuais criptografados no repositório público. Não
-> integrar isoladamente esperando ativação automática. As instruções abaixo
-> descrevem a ativação após concluir essa alteração.
-
 A coleta continua no workflow **LCM - Funil comercial CV CRM por safra**.
 Os totais permanecem públicos. Os clientes só aparecem após abrir a auditoria
 com a senha, no próprio dashboard. Não há planilha para importar nem servidor Render.
