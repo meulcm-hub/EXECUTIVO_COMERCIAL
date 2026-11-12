@@ -135,3 +135,9 @@ body.lcm-app .lcm-overview-table th:not(:last-child),
 body.lcm-app .lcm-overview-table td:not(:last-child){border-right:1px solid #e1e9e4}
 @media screen{html[data-theme=dark] body.lcm-app .lcm-overview-table th:not(:last-child),
 html[data-theme=dark] body.lcm-app .lcm-overview-table td:not(:last-child){border-right-color:#344956}}
+
+/* Mesma separação visual em todas as tabelas do Executivo e Marketing. */
+body.lcm-app main table th:not(:last-child),
+body.lcm-app main table td:not(:last-child){border-right:1px solid #e1e9e4}
+@media screen{html[data-theme=dark] body.lcm-app main table th:not(:last-child),
+html[data-theme=dark] body.lcm-app main table td:not(:last-child){border-right-color:#344956}}
