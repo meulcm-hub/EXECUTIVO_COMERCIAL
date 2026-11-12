@@ -66,6 +66,11 @@ def request(path, params=None):
                 raise RuntimeError("Falha de rede ao consultar a Meta API.") from None
         if "error" in data:
             raise RuntimeError("Meta API recusou a consulta. Confira permissões e conta.")
+        # Consultas diretas a uma conta retornam objeto, sem envelope data.
+        if "data" not in data and re.fullmatch(r"act_\d{5,25}", path.lstrip("/")):
+            if str(data.get("id", "")).removeprefix("act_") != path.lstrip("/").removeprefix("act_"):
+                raise RuntimeError("Resposta de conta Meta sem identificador correspondente")
+            return data
         all_rows.extend(data.get("data", []))
         url = data.get("paging", {}).get("next")
         if not url:
@@ -77,6 +82,18 @@ def request(path, params=None):
 DASHBOARD_ACCOUNT_IDS = ("578753212923958", "379393907144068", "332967835423799",
                          "626593228944023", "272429171879216", "1349139385694575",
                          "347253318197280", "1183301460107081")
+
+DASHBOARD_ACCOUNT_LABELS = {
+    "578753212923958": "LCM - Residencial Monte Belo",
+    "379393907144068": "LCM - Turquesa Parque",
+    "332967835423799": "LCM - Arraial Costa Verde",
+    "626593228944023": "LCM - Village Sete Lagoas",
+    "272429171879216": "LCM - Residencial Green Plaza",
+    "1349139385694575": "LCM - Flamboyant",
+    "347253318197280": "LCM - Jacarandá",
+    "1183301460107081": "LCM - Jatobá"
+}
+
 
 def accounts():
     configured = os.environ.get("META_AD_ACCOUNT_IDS", "").strip()
@@ -93,10 +110,23 @@ def accounts():
         "limit": "100"
     })
     by_id = {str(row.get("id", "")).removeprefix("act_"):row for row in result}
-    missing = [aid for aid in wanted if aid not in by_id]
+    # Contas atribuídas por um negócio podem não aparecer em me/adaccounts.
+    # Conferir diretamente somente os IDs já vinculados antes de concluir falta de acesso.
+    missing = []
+    for aid in wanted:
+        if aid in by_id: continue
+        try:
+            item = request("act_" + aid, {"fields":"id,name,account_status,currency"})
+            if not isinstance(item, dict) or str(item.get("id", "")).removeprefix("act_") != aid:
+                raise RuntimeError("Metadados da conta não confirmados")
+            by_id[aid] = item
+        except RuntimeError:
+            missing.append(aid)
     if missing:
+        names = ", ".join(DASHBOARD_ACCOUNT_LABELS.get(aid, "Conta vinculada") for aid in missing)
         raise RuntimeError("Token sem acesso a " + str(len(missing)) +
-                           " das " + str(len(wanted)) + " contas vinculadas. Revise as permissões dessas contas na Meta.")
+                           " das " + str(len(wanted)) + " contas vinculadas: " + names +
+                           ". Revise as permissões dessas contas na Meta.")
     return [by_id[aid] for aid in wanted]
 
 def main():
