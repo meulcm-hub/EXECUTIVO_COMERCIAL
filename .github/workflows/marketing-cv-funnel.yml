@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'scripts/marketing_cv_funnel.py'
+      - 'marketing.html'
+      - 'server.py'
       - 'tests/test_marketing_cv_funnel.py'
       - '.github/workflows/marketing-cv-funnel.yml'
   workflow_dispatch:
@@ -32,6 +34,20 @@ jobs:
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
           CV_AUDIT_PRIVATE_PATH: ${{ runner.temp }}/cv-funnel-private.json
         run: python scripts/marketing_cv_funnel.py
+      - name: Validar JSON agregado antes de publicar
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          file = Path("data/cv-funnel.json")
+          if not file.exists() or file.stat().st_size == 0:
+              raise SystemExit("Funil sem dados: publicação interrompida")
+          data = json.loads(file.read_text(encoding="utf-8"))
+          if not (data.get("schema_version") == 1 and data.get("validated") is True
+                  and isinstance(data.get("cohorts"), list) and data["cohorts"]):
+              raise SystemExit("Funil inválido: publicação interrompida")
+          print("Funil CV validado: " + str(len(data["cohorts"])) + " recortes.")
+          PY
       - name: Criptografar auditoria individual sem publicar dados brutos
         id: encrypt_audit
         env:
