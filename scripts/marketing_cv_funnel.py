@@ -201,7 +201,7 @@ def main():
             original[lead] = current
             original_details[lead] = {
                 "cliente": str(row.get("nome") or row.get("nome_lead") or row.get("cliente") or "Não informado"),
-                "situacao_lead": str(row.get("situacao") or row.get("status") or row.get("situacao_lead") or "Não informado"),
+                "situacao_lead": row.get("situacao") or row.get("status") or row.get("situacao_lead") or "Não informado",
                 "origem": str(row.get("origem") or row.get("midia") or row.get("origem_cadastro") or "Não informado")
             }
         for idkey, projectkey in (
@@ -241,6 +241,8 @@ def main():
         entry[key] = min(day, entry.get(key, day))
         if entry[key] == day:
             entry_origins[key] = "Retorno"
+            original_details.setdefault(lead, {})["origem_retorno"] = str(
+                row.get("origem") or row.get("midia") or row.get("origem_conversao") or "Não informado")
     # IDs de fontes comerciais nunca vão para o arquivo de saída.
     visits = paged(base, email, token, "/api/v1/cvdw/leads/visitas",
                    begin, today, collection=("dados", "data", "visitas"))
@@ -453,10 +455,12 @@ def main():
             "cliente": detail.get("cliente", "Não informado"),
             "empreendimento": project_titles.get(project, project),
             "project": project,
-            "origem": detail.get("origem", "Não informado"),
+            "origem": detail.get("origem_retorno", detail.get("origem", "Não informado"))
+                if entry_origins.get((project, lead)) == "Retorno"
+                else detail.get("origem", "Não informado"),
             "tipo_entrada": entry_origins.get((project, lead), "Novo cadastro"),
             "data_entrada": first.isoformat(),
-            "data_venda": sale_record[0].isoformat() if sale_record and sale_record[0] >= first else "",
+            "data_venda": sale_record[0].isoformat() if sale_record else "",
             "situacao_lead": situation(detail.get("situacao_lead")),
             "situacao_precadastro": situation(precad_value.get("situacao") or precad_value.get("status")),
             "situacao_reserva": reservation_status
