@@ -7,6 +7,9 @@ on:
     paths:
       - 'scripts/marketing_cv_funnel.py'
       - 'marketing.html'
+      - 'audit-crypto.js'
+      - 'tests/test_audit_crypto.cjs'
+      - 'scripts/encrypt_cv_audit.py'
       - 'server.py'
       - 'tests/test_marketing_cv_funnel.py'
       - '.github/workflows/marketing-cv-funnel.yml'
@@ -54,12 +57,14 @@ jobs:
           CV_AUDIT_PASSWORD: ${{ secrets.CV_AUDIT_PASSWORD }}
         run: |
           if [ -z "$CV_AUDIT_PASSWORD" ]; then
+            python -c 'import json; from pathlib import Path; Path("data/cv-audit.enc.json").write_text(json.dumps({"available": False}), encoding="utf-8")'
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Auditoria individual sem exportação: configure o secret CV_AUDIT_PASSWORD."
             exit 0
           fi
           python -m pip install cryptography
-          python scripts/encrypt_cv_audit.py ${{ runner.temp }}/cv-funnel-private.json cv-audit-private.enc.json
+          node --test tests/test_audit_crypto.cjs
+          python scripts/encrypt_cv_audit.py ${{ runner.temp }}/cv-funnel-private.json data/cv-audit.enc.json
           rm -f ${{ runner.temp }}/cv-funnel-private.json
           echo "ready=true" >> "$GITHUB_OUTPUT"
       - name: Disponibilizar auditoria criptografada
@@ -67,14 +72,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: auditoria-cv-criptografada
-          path: cv-audit-private.enc.json
+          path: data/cv-audit.enc.json
           retention-days: 3
           if-no-files-found: error
-      - name: Publicar apenas contagens agregadas validadas
+      - name: Publicar contagens agregadas e auditoria criptografada
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/cv-funnel.json
+          git add data/cv-funnel.json data/cv-audit.enc.json
           if ! git diff --cached --quiet; then
             git commit -m "Atualiza funil CV CRM agregado por safra"
             for attempt in 1 2 3; do
