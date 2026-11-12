@@ -296,7 +296,29 @@ def collect_account(account, first, last, video_cache):
             # Anúncios excluídos podem ter insights válidos sem objeto legível.
             pass
 
+    account_videos = None
+
     def video_lookup(vid):
+        nonlocal account_videos
+        if account_videos is None:
+            account_videos = {}
+            # O contexto da conta de anúncios pode liberar a fonte de um
+            # AdVideo mesmo quando a leitura direta do objeto da página não.
+            try:
+                videos = meta.request(full_id + "/advideos", {
+                    "fields": "id,source,picture,permalink_url", "limit": 100,
+                })
+                for video in videos:
+                    if isinstance(video, dict) and NUMERIC_ID.fullmatch(str(video.get("id", ""))):
+                        account_videos[str(video["id"])] = video
+                print("Biblioteca de vídeos da conta " + account_id + ": " +
+                      str(sum(bool(safe_url(v.get("source"))) for v in account_videos.values())) +
+                      " arquivos com reprodução direta.", flush=True)
+            except RuntimeError as error:
+                print("Biblioteca de vídeos da conta " + account_id + ": " + str(error) +
+                      "; mantendo a consulta individual e o link do anúncio.", flush=True)
+        if safe_url(account_videos.get(vid, {}).get("source")):
+            video_cache[vid] = account_videos[vid]
         if vid not in video_cache:
             try:
                 video_cache[vid] = graph_object(vid, "id,source,picture,permalink_url")
