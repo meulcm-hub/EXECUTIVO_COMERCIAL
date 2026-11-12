@@ -206,6 +206,10 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <section class="panel" id="cvAuditPanel" style="margin-top:15px">
 <h2>Auditoria do Funil CV CRM</h2>
 <p class="sub">Conferência individual por ID Lead, alimentada automaticamente pelas APIs do CV CRM. Dados pessoais só aparecem no acesso autenticado.</p>
+<details class="audit-summary"><summary>Fontes e regras da auditoria</summary>
+<p class="audit-note">Fonte: APIs do CV CRM. Cliente e Empreendimento seguem o vínculo atual do funil. Origem e Situação Lead vêm de Leads; Situação Pré-Cadastro, de Pré-Cadastros; Data da Venda e Situação Reserva, de Reservas vinculadas.</p>
+<p class="audit-note">Data da Entrada segue a mesma regra do filtro e do funil: cadastro original para novos leads ou primeira conversão elegível para retornos no histórico sincronizado. A auditoria respeita o empreendimento e o período selecionados.</p>
+</details>
 <div class="audit-full">
 <h3 style="font-size:14px;margin:4px 0 12px">Clientes do Funil CV CRM</h3>
 <div class="audit-import">
