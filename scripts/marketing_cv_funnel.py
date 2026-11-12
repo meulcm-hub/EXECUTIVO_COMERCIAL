@@ -183,6 +183,7 @@ def main():
     original = {}
     original_details = {}
     entry_origins = {}
+    entry_channel_details = {}
     conflicts = set()
     aliases = collections.defaultdict(set)
     for row in read_complete(base, email, token, historical, today,
@@ -241,7 +242,7 @@ def main():
         entry[key] = min(day, entry.get(key, day))
         if entry[key] == day:
             entry_origins[key] = "Retorno"
-            original_details.setdefault(lead, {})["origem_retorno"] = str(
+            entry_channel_details[key] = str(
                 row.get("origem") or row.get("midia") or row.get("origem_conversao") or "Não informado")
     # IDs de fontes comerciais nunca vão para o arquivo de saída.
     visits = paged(base, email, token, "/api/v1/cvdw/leads/visitas",
@@ -455,9 +456,8 @@ def main():
             "cliente": detail.get("cliente", "Não informado"),
             "empreendimento": project_titles.get(project, project),
             "project": project,
-            "origem": detail.get("origem_retorno", detail.get("origem", "Não informado"))
-                if entry_origins.get((project, lead)) == "Retorno"
-                else detail.get("origem", "Não informado"),
+            "origem": entry_channel_details.get(
+                (project, lead), detail.get("origem", "Não informado")),
             "tipo_entrada": entry_origins.get((project, lead), "Novo cadastro"),
             "data_entrada": first.isoformat(),
             "data_venda": sale_record[0].isoformat() if sale_record else "",
