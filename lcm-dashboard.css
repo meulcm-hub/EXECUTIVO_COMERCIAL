@@ -127,3 +127,11 @@ html[data-theme=dark] .lcm-app #audience .aud-donut-inner span,
 html[data-theme=dark] .lcm-app #audience .aud-legend-row small{color:#b4c3cd}
 }
 @media(max-width:520px){.lcm-overview-filters label:first-child{flex-basis:100%}.lcm-metric strong{font-size:20px}}
+
+/* Comparativo por empreendimento: leitura alinhada entre cabeçalho e números. */
+body.lcm-app .lcm-overview-table th:not(:first-child),
+body.lcm-app .lcm-overview-table td:not(:first-child){text-align:center}
+body.lcm-app .lcm-overview-table th:not(:last-child),
+body.lcm-app .lcm-overview-table td:not(:last-child){border-right:1px solid #e1e9e4}
+@media screen{html[data-theme=dark] body.lcm-app .lcm-overview-table th:not(:last-child),
+html[data-theme=dark] body.lcm-app .lcm-overview-table td:not(:last-child){border-right-color:#344956}}
