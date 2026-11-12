@@ -461,9 +461,11 @@ let cvFunnelSource=null;
 let cvFunnelError='Dados do funil ainda não carregados';
 async function loadCvFunnel(){
   cvFunnelSource=null;
+  // GitHub Actions publica os dados diretamente em main. O Pages pode atrasar
+  // em relação ao branch, então consultar a versão oficial primeiro.
   const sources=[
-    'data/cv-funnel.json?version='+Date.now(),
-    'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-funnel.json?version='+Date.now()
+    'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-funnel.json?version='+Date.now(),
+    'data/cv-funnel.json?version='+Date.now()
   ];
   const errors=[];
   for(const source of sources){
@@ -516,7 +518,9 @@ function renderCvFunnel(visible){
     ' · Safra de '+since+' a '+until+
     (missing.length?' · COBERTURA PARCIAL: '+rows.length+' de '+projects.length+
       ' empreendimentos; faltam '+missing.join(', ')+'.':' · Todos os empreendimentos selecionados cobertos.')+
-    ' · Vendas em auditoria até validação do vínculo.';
+    (cvFunnelSource.sales_link_validated===true
+      ?' · Vendas vinculadas por ID Lead na safra.'
+      :' · Vendas em auditoria até validação do vínculo.');
   const salesVerified=cvFunnelSource.sales_link_validated===true;
   ids.forEach((id,i)=>$(id).textContent=(i===4&&!salesVerified)?'Em auditoria':nf(values[i]));
   rates.forEach((id,i)=>$(id).textContent=(i===3&&!salesVerified)?'—':
