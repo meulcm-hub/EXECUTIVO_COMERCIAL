@@ -1,44 +1,50 @@
-# Auditoria automática com senha no GitHub Pages
+# Auditoria pública automática do Marketing
 
-A coleta continua no workflow **LCM - Funil comercial CV CRM por safra**.
-Os totais permanecem públicos. Os clientes só aparecem após abrir a auditoria
-com a senha, no próprio dashboard. Não há planilha para importar nem servidor Render.
+A auditoria de clientes no Marketing abre automaticamente, sem senha e sem
+importação de planilhas, seguindo o acesso público do relatório Executivo.
+A publicação dos nomes e das colunas da tabela no GitHub Pages foi solicitada
+pelo proprietário. Qualquer pessoa com acesso ao site ou repositório público
+pode consultar esses dados.
 
-## Ativação única
+## Dados publicados
 
-1. No repositório, abra Settings → Secrets and variables → Actions.
-2. Clique em New repository secret.
-3. Nome: `CV_AUDIT_PASSWORD`. Valor: uma senha aleatória e exclusiva com pelo menos
-   16 caracteres, preferencialmente gerada e guardada em um gerenciador de senhas.
-   Não coloque a senha no código, em issues, em comentários ou no chat.
-4. Integre a proposta e acompanhe o workflow do funil em Actions. Se necessário,
-   execute Run workflow na branch main.
-5. Abra marketing.html, informe a mesma senha e clique em Abrir auditoria.
+O arquivo `data/cv-audit.json` contém somente Cliente, Empreendimento, Origem,
+Data da Entrada, Data da Venda, Situação Lead, Situação Pré-Cadastro,
+Situação Reserva e a chave normalizada do empreendimento usada pelos filtros.
+IDs de leads/reservas, e-mails, telefones, documentos, tipo de entrada e payloads
+originais da API são descartados por uma projeção positiva antes da publicação.
 
-As credenciais CVCRM_DOMINIO, CVCRM_EMAIL e CVCRM_TOKEN continuam nos secrets
-já usados pela coleta. A ativação só termina após o workflow concluir com sucesso.
+O coletor mantém os vínculos por IDs na memória e em um arquivo temporário do
+runner para consolidar o funil. Somente o relatório reduzido da auditoria e os
+totais agregados entram no commit público. Não há artefato com o JSON bruto.
 
-## Comportamento
+## Atualização automática
 
-- O arquivo individual bruto permanece no diretório temporário do runner.
-- Apenas `data/cv-audit.enc.json`, criptografado com AES-256-GCM e chave derivada
-  por PBKDF2-SHA256 (250.000 iterações e salt aleatório), é publicado.
-- O navegador solicita apenas o arquivo criptografado. A senha é usada localmente,
-  não é enviada ao GitHub e não é guardada em localStorage ou sessionStorage.
-- Enquanto a auditoria está aberta, a senha permanece na memória da página
-  para abrir a atualização automática. Fechar auditoria limpa essa referência e
-  os clientes da tela. Recarregar ou fechar a página exige abrir novamente.
-- Os filtros de empreendimento e Data da Entrada mantêm a lógica do funil.
-- Sem o secret, o workflow publica um marcador de indisponibilidade em vez de
-  manter uma versão antiga da auditoria como se estivesse atualizada.
-- O GitHub Pages não bloqueia os totais nem o HTML: a senha protege os dados
-  individuais por criptografia. Uma senha forte é necessária porque o arquivo
-  criptografado pode ser baixado publicamente e submetido a tentativas offline.
-- Trocar a senha do secret e executar a coleta altera a chave das próximas
-  publicações. Não revoga cópias ou versões antigas já baixadas.
+O workflow **LCM - Funil comercial CV CRM por safra** consulta as APIs com os
+secrets CVCRM_DOMINIO, CVCRM_EMAIL e CVCRM_TOKEN já existentes. Após a coleta,
+`scripts/publish_cv_audit.py` valida e publica somente as colunas autorizadas.
+A senha CV_AUDIT_PASSWORD não é usada nas próximas coletas.
 
-## Validação
+O dashboard mantém os filtros de empreendimento e período de entrada e oferece
+o filtro Situação Reserva. Esse filtro altera apenas as linhas da auditoria;
+os totais do funil continuam representando a safra completa selecionada.
 
-`node --test tests/test_audit_crypto.cjs` verifica interoperabilidade entre o
-criptografador Python e Web Crypto, senha incorreta, adulteração e formato inválido.
-Requer Python com cryptography e Node.js com Web Crypto.
+## Transição do formato anterior
+
+O workflow **LCM - Disponibilizar auditoria pública existente** pode aproveitar
+a última coleta criptografada já existente para disponibilizar a auditoria sem
+aguardar outra leitura completa das APIs. Ele usa o secret antigo somente para
+essa conversão no runner e publica a mesma projeção mínima.
+
+Se a auditoria pública já existir, a migração não a sobrescreve. Se não houver
+arquivo anterior ou secret disponível, ela é ignorada e a próxima coleta normal
+gera os dados. Nenhuma senha precisa ser digitada na página. O arquivo
+criptografado antigo pode continuar no histórico do Git sem ser usado pelo site.
+
+## Verificação
+
+`python -m unittest discover -s tests -p 'test_publish_cv_audit.py'` cobre
+projeção dos campos, exclusão de identificadores e contatos, validação de datas,
+dados malformados, escrita do arquivo e conversão do formato criptografado.
+A biblioteca cryptography é necessária apenas para a migração do formato antigo.
+
