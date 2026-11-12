@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/marketing_daily.py'
+      - 'scripts/meta_ads_collector.py'
       - 'scripts/marketing_campaigns.py'
       - 'scripts/marketing_consolidate.py'
       - '.github/workflows/marketing-consolidate.yml'
@@ -30,7 +31,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validar classificacao CV Facebook e WhatsApp
-        run: python -m unittest discover -s tests -p 'test_marketing_channels.py'
+        run: |
+          python -m unittest discover -s tests -p 'test_marketing_channels.py'
+          python -m unittest discover -s tests -p 'test_meta_error_codes.py'
       - name: Consolidar janelas de 7 e 30 dias
         env:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}

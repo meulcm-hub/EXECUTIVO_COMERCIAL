@@ -47,7 +47,21 @@ def request(path, params=None):
                     time.sleep(2 ** attempt)
                     continue
                 # Não imprimir URL, cabeçalhos ou corpo: podem conter credenciais.
-                raise RuntimeError("Meta API retornou HTTP " + str(exc.code) + ". Verifique ads_read, conta e token.") from None
+                # Somente códigos e categorias fixas; nunca registrar mensagem,
+                # URL ou corpo da resposta, que podem conter dados sensíveis.
+                code = subcode = None
+                try:
+                    detail = json.loads(exc.read()).get("error", {})
+                    if type(detail.get("code")) is int: code = detail["code"]
+                    if type(detail.get("error_subcode")) is int: subcode = detail["error_subcode"]
+                except (ValueError, TypeError, AttributeError):
+                    pass
+                category = ("token expirado ou inválido; atualize META_ACCESS_TOKEN nos secrets" if code == 190
+                            else "permissão de anúncios insuficiente; verifique ads_read e acesso à conta" if code in (10, 200)
+                            else "parâmetro ou conta não aceito pela Meta" if code == 100
+                            else "verifique ads_read, conta e token")
+                raise RuntimeError("Meta API retornou HTTP " + str(exc.code) +
+                    " (código " + str(code) + ", subcódigo " + str(subcode) + "): " + category) from None
             except urllib.error.URLError:
                 raise RuntimeError("Falha de rede ao consultar a Meta API.") from None
         if "error" in data:
