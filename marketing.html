@@ -95,6 +95,8 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .audit-table th,.audit-table td{padding:11px 9px}
 .audit-table th{font-size:11px}
 .audit-table td{font-size:12px}
+/* Centraliza cabeçalhos e valores numéricos; nomes seguem alinhados à esquerda. */
+.audit-table th:not(:first-child),.audit-table td:not(:first-child),.audit-table th.num,.audit-table td.num,.audit-table tfoot td.num{text-align:center}
 .audit-table tr.total td{font-weight:800;background:#e8f2e4;border-top:2px solid #67ae42}
 .audit-stat{padding:9px 0;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e8eeed;font-size:12px}
 .audit-stat b{font-variant-numeric:tabular-nums}
