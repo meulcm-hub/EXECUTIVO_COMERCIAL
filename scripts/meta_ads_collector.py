@@ -73,21 +73,31 @@ def request(path, params=None):
     raise RuntimeError("Limite de paginação atingido. Reduza o período.")
 
 
+# Contas já vinculadas às visões do dashboard; IDs públicos, sem credenciais.
+DASHBOARD_ACCOUNT_IDS = ("578753212923958", "379393907144068", "332967835423799",
+                         "626593228944023", "272429171879216", "1349139385694575",
+                         "347253318197280", "1183301460107081")
+
 def accounts():
     configured = os.environ.get("META_AD_ACCOUNT_IDS", "").strip()
     if configured:
         ids = [s.strip().removeprefix("act_") for s in configured.split(",") if s.strip()]
         if not ids or any(not re.fullmatch(r"\d{5,25}", n) for n in ids):
             raise RuntimeError("META_AD_ACCOUNT_IDS deve conter IDs numéricos separados por vírgulas.")
-        return [{"id": "act_" + a, "name": "Conta " + a} for a in dict.fromkeys(ids)]
+        wanted = tuple(dict.fromkeys(ids))
+    else:
+        wanted = DASHBOARD_ACCOUNT_IDS
+    # O catálogo preserva os metadados de moeda usados por todos os coletores.
     result = request("me/adaccounts", {
         "fields": "id,name,account_status,currency",
         "limit": "100"
     })
-    if not result:
-        raise RuntimeError("Nenhuma conta retornada. Informe META_AD_ACCOUNT_IDS com os oito IDs de contas de anúncios.")
-    return result
-
+    by_id = {str(row.get("id", "")).removeprefix("act_"):row for row in result}
+    missing = [aid for aid in wanted if aid not in by_id]
+    if missing:
+        raise RuntimeError("Token sem acesso a " + str(len(missing)) +
+                           " das " + str(len(wanted)) + " contas vinculadas. Revise as permissões dessas contas na Meta.")
+    return [by_id[aid] for aid in wanted]
 
 def main():
     parser = argparse.ArgumentParser(description="Teste de leitura Meta Ads sem publicar dados")
