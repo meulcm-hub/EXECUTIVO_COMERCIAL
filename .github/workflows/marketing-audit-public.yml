@@ -1,0 +1,71 @@
+name: LCM - Disponibilizar auditoria pública existente
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/publish_cv_audit.py'
+      - '.github/workflows/marketing-audit-public.yml'
+  workflow_dispatch:
+concurrency:
+  group: marketing-audit-public-migration
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  publish-existing-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar migração necessária
+        id: migration
+        env:
+          CV_AUDIT_PASSWORD: ${{ secrets.CV_AUDIT_PASSWORD }}
+        run: |
+          if [ -f data/cv-audit.json ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Auditoria pública já publicada; coleta normal mantém as próximas atualizações."
+          elif [ ! -f data/cv-audit.enc.json ] || [ -z "$CV_AUDIT_PASSWORD" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Sem arquivo anterior disponível para migração. A coleta normal gerará a auditoria pública."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validar publicação mínima e converter a coleta existente
+        if: steps.migration.outputs.ready == 'true'
+        env:
+          CV_AUDIT_PASSWORD: ${{ secrets.CV_AUDIT_PASSWORD }}
+        run: |
+          python -m pip install cryptography
+          python -m unittest discover -s tests -p 'test_publish_cv_audit.py'
+          python scripts/publish_cv_audit.py --encrypted data/cv-audit.enc.json data/cv-audit.json
+      - name: Publicar somente a projeção autorizada dos clientes
+        if: steps.migration.outputs.ready == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cv-audit.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Disponibiliza auditoria pública CV CRM sem senha"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if git cat-file -e origin/main:data/cv-audit.json 2>/dev/null; then
+              echo "Coleta mais recente já publicou a auditoria; migração não sobrescreve o arquivo."
+              exit 0
+            fi
+            if git rebase origin/main && git push origin HEAD:main; then
+              echo "Auditoria pública disponibilizada."
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          exit 1
+

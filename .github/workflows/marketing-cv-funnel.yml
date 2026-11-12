@@ -7,9 +7,8 @@ on:
     paths:
       - 'scripts/marketing_cv_funnel.py'
       - 'marketing.html'
-      - 'audit-crypto.js'
-      - 'tests/test_audit_crypto.cjs'
-      - 'scripts/encrypt_cv_audit.py'
+      - 'scripts/publish_cv_audit.py'
+      - 'tests/test_publish_cv_audit.py'
       - 'server.py'
       - 'tests/test_marketing_cv_funnel.py'
       - '.github/workflows/marketing-cv-funnel.yml'
@@ -29,7 +28,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verificar regras e paginação sem credenciais
-        run: python -m unittest discover -s tests -p 'test_marketing_cv_funnel.py'
+        run: |
+          python -m unittest discover -s tests -p 'test_marketing_cv_funnel.py'
+          python -m unittest discover -s tests -p 'test_publish_cv_audit.py'
       - name: Consolidar funil CV a partir de IDs somente em memória privada
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
@@ -51,45 +52,33 @@ jobs:
               raise SystemExit("Funil inválido: publicação interrompida")
           print("Funil CV validado: " + str(len(data["cohorts"])) + " recortes.")
           PY
-      - name: Criptografar auditoria individual sem publicar dados brutos
-        id: encrypt_audit
-        env:
-          CV_AUDIT_PASSWORD: ${{ secrets.CV_AUDIT_PASSWORD }}
+      - name: Exportar somente as colunas públicas autorizadas da auditoria
         run: |
-          if [ -z "$CV_AUDIT_PASSWORD" ]; then
-            python -c 'import json; from pathlib import Path; Path("data/cv-audit.enc.json").write_text(json.dumps({"available": False}), encoding="utf-8")'
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Auditoria individual sem exportação: configure o secret CV_AUDIT_PASSWORD."
-            exit 0
-          fi
-          python -m pip install cryptography
-          node --test tests/test_audit_crypto.cjs
-          python scripts/encrypt_cv_audit.py ${{ runner.temp }}/cv-funnel-private.json data/cv-audit.enc.json
-          rm -f ${{ runner.temp }}/cv-funnel-private.json
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-      - name: Disponibilizar auditoria criptografada
-        if: steps.encrypt_audit.outputs.ready == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: auditoria-cv-criptografada
-          path: data/cv-audit.enc.json
-          retention-days: 3
-          if-no-files-found: error
-      - name: Publicar contagens agregadas e auditoria criptografada
+          python scripts/publish_cv_audit.py "${{ runner.temp }}/cv-funnel-private.json" data/cv-audit.json
+          rm -f "${{ runner.temp }}/cv-funnel-private.json"
+      - name: Publicar contagens agregadas e auditoria pública autorizada
         run: |
+          publication_dir="${{ runner.temp }}/cv-publication"
+          mkdir -p "$publication_dir"
+          cp data/cv-funnel.json data/cv-audit.json "$publication_dir/"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/cv-funnel.json data/cv-audit.enc.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Atualiza funil CV CRM agregado por safra"
-            for attempt in 1 2 3; do
-              git fetch origin main
-              if git rebase origin/main && git push origin HEAD:main; then
-                echo "Funil CV publicado"
-                exit 0
-              fi
-              git rebase --abort 2>/dev/null || true
-              sleep 5
-            done
-            exit 1
-          fi
+          for attempt in 1 2 3; do
+            git fetch origin main
+            # Checkout descartável do runner: refazer apenas a publicação sobre
+            # a main mais recente evita conflitos entre JSONs gerados em paralelo.
+            git reset --hard origin/main
+            cp "$publication_dir/cv-funnel.json" data/cv-funnel.json
+            cp "$publication_dir/cv-audit.json" data/cv-audit.json
+            git add data/cv-funnel.json data/cv-audit.json
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "Atualiza funil e auditoria pública CV CRM"
+            if git push origin HEAD:main; then
+              echo "Funil CV publicado"
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1

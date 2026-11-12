@@ -20,8 +20,6 @@ const menu=[
 ['overview','Visão Geral','index.html#overview','home'],
 ['exec','Executivo Comercial','index.html#exec','sales'],
 ['marketing','Marketing','marketing.html','marketing'],
-['funnel','Funil Comercial','marketing.html#lcm-funnel','funnel'],
-['audit','Auditoria CV','marketing.html#cvAuditPanel','audit'],
 ['audience','Público Comprador','index.html#audience','people']
 ];
 body.classList.add('lcm-app');
@@ -53,8 +51,7 @@ themeButton.onclick=()=>{manualTheme=document.documentElement.dataset.theme==='d
 preference.addEventListener('change',()=>{if(!manualTheme)setTheme(preference.matches?'dark':'light')});
 function active(){
  const hash=location.hash.slice(1);
- let key=root?(['overview','exec','audience'].includes(hash)?hash:'overview'):
-   hash==='cvAuditPanel'?'audit':hash==='lcm-funnel'?'funnel':'marketing';
+ const key=root?(['overview','exec','audience'].includes(hash)?hash:'overview'):'marketing';
  if(root){document.querySelector('main>nav button[data-view="'+key+'"]')?.click();document.body.classList.toggle('lcm-show-overview',key==='overview')}
  sidebar.querySelectorAll('a[data-lcm-view]').forEach(link=>{if(link.dataset.lcmView===key)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
  document.getElementById('lcmBreadcrumb').textContent='LCM / '+menu.find(x=>x[0]===key)[1];

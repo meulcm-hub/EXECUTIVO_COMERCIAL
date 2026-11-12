@@ -109,4 +109,21 @@ html[data-theme=dark] .lcm-app .aud-donut-inner{background:#182531;color:#e1ebf0
 
 
 html[data-theme=dark] .lcm-overview-link{color:#b3d891}
+/* Rótulos do relatório incorporado têm seletores próprios com ID. */
+@media screen{
+html[data-theme=dark] .lcm-app .sectiontitle,
+html[data-theme=dark] .lcm-app .audit-summary summary{color:#b3d891}
+html[data-theme=dark] .lcm-app #auditStockKpis .kpi small,
+html[data-theme=dark] .lcm-app .chart-title,
+html[data-theme=dark] .lcm-app #audience .aud-panel-title h2,
+html[data-theme=dark] .lcm-app #audience .aud-bar-row strong,
+html[data-theme=dark] .lcm-app #audience .aud-donut-inner b,
+html[data-theme=dark] .lcm-app #audience .aud-legend-row strong{color:#e1ebf0}
+html[data-theme=dark] .lcm-app #auditStockKpis .kpi span,
+html[data-theme=dark] .lcm-app #audit>.audit-filters label,
+html[data-theme=dark] .lcm-app #audience .aud-panel-title span,
+html[data-theme=dark] .lcm-app #audience .aud-bar-row small,
+html[data-theme=dark] .lcm-app #audience .aud-donut-inner span,
+html[data-theme=dark] .lcm-app #audience .aud-legend-row small{color:#b4c3cd}
+}
 @media(max-width:520px){.lcm-overview-filters label:first-child{flex-basis:100%}.lcm-metric strong{font-size:20px}}
