@@ -210,6 +210,8 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <h3 style="font-size:14px;margin:4px 0 12px">Clientes do Funil CV CRM</h3>
 <div class="audit-import"><label for="cvAuditFile" style="font-size:11px;font-weight:750">Carregar auditoria privada do CV CRM (JSON)</label>
 <input type="file" id="cvAuditFile" accept=".json,application/json" aria-describedby="cvAuditImportStatus">
+<input type="password" id="cvAuditPassword" autocomplete="off" placeholder="Senha do arquivo criptografado" aria-label="Senha da auditoria" style="height:37px;border:1px solid #d8e3df;border-radius:8px;padding:0 10px;font-size:11px;min-width:220px">
+<button type="button" class="button alt" id="cvAuditOpen">Abrir arquivo</button>
 <span id="cvAuditImportStatus" class="audit-note" aria-live="polite">Os dados ficam somente nesta aba do navegador e não são enviados ao site.</span></div>
 <div class="tablewrap"><table class="table audit-table audit-detail"><thead><tr>
 <th>Cliente</th><th>Empreendimento</th><th>Origem</th><th>Data da Entrada</th><th>Data da Venda</th><th>Situação Lead</th><th>Situação Pré-Cadastro</th><th>Situação Reserva</th>
@@ -603,30 +605,52 @@ function renderPrivateCvAudit(visible){
     target.append(tr);
   }
 }
-function loadPrivateCvAuditFile(file){
+function base64Bytes(value){
+  const binary=atob(value);
+  return Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+}
+async function decryptPrivateCvAudit(encrypted,password){
+  if(encrypted.encryption!=='AES-256-GCM'||encrypted.kdf!=='PBKDF2-SHA256'||
+     !Number.isInteger(encrypted.iterations)||encrypted.iterations<200000||
+     encrypted.iterations>1000000)throw Error('Formato criptografado inválido.');
+  if(!password)throw Error('Informe a senha da auditoria para abrir o arquivo.');
+  const secret=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),
+      'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({
+      name:'PBKDF2',salt:base64Bytes(encrypted.salt),
+      iterations:encrypted.iterations,hash:'SHA-256'},
+      secret,{name:'AES-GCM',length:256},false,['decrypt']);
+  let plain;
+  try{
+    plain=await crypto.subtle.decrypt({
+      name:'AES-GCM',iv:base64Bytes(encrypted.nonce)},
+      key,base64Bytes(encrypted.ciphertext));
+  }catch(_){throw Error('Senha incorreta ou arquivo criptografado danificado.');}
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+async function loadPrivateCvAuditFile(file){
   if(!file)return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    try{
-      const obj=JSON.parse(String(reader.result));
-      const required=['idlead','cliente','empreendimento','project','origem','data_entrada',
-        'data_venda','situacao_lead','situacao_precadastro','situacao_reserva'];
-      if(obj.schema_version!==1||!Array.isArray(obj.rows)||
-         !obj.rows.every(r=>r&&required.every(k=>typeof r[k]==='string')))
-        throw Error('Arquivo não corresponde ao modelo de auditoria CV.');
-      privateCvAudit=obj;
-      $('cvAuditImportStatus').textContent=nf(obj.rows.length)+
-        ' registros locais carregados. Arquivo mantido somente nesta aba.';
-      renderPrivateCvAudit(map.filter(m=>$('project').value==='all'?Boolean(m.project):
-        m.id===$('project').value));
-    }catch(error){
-      privateCvAudit=null;
-      $('cvAuditImportStatus').textContent='Não foi possível ler a auditoria: '+error.message;
-      renderPrivateCvAudit([]);
+  try{
+    let obj=JSON.parse(await file.text());
+    if(obj.encryption){
+      obj=await decryptPrivateCvAudit(obj,$('cvAuditPassword').value);
     }
-  };
-  reader.onerror=()=>{$('cvAuditImportStatus').textContent='Erro ao ler o arquivo local.';};
-  reader.readAsText(file);
+    const required=['idlead','cliente','empreendimento','project','origem','data_entrada',
+      'data_venda','situacao_lead','situacao_precadastro','situacao_reserva'];
+    if(obj.schema_version!==1||!Array.isArray(obj.rows)||
+       !obj.rows.every(r=>r&&required.every(k=>typeof r[k]==='string')))
+      throw Error('Arquivo não corresponde ao modelo de auditoria CV.');
+    privateCvAudit=obj;
+    $('cvAuditImportStatus').textContent=nf(obj.rows.length)+
+      ' registros locais carregados. Arquivo mantido somente nesta aba.';
+    $('cvAuditPassword').value='';
+    renderPrivateCvAudit(map.filter(m=>$('project').value==='all'?Boolean(m.project):
+      m.id===$('project').value));
+  }catch(error){
+    privateCvAudit=null;
+    $('cvAuditImportStatus').textContent='Não foi possível ler a auditoria: '+error.message;
+    renderPrivateCvAudit([]);
+  }
 }
 function renderCvAudit(visible){
   renderPrivateCvAudit(visible);
@@ -805,7 +829,7 @@ $('apply').addEventListener('click',applyDate);
 for(const id of ['startDate','endDate']){
   $(id).addEventListener('change',()=>{applyDate().catch(e=>{$('appliedPeriod').textContent='Falha ao aplicar período';})});
 }
-$('cvAuditFile').addEventListener('change',e=>loadPrivateCvAuditFile(e.target.files?.[0]));
+$('cvAuditOpen').addEventListener('click',()=>loadPrivateCvAuditFile($('cvAuditFile').files?.[0]));
 $('reload').addEventListener('click',load);
 load();
 })();
