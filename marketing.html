@@ -209,8 +209,8 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="audit-full">
 <h3 style="font-size:14px;margin:4px 0 12px">Clientes do Funil CV CRM</h3>
 <div class="audit-import">
-<span id="cvAuditImportStatus" class="audit-note" aria-live="polite">Sincronização automática do CV CRM. Nenhum arquivo é necessário.</span>
-<a class="button alt" id="cvAuditPrivateLink" href="https://executivo-lcm-auditoria.onrender.com/marketing_privado.html" rel="noopener noreferrer" style="display:none">Abrir auditoria autenticada</a>
+<span id="cvAuditImportStatus" class="audit-note" aria-live="polite">Dados agregados são atualizados pelo GitHub Actions; dados pessoais não são publicados.</span>
+
 </div>
 <div class="tablewrap"><table class="table audit-table audit-detail"><thead><tr>
 <th>Cliente</th><th>Empreendimento</th><th>Origem</th><th>Data da Entrada</th><th>Data da Venda</th><th>Situação Lead</th><th>Situação Pré-Cadastro</th><th>Situação Reserva</th>
@@ -513,8 +513,7 @@ async function loadCvFunnel(){
   const sources=[
     ...(location.pathname.endsWith('/marketing_privado.html')?['/api/funil/publico?version='+Date.now()]:[]),
     'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-funnel.json?version='+Date.now(),
-    'data/cv-funnel.json?version='+Date.now(),
-    'https://executivo-lcm-auditoria.onrender.com/api/funil/publico?version='+Date.now()
+    'data/cv-funnel.json?version='+Date.now()
   ];
   const errors=[];
   for(const source of sources){
@@ -610,13 +609,10 @@ async function loadPrivateCvAudit(){
   const status=$('cvAuditImportStatus');
   // Na página pública, nunca solicitar nem armazenar dados individuais.
   const privatePage=location.pathname.endsWith('/marketing_privado.html');
-  const link=$('cvAuditPrivateLink');
   if(!privatePage){
-    if(link)link.style.display='inline-flex';
-    if(status)status.textContent='Resumo automático disponível. Para ver nomes, abra a auditoria autenticada.';
+    if(status)status.textContent='O GitHub Pages exibe somente dados agregados. Dados individuais exigem acesso protegido fora da página pública.';
     return;
   }
-  if(link)link.style.display='none';
   try{
     const response=await fetch('/api/funil/privado?version='+Date.now(),
       {cache:'no-store',credentials:'same-origin'});
