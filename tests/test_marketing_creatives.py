@@ -94,8 +94,10 @@ class CreativeCollectorTests(unittest.TestCase):
         catalog.extend([{**catalog[0], "id": "888888", "effective_status": "PAUSED"},
                         {**catalog[0], "id": "999999", "campaign": {"id": "654321", "effective_status": "ACTIVE"}}])
         rows = [self.row(), self.row(ad_id="555555", date_start="2026-01-03", ad_name="Removido")]
-        with patch.object(collector.meta, "request", side_effect=[catalog, rows]):
+        with patch.object(collector.meta, "request", side_effect=[catalog, rows]) as request, \
+             patch.object(collector, "graph_object", side_effect=RuntimeError("Mídia indisponível")):
             result = collector.collect_account(account, dt.date(2026, 1, 1), dt.date(2026, 1, 3), {})
+        self.assertNotIn("effective_status", request.call_args_list[0].args[1])
         self.assertEqual(len(result), 3)
         by_id = {ad["ad_id"]: ad for ad in result}
         self.assertNotIn("888888", by_id)
@@ -107,6 +109,20 @@ class CreativeCollectorTests(unittest.TestCase):
         self.assertEqual(by_id["555555"]["media_type"], "unknown")
         self.assertEqual(by_id["123456"]["project"], "residencial flores do cerrado jacaranda")
         self.assertEqual(sum(len(ad["daily"]) for ad in result), 2)
+
+    def test_historical_ad_missing_from_default_catalog_gets_direct_media_metadata(self):
+        account = {"id": "act_347253318197280", "currency": "BRL", "name": "LCM Jacarandá"}
+        historical = {"id": "123456", "name": "Histórico pausado", "campaign_id": "654321",
+                      "effective_status": "PAUSED",
+                      "creative": {"image_url": "https://scontent.test.fbcdn.net/history.jpg"}}
+        with patch.object(collector.meta, "request", side_effect=[[], [self.row()]]), \
+             patch.object(collector, "graph_object", return_value=historical) as direct:
+            result = collector.collect_account(account, dt.date(2026, 1, 1), dt.date(2026, 1, 3), {})
+        direct.assert_called_once_with("123456", collector.AD_FIELDS)
+        self.assertEqual(result[0]["status"], "PAUSED")
+        self.assertEqual(result[0]["media_type"], "image")
+        self.assertEqual(result[0]["image_url"], "https://scontent.test.fbcdn.net/history.jpg")
+        self.assertEqual(result[0]["daily"][0]["spend"], "12.34")
 
     def test_primary_collection_failure_never_replaces_previous_file(self):
         with tempfile.TemporaryDirectory() as directory:

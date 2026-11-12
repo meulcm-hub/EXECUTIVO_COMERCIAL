@@ -28,9 +28,6 @@ PROJECTS = {
     "332967835423799": "spe arraial costa verde club",
     "1183301460107081": "residencial jatoba",
 }
-CATALOG_STATUSES = ["ACTIVE", "PAUSED", "CAMPAIGN_PAUSED", "ADSET_PAUSED",
-                    "ARCHIVED", "DELETED", "PENDING_REVIEW", "DISAPPROVED",
-                    "PREAPPROVED", "PENDING_BILLING_INFO", "IN_PROCESS", "WITH_ISSUES"]
 CREATIVE_FIELDS = ("id,name,title,body,image_url,thumbnail_url,video_id,"
                    "object_story_spec,asset_feed_spec,effective_object_story_id,object_story_id")
 AD_FIELDS = ("id,name,campaign_id,effective_status,campaign{id,name,effective_status},"
@@ -261,8 +258,11 @@ def collect_account(account, first, last, video_cache):
     if account.get("currency") != "BRL":
         raise RuntimeError("Conta de anúncio sem moeda BRL confirmada")
     account_id = full_id[4:]
+    # A Meta não aceita todos os estados computados como filtro em /ads
+    # (HTTP 400/1815001). Ler o catálogo padrão preserva ativos e pausados;
+    # os históricos ausentes são conferidos individualmente após os insights.
     catalog = primary_request(full_id + "/ads", {
-        "fields": AD_FIELDS, "effective_status": json.dumps(CATALOG_STATUSES), "limit": 100,
+        "fields": AD_FIELDS, "limit": 100,
     }, "Catálogo de anúncios da conta " + account_id)
     metadata = {}
     for ad in catalog:
@@ -288,6 +288,13 @@ def collect_account(account, first, last, video_cache):
             if previous["daily"].keys() & item["daily"].keys():
                 raise RuntimeError("Data de anúncio duplicada entre períodos")
             previous["daily"].update(item["daily"])
+
+    for aid in set(metrics) - set(metadata):
+        try:
+            metadata[aid] = graph_object(aid, AD_FIELDS)
+        except RuntimeError:
+            # Anúncios excluídos podem ter insights válidos sem objeto legível.
+            pass
 
     def video_lookup(vid):
         if vid not in video_cache:

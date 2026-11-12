@@ -96,6 +96,11 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .audit-full{width:100%;min-width:0}
 .audit-table{min-width:650px;width:100%}
 .audit-detail{min-width:1120px;table-layout:auto}
+.audit-scroll{max-height:900px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;border-bottom:1px solid var(--line)}
+.audit-scroll:focus-visible{outline:2px solid #67ae42;outline-offset:3px}
+.audit-scroll .audit-detail thead th{position:sticky;top:0;z-index:2}
+.audit-scroll .audit-detail tfoot th,.audit-scroll .audit-detail tfoot td{position:sticky;bottom:0;z-index:2;background:#e8f2e4;color:#254a40;border-top:2px solid #67ae42;font-weight:800;padding:13px 9px}
+html[data-theme=dark] .audit-scroll .audit-detail tfoot th,html[data-theme=dark] .audit-scroll .audit-detail tfoot td{background:#244536;color:#dbefce}
 .audit-import{display:flex;flex-wrap:wrap;align-items:center;gap:10px 15px;margin:0 0 13px;padding:11px 12px;background:#f5f9f5;border:1px solid #e0ece2;border-radius:9px}
 .audit-import input[type=file]{max-width:340px;font-size:11px}
 
@@ -144,7 +149,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .cv-breakdown b{color:#163d4c}
 @media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-chart-card{grid-column:1/-1}}
 @media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
-</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=bedfe63b61ce" defer></script></head>
+</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=329d20df91a1" defer></script><link rel="stylesheet" href="lcm-creatives.css?v=7e24e33e3ba3"></head>
 <body data-lcm-page="marketing"><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="toolbar">
@@ -222,9 +227,9 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <span id="cvAuditImportStatus" class="audit-note" role="status" aria-live="polite">Aguardando atualização automática da auditoria.</span>
 
 </div>
-<div class="tablewrap"><table class="table audit-table audit-detail"><thead><tr>
+<div class="tablewrap audit-scroll" id="cvAuditScroll" tabindex="0" role="region" aria-label="Clientes da auditoria: até 20 linhas visíveis, role para consultar os demais"><table class="table audit-table audit-detail"><thead><tr>
 <th>Cliente</th><th>Empreendimento</th><th>Origem</th><th>Data da Entrada</th><th>Data da Venda</th><th>Situação Lead</th><th>Situação Pré-Cadastro</th><th>Situação Reserva</th>
-</tr></thead><tbody id="cvAuditDetailRows"><tr><td colspan="8" class="audit-empty">Aguardando atualização automática da auditoria.</td></tr></tbody></table></div>
+</tr></thead><tbody id="cvAuditDetailRows"><tr><td colspan="8" class="audit-empty">Aguardando atualização automática da auditoria.</td></tr></tbody><tfoot><tr><th scope="row">TOTAL DE CLIENTES</th><td colspan="7" id="cvAuditDetailTotal">—</td></tr></tfoot></table></div>
 <p class="audit-note">A auditoria é pública, assim como o relatório Executivo. Nomes e situações são carregados automaticamente, sem senha. O filtro Situação Reserva afeta somente esta tabela; os indicadores do funil mantêm sua regra de cálculo.</p>
 <details class="audit-summary"><summary>Ver resumo por empreendimento e etapa</summary>
 <div class="tablewrap"><table class="table audit-table"><thead><tr><th>Empreendimento</th><th class="num">Prospect</th><th class="num">Agend.</th><th class="num">Visita</th><th class="num">Análise</th><th class="num">Venda</th></tr></thead>
@@ -234,10 +239,12 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </details>
 </div>
 </section>
+<section id="lcmCreatives" style="margin-top:15px" aria-label="Campanhas e criativos"><h2>Campanhas e Criativos</h2><p class="sub">Carregando imagens, vídeos e resultados dos anúncios…</p></section>
 <footer>Atualização automática por GitHub Actions. Histórico acumulado desde janeiro de 2026, conforme a cobertura publicada de todas as fontes. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. A auditoria individual com os nomes dos clientes também é publicada nesta página pública. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
 <script src="lcm-cv-query.js?v=c541cb05b8ef"></script>
 <script src="lcm-date-range.js?v=6d4dff9ed8a1"></script>
+<script src="lcm-creatives.js?v=727987278686"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
@@ -256,6 +263,12 @@ const map=[
 const allids=new Set(map.map(m=>m.id));
 let campaignSource=null;
 let data=null;
+let creativesSelection='';
+const creatives=window.LcmCreatives?.mount($('lcmCreatives'),{
+  onProjectChange(value){
+    if(value==='all'||allids.has(value)){$('project').value=value;render();}
+  }
+});
 function el(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
 function bars(id,rows,fmt){const host=$(id);host.replaceChildren();if(!rows.length){host.className='empty';host.textContent='Sem dados nesta seleção.';return}host.className='';const max=Math.max(...rows.map(x=>Number(x.value)||0),1);for(const r of rows){const line=el('div','barrow'),name=el('div','barname',r.name),track=el('div','track'),fill=el('div','fill'),value=el('div','barvalue',fmt(r.value));fill.style.width=Math.max(0,Number(r.value||0)/max*100)+'%';track.append(fill);line.append(name,track,value);host.append(line)}}
 function campaignTotals(id,since,until){
@@ -520,6 +533,11 @@ function render(){
   renderCampaigns(visible);
   renderCvFunnel(visible);
   renderCvAudit(visible);
+  const creativeKey=[choice,data.period.since,data.period.until].join('|');
+  if(creativeKey!==creativesSelection){
+    creativesSelection=creativeKey;
+    creatives?.update({project:choice,since:data.period.since,until:data.period.until});
+  }
   $('caveat').textContent='Fonte: Meta Ads. Cliques totais ÷ impressões não é o CTR de link. Formulários ÷ cliques é uma razão indicativa; formulários e conversas WhatsApp são apresentados separadamente para evitar interpretação de pessoas únicas.';
 }
 // As métricas do funil por safra só são mostradas quando a integração
@@ -609,6 +627,24 @@ function renderCvFunnel(visible){
 }
 let cvAuditData=null;
 let auditLoading=false;
+let auditRenderKey='';
+let auditFitFrame=0;
+function fitAuditRows(){
+  cancelAnimationFrame(auditFitFrame);
+  auditFitFrame=requestAnimationFrame(()=>{
+    const scroll=$('cvAuditScroll'),table=scroll?.querySelector('table');
+    const rows=table?.tBodies[0]?.rows;
+    if(!scroll||!rows?.length||!scroll.offsetWidth)return;
+    // Medir as primeiras vinte linhas preserva nomes longos, zoom e telas pequenas.
+    const bottom=rows[Math.min(rows.length,20)-1].getBoundingClientRect().bottom;
+    const top=table.getBoundingClientRect().top;
+    const scrollbar=scroll.offsetHeight-scroll.clientHeight;
+    const footer=table.tFoot?.getBoundingClientRect().height||0;
+    scroll.style.maxHeight=Math.ceil(bottom-top+scrollbar+footer+1)+'px';
+  });
+}
+window.addEventListener('resize',fitAuditRows);
+document.fonts?.ready.then(fitAuditRows);
 const auditPrivatePage=location.pathname.endsWith('/marketing_privado.html');
 const auditVisible=()=>map.filter(m=>$('project').value==='all'?Boolean(m.project):m.id===$('project').value);
 const auditColumns=['cliente','empreendimento','origem','data_entrada','data_venda',
@@ -626,19 +662,26 @@ function updateAuditStatusOptions(){
 function renderCvAuditDetails(visible){
   const target=$('cvAuditDetailRows'),status=$('cvAuditImportStatus');
   if(!target)return;
+  const nextKey=cvAuditData&&data?[data.period.since,data.period.until,
+    visible.map(m=>m.id).join(','),$('cvAuditReservationStatus').value,
+    cvAuditData.published_at_utc||cvAuditData.generated_at_utc||'',cvAuditData.rows.length].join('|'):'';
+  if(nextKey&&nextKey===auditRenderKey)return;
+  auditRenderKey=nextKey;
+  $('cvAuditScroll').scrollTop=0;
   target.replaceChildren();
   function message(value){
     const tr=el('tr'),td=el('td','audit-empty',value);
     td.colSpan=8;tr.append(td);target.append(tr);
   }
-  if(!cvAuditData){message('Aguardando atualização automática da auditoria.');return;}
-  if(!data||!visible.length){message('Selecione um período e empreendimento.');return;}
+  if(!cvAuditData){$('cvAuditDetailTotal').textContent='—';message('Aguardando atualização automática da auditoria.');return;}
+  if(!data||!visible.length){$('cvAuditDetailTotal').textContent='—';message('Selecione um período e empreendimento.');return;}
   const allowed=new Set(visible.map(m=>m.project).filter(Boolean));
   const inPeriod=cvAuditData.rows.filter(row=>allowed.has(row.project)&&
     LcmCvQuery.auditDate(row,data.period.since,data.period.until)).map(row=>({...row,
       data_entrada:LcmCvQuery.auditDate(row,data.period.since,data.period.until)}));
   const choice=$('cvAuditReservationStatus').value;
   const rows=inPeriod.filter(row=>!choice||reservationLabel(row)===choice);
+  $('cvAuditDetailTotal').textContent=nf(rows.length)+' clientes';
   const period=cvAuditData.period||{};
   const partial=period.since>data.period.since||period.until<data.period.until;
   status.textContent=nf(rows.length)+' de '+nf(inPeriod.length)+' clientes nesta seleção'+
@@ -658,6 +701,7 @@ function renderCvAuditDetails(visible){
     fragment.append(tr);
   }
   target.append(fragment);
+  fitAuditRows();
 }
 async function loadCvAudit(){
   const status=$('cvAuditImportStatus');
@@ -911,12 +955,12 @@ for(const id of ['startDate','endDate']){
   $(id).addEventListener('change',()=>{applyDate().catch(e=>{$('appliedPeriod').textContent='Falha ao aplicar período';})});
 }
 // Auditoria pública sincronizada automaticamente; sem importação manual.
-$('reload').addEventListener('click',load);
+$('reload').addEventListener('click',()=>{creatives?.refresh();load();});
 load();
 setInterval(async()=>{
   // Reconsultar o histórico periodicamente permite acompanhar a janela móvel,
   // mesmo com a página aberta durante a atualização diária das fontes.
-  if(Date.now()-lastHistoryRefresh>=15*60*1000){await load();return;}
+  if(Date.now()-lastHistoryRefresh>=15*60*1000){creatives?.refresh();await load();return;}
   if(!cvFunnelSource){
     await loadCvFunnel();
     if(dailySource&&syncDateCoverage())await applyDate();
