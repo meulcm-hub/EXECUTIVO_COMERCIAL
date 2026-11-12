@@ -380,6 +380,24 @@ def main():
               "cohort_mode": "prospect_date", "as_of": today.isoformat(),
               "period": {"since": begin.isoformat(), "until": today.isoformat()},
               "cohorts": cohorts,
+              # Somente totais não identificáveis. Nunca publicar idlead,
+              # cliente, telefone, e-mail, CPF ou linhas individuais.
+              "reservation_link_audit": {
+                  key: int(sales_audit[key])
+                  for key in (
+                      "snapshots_consultados", "reservas_consultadas",
+                      "reservas_sem_idlead", "reservas_com_lead_identificado",
+                      "reservas_com_prospect_na_safra",
+                      "reservas_lead_fora_da_safra",
+                      "reservas_id_nao_encontrado",
+                      "reservas_inativas", "reservas_canceladas",
+                      "reservas_classificadas_venda",
+                      "vendas_sem_idlead", "vendas_com_idlead",
+                      "vendas_sem_data", "vendas_sem_prospect_na_safra",
+                      "vendas_com_prospect_na_safra",
+                      "prospects_com_venda_validada"
+                  )
+              },
               "method": "IDs de prospects por empreendimento e período de entrada. Etapa máxima alcançada após a entrada, contabilizada cumulativamente nas anteriores.",
               "source": "CV CRM v1; contagens agregadas sem IDs ou PII"}
     target = "data/cv-funnel.json"
