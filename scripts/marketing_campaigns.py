@@ -18,7 +18,7 @@ from decimal import Decimal, InvalidOperation
 from meta_ads_collector import accounts, request
 
 D = Decimal
-DAYS = 90
+HISTORY_START = dt.date(2026,1,1)
 FORM_ACTION = "onsite_conversion.lead_grouped"
 MESSAGE_ACTION = "onsite_conversion.messaging_conversation_started_7d"
 
@@ -37,7 +37,7 @@ def actions(row, kind):
 
 def main():
     last = dt.date.today()
-    first = last - dt.timedelta(days=DAYS - 1)
+    first = HISTORY_START
     catalog = accounts()
     if len(catalog) != 8:
         raise RuntimeError("Esperadas exatamente oito contas de anúncios")

@@ -23,8 +23,8 @@ test('fontes sem interseção não criam um período nem zeros',()=>{
 test('fonte opcional ausente não bloqueia fonte disponível',()=>{
  assert.deepEqual(range.intersect([null,undefined,{since:'2026-10-01',until:'2026-10-31'}]),{since:'2026-10-01',until:'2026-10-31'});
 });
-test('cobertura nunca excede 90 dias e recusa datas inexistentes',()=>{
- assert.deepEqual(range.intersect([{since:'2026-01-01',until:'2026-11-12'}]),{since:'2026-08-15',until:'2026-11-12'});
+test('histórico anual não é cortado em 90 dias e recusa datas inexistentes',()=>{
+ assert.deepEqual(range.intersect([{since:'2026-01-01',until:'2026-11-12'}]),{since:'2026-01-01',until:'2026-11-12'});
  assert.equal(range.validPeriod({since:'2026-02-30',until:'2026-03-01'}),false);
 });
 

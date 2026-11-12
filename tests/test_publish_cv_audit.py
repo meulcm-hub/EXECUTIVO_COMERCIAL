@@ -28,7 +28,7 @@ class PublicAuditTests(unittest.TestCase):
     def test_only_display_columns_and_project_are_published(self):
         source = self.fixture()
         result = audit.public_report(source)
-        self.assertEqual(set(result["rows"][0]), set(audit.FIELDS))
+        self.assertEqual(set(result["rows"][0]), set(audit.FIELDS)|{"entry_dates"})
         self.assertEqual(result["rows"][0]["cliente"], "Cliente fictício çã")
         self.assertEqual(result["period"], source["period"])
         self.assertNotIn("123", json.dumps(result))

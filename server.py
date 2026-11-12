@@ -664,8 +664,8 @@ def _generate_funil():
     public = json.loads(public_path.read_text(encoding="utf-8"))
     private = json.loads(private_path.read_text(encoding="utf-8"))
     if (public.get("validated") is not True or
-            public.get("schema_version") != 1 or
-            not isinstance(public.get("cohorts"), list) or
+            public.get("schema_version") not in (1,2) or
+            not isinstance(public.get("prospects") if public.get("schema_version")==2 else public.get("cohorts"), list) or
             not isinstance(private.get("rows"), list)):
         raise RuntimeError("Relatórios CV CRM com estrutura inválida.")
     return public, private

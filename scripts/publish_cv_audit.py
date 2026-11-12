@@ -51,7 +51,12 @@ def public_report(report):
         if row["data_venda"]:
             iso_date(row["data_venda"])
         # Projeção positiva: IDs, contatos e quaisquer outros campos são descartados.
-        selected.append({key: row[key] for key in FIELDS})
+        dates=row.get("entry_dates",[row["data_entrada"]])
+        if not isinstance(dates,list) or not dates or any(not since<=iso_date(day)<=until for day in dates):
+            raise ValueError("Entradas da auditoria inválidas")
+        projected={key:row[key] for key in FIELDS}
+        projected["entry_dates"]=sorted(set(dates))
+        selected.append(projected)
     return {
         "schema_version": 1,
         "source": "CV CRM - auditoria pública autorizada",
