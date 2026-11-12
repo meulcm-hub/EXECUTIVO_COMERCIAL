@@ -1,0 +1,51 @@
+name: LCM - Campanhas e criativos Meta
+on:
+  schedule:
+    - cron: '45 11,17 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marketing_creatives.py'
+      - '.github/workflows/marketing-creatives.yml'
+  workflow_dispatch:
+concurrency:
+  group: marketing-creatives-publication
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  creatives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar midias e metricas dos anuncios
+        run: python -m unittest discover -s tests -p 'test_marketing_creatives.py'
+      - name: Consultar criativos e historico diario dos anuncios
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ vars.META_AD_ACCOUNT_IDS }}
+        run: python scripts/marketing_creatives.py
+      - name: Publicar somente catalogo e indicadores dos anuncios
+        run: |
+          publication_dir="${{ runner.temp }}/creatives-publication"
+          mkdir -p "$publication_dir"
+          cp data/marketing-creatives.json "$publication_dir/marketing-creatives.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$publication_dir/marketing-creatives.json" data/marketing-creatives.json
+            git add data/marketing-creatives.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Atualiza midias e desempenho diario dos anuncios Meta"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 5
+          done
+          exit 1
