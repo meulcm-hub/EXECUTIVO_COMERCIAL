@@ -30,7 +30,30 @@ jobs:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
           CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+          CV_AUDIT_PRIVATE_PATH: ${{ runner.temp }}/cv-funnel-private.json
         run: python scripts/marketing_cv_funnel.py
+      - name: Criptografar auditoria individual sem publicar dados brutos
+        id: encrypt_audit
+        env:
+          CV_AUDIT_PASSWORD: ${{ secrets.CV_AUDIT_PASSWORD }}
+        run: |
+          if [ -z "$CV_AUDIT_PASSWORD" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Auditoria individual sem exportação: configure o secret CV_AUDIT_PASSWORD."
+            exit 0
+          fi
+          python -m pip install cryptography
+          python scripts/encrypt_cv_audit.py ${{ runner.temp }}/cv-funnel-private.json cv-audit-private.enc.json
+          rm -f ${{ runner.temp }}/cv-funnel-private.json
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Disponibilizar auditoria criptografada
+        if: steps.encrypt_audit.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-cv-criptografada
+          path: cv-audit-private.enc.json
+          retention-days: 3
+          if-no-files-found: error
       - name: Publicar apenas contagens agregadas validadas
         run: |
           git config user.name "github-actions[bot]"
