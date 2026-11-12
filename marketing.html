@@ -895,7 +895,10 @@ async function applyDate(){
    }catch(_){}
  }
  render();
- if(!data.cv_counts_validated){
+ const cvWindowReady=conversionSource?.validated===true&&cvFunnelSource?.validated===true&&
+   since>=conversionSource.period.since&&until<=conversionSource.period.until&&
+   since>=cvFunnelSource.period.since&&until<=cvFunnelSource.period.until;
+ if(!data.cv_counts_validated&&!cvWindowReady){
    $('status').textContent='Meta atualizada • histórico CV ainda incompleto';
     $('caveat').textContent='Fonte: Meta Ads. As taxas são indicativas e dependem da coleta das campanhas; a validação dos dados CV CRM é independente.';
  }
