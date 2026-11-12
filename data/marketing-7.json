@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-11T12:16:28.984020+00:00",
+  "generated_at_utc": "2026-11-12T18:15:12.017686+00:00",
   "period": {
-    "since": "2026-11-05",
-    "until": "2026-11-11"
+    "since": "2026-11-06",
+    "until": "2026-11-12"
   },
   "status": "COMPLETO_META_CV_AGREGADO",
   "meta_accounts": [
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "813.56",
-      "impressions": 76914,
-      "clicks": 718
+      "spend": "826.78",
+      "impressions": 72062,
+      "clicks": 712
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "978.66",
-      "impressions": 114437,
-      "clicks": 874
+      "spend": "1023.11",
+      "impressions": 120237,
+      "clicks": 919
     },
     {
       "account_id": "272429171879216",
@@ -68,47 +68,47 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "719.87",
-      "impressions": 57810,
-      "clicks": 426
+      "spend": "790.41",
+      "impressions": 61478,
+      "clicks": 437
     }
   ],
   "cv_by_project_normalized": {
     "residencial flores do cerrado jacaranda": {
       "leads_period": 118,
-      "meta_declarada": 110,
+      "meta_declarada": 111,
       "meta_whatsapp_cv": 4,
-      "meta_busca_compartilhada_cv": 0,
+      "meta_busca_compartilhada_cv": 1,
       "meta_outros_cv": 106,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 8
+      "outra_ou_nao_informada": 7
     },
     "residencial extrema meu lar": {
-      "leads_period": 15,
+      "leads_period": 13,
       "meta_declarada": 0,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 0,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 15
+      "outra_ou_nao_informada": 13
     },
     "residencial village lagoas": {
-      "leads_period": 38,
-      "meta_declarada": 32,
+      "leads_period": 46,
+      "meta_declarada": 39,
       "meta_whatsapp_cv": 3,
       "meta_busca_compartilhada_cv": 0,
-      "meta_outros_cv": 29,
-      "google_declarada": 2,
-      "outra_ou_nao_informada": 4
+      "meta_outros_cv": 36,
+      "google_declarada": 1,
+      "outra_ou_nao_informada": 6
     },
     "residencial jatoba": {
-      "leads_period": 17,
-      "meta_declarada": 16,
+      "leads_period": 19,
+      "meta_declarada": 17,
       "meta_whatsapp_cv": 1,
       "meta_busca_compartilhada_cv": 0,
-      "meta_outros_cv": 15,
+      "meta_outros_cv": 16,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 1
+      "outra_ou_nao_informada": 2
     }
   },
   "cv_counts_validated": true,
