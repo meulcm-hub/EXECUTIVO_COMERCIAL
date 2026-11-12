@@ -2,6 +2,8 @@
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LCM | Visão de Marketing</title>
 <style>
+.date-range-unavailable main>section:not(.toolbar){display:none}
+
 :root{--green:#67ae42;--ink:#243f4e;--muted:#788b92;--line:#e4ebe7;--bg:#f3f7f4;--navy:#254a5c}
 [hidden]{display:none!important}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink)}main{max-width:1500px;margin:auto;padding:25px}
@@ -142,7 +144,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .cv-breakdown b{color:#163d4c}
 @media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-chart-card{grid-column:1/-1}}
 @media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
-</style><link rel="stylesheet" href="lcm-dashboard.css?v=91f33dad81a3"><script src="lcm-shell.js?v=4715c4553587" defer></script></head>
+</style><link rel="stylesheet" href="lcm-dashboard.css?v=5deb98be7236"><script src="lcm-shell.js?v=4715c4553587" defer></script></head>
 <body data-lcm-page="marketing"><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="toolbar">
@@ -232,6 +234,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </section>
 <footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. A auditoria individual com os nomes dos clientes também é publicada nesta página pública. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
+<script src="lcm-date-range.js?v=08f2d50e7afe"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
@@ -718,6 +721,37 @@ function renderCvAudit(visible){
 
 }
 let dailySource=null;
+let dateCoverage=null;
+let lastHistoryRefresh=0;
+function sourceDateCoverage(){
+  const periods=[dailySource?.period];
+  if(conversionSource?.validated===true)periods.push(conversionSource.period);
+  if(cvFunnelSource?.validated===true)periods.push(cvFunnelSource.period);
+  if(campaignSource)periods.push(campaignSource.period);
+  return LcmDateRange.intersect(periods);
+}
+function syncDateCoverage(){
+  const next=sourceDateCoverage();
+  const choice={since:$('startDate').value,until:$('endDate').value};
+  const selected=LcmDateRange.select(next,dateCoverage,choice);
+  dateCoverage=next;
+  const unavailable=!selected;
+  document.body.classList.toggle('date-range-unavailable',unavailable);
+  $('apply').disabled=unavailable;
+  for(const id of ['startDate','endDate']){
+    $(id).min=next?.since||'';$(id).max=next?.until||'';
+    $(id).disabled=unavailable;
+  }
+  if(unavailable){
+    data=null;
+    $('startDate').value='';$('endDate').value='';
+    $('status').textContent='Fontes sem período em comum';
+    $('appliedPeriod').textContent='Os históricos publicados ainda não têm um período em comum. Aguarde a próxima sincronização.';
+    return false;
+  }
+  $('startDate').value=selected.since;$('endDate').value=selected.until;
+  return true;
+}
 let validatedWindows={};
 function parseISO(s){return new Date(s+'T12:00:00Z')}
 function addDays(s,n){let d=parseISO(s);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
@@ -779,9 +813,9 @@ async function loadCampaigns(){
        throw Error('Arquivo de campanhas inválido');
    campaignSource=x;
  }catch(err){campaignSource=null}
- if(data)render();
 }
 async function load(){
+  lastHistoryRefresh=Date.now();
   $('status').textContent='Verificando histórico...';
   try{
     const r=await fetch('data/marketing-daily.json?version='+Date.now(),{cache:'no-store'});
@@ -792,18 +826,12 @@ async function load(){
     const brazilNow=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
     const stamp=obj.generated_at_utc?new Date(obj.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'não informado';
     $('lastSync').textContent='Última coleta publicada: '+stamp+' • Dados até '+obj.period.until+(obj.period.until===brazilNow?' (dia atual, parcial)':'');
-    for(const id of ['startDate','endDate']){$(id).min=obj.period.since;$(id).max=obj.period.until;}
-    // Preservar a seleção quando o usuário clica em Atualizar
-    const startChoice=$('startDate').value;
-    const endChoice=$('endDate').value;
-    $('endDate').value=endChoice && endChoice>=obj.period.since && endChoice<=obj.period.until ? endChoice : obj.period.until;
-    const defaultStart=obj.period.since; // Primeiro acesso abre todo histórico sincronizado
-    $('startDate').value=startChoice && startChoice>=obj.period.since && startChoice<=obj.period.until ? startChoice : defaultStart;
     await loadConversionMetrics();
     await loadCvFunnel();
-    await loadCvAudit();
-    await applyDate();
     await loadCampaigns();
+    if(!syncDateCoverage())return;
+    await applyDate();
+    await loadCvAudit();
   }catch(e){
     dailySource=null;
     $('lastSync').textContent='Última coleta diária: indisponível';
@@ -813,14 +841,19 @@ async function load(){
       const r=await fetch('data/marketing-aggregated.json?version='+Date.now(),{cache:'no-store'});
       if(!r.ok)throw Error('Sem consolidado');
       const x=await r.json();data=x;
+      if(!LcmDateRange.validPeriod(x.period))throw Error('Período consolidado inválido');
+      document.body.classList.remove('date-range-unavailable');
+      dateCoverage={...x.period};
+      $('apply').disabled=true;
       $('startDate').value=x.period.since;$('endDate').value=x.period.until;
       $('startDate').min=x.period.since;$('startDate').max=x.period.until;
       $('endDate').min=x.period.since;$('endDate').max=x.period.until;
+      $('startDate').disabled=true;$('endDate').disabled=true;
       await loadConversionMetrics();
      await loadCvFunnel();
       await loadCvAudit();
-      render();
       await loadCampaigns();
+      render();
       $('status').textContent='Somente período consolidado disponível';
     }catch(_){$('status').textContent='Dados indisponíveis';}
   }
@@ -833,8 +866,8 @@ async function applyDate(){
    if(data?.period?.since===since&&data?.period?.until===until){render();return}
    alert('O histórico diário não carregou nesta página. Confira a publicação do GitHub Pages e recarregue a página.');return;
  }
- if(since<dailySource.period.since||until>dailySource.period.until){
-   alert('Escolha datas dentro do histórico sincronizado: '+dailySource.period.since+' a '+dailySource.period.until+'.');return;
+ if(!dateCoverage||since<dateCoverage.since||until>dateCoverage.until){
+   $('appliedPeriod').textContent='Escolha datas dentro do histórico comum: '+(dateCoverage?dateCoverage.since+' a '+dateCoverage.until:'aguardando sincronização')+'.';return;
  }
  if((parseISO(until)-parseISO(since))/86400000>89){alert('Máximo de 90 dias por consulta.');return}
  data=dailyExtract(since,until);
@@ -868,7 +901,13 @@ for(const id of ['startDate','endDate']){
 $('reload').addEventListener('click',load);
 load();
 setInterval(async()=>{
-  if(!cvFunnelSource)await loadCvFunnel();
+  // Reconsultar o histórico periodicamente permite acompanhar a janela móvel,
+  // mesmo com a página aberta durante a atualização diária das fontes.
+  if(Date.now()-lastHistoryRefresh>=15*60*1000){await load();return;}
+  if(!cvFunnelSource){
+    await loadCvFunnel();
+    if(dailySource&&syncDateCoverage())await applyDate();
+  }
   await loadCvAudit();
   if(data)render();
 },60000);
