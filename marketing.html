@@ -542,16 +542,32 @@ function renderCvFunnel(visible){
     return;
   }
   const {since,until}=data.period;
-  const projects=visible.map(m=>m.project);
-  if(projects.some(p=>!p))return;
+  const projects=visible.map(m=>m.project).filter(Boolean);
+  if(!projects.length){
+    if(note)note.textContent='Não há empreendimento com vínculo CV CRM neste filtro.';
+    return;
+  }
+  // O histórico Meta e o funil CV podem ser publicados em horários diferentes.
+  // Usar somente a interseção efetivamente validada, sem apresentar dias fora
+  // da cobertura como se tivessem sido consultados.
+  const coverage=cvFunnelSource.period||{};
+  const checkedSince=since>coverage.since?since:coverage.since;
+  const checkedUntil=until<coverage.until?until:coverage.until;
+  if(!checkedSince||!checkedUntil||checkedSince>checkedUntil){
+    if(note)note.textContent='Sem sobreposição entre o período selecionado ('+
+      since+' a '+until+') e o período validado do CV CRM ('+
+      coverage.since+' a '+coverage.until+').';
+    return;
+  }
+  const partial=checkedSince!==since||checkedUntil!==until;
   const found=projects.map(project=>({project,row:cvFunnelSource.cohorts.find(row=>
-    row.project===project && row.since===since && row.until===until &&
+    row.project===project && row.since===checkedSince && row.until===checkedUntil &&
     row.validated===true && row.as_of)}));
   const rows=found.filter(item=>item.row).map(item=>item.row);
   const missing=found.filter(item=>!item.row).map(item=>item.project);
   if(!rows.length){
-    if(note)note.textContent='Sem dados desta safra para os empreendimentos selecionados. '+
-      'Cobertura disponível: '+cvFunnelSource.period.since+' a '+cvFunnelSource.period.until+'.';
+    if(note)note.textContent='Não há recorte validado para '+checkedSince+' a '+
+      checkedUntil+'. Atualização CV CRM: '+(cvFunnelSource.as_of||'não informada')+'.';
     return;
   }
   const keys=['prospect','agendamento','visita','analise_credito','venda_realizada'];
@@ -563,9 +579,10 @@ function renderCvFunnel(visible){
     return;
   }
   if(note)note.textContent='Dados CV CRM até '+cvFunnelSource.as_of+
-    ' · Safra de '+since+' a '+until+
-    (missing.length?' · COBERTURA PARCIAL: '+rows.length+' de '+projects.length+
-      ' empreendimentos; faltam '+missing.join(', ')+'.':' · Todos os empreendimentos selecionados cobertos.')+
+    ' · Safra validada de '+checkedSince+' a '+checkedUntil+
+    (partial?' · COBERTURA PARCIAL DO PERÍODO SELECIONADO ('+since+' a '+until+').':'')+
+    (missing.length?' · COBERTURA PARCIAL DE EMPREENDIMENTOS: '+rows.length+' de '+projects.length+
+      '; faltam '+missing.join(', ')+'.':' · Todos os empreendimentos vinculados cobertos.')+
     (cvFunnelSource.sales_link_validated===true
       ?' · Vendas vinculadas por ID Lead na safra.'
       :' · Vendas em auditoria até validação do vínculo.');
