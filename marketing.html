@@ -513,7 +513,8 @@ async function loadCvFunnel(){
   const sources=[
     ...(location.pathname.endsWith('/marketing_privado.html')?['/api/funil/publico?version='+Date.now()]:[]),
     'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-funnel.json?version='+Date.now(),
-    'data/cv-funnel.json?version='+Date.now()
+    'data/cv-funnel.json?version='+Date.now(),
+    'https://executivo-lcm-auditoria.onrender.com/api/funil/publico?version='+Date.now()
   ];
   const errors=[];
   for(const source of sources){
@@ -820,8 +821,12 @@ for(const id of ['startDate','endDate']){
 // Auditoria carregada pela API autenticada; importação manual removida.
 $('reload').addEventListener('click',load);
 load();
-if(location.pathname.endsWith('/marketing_privado.html')){
-  setInterval(async()=>{if(!privateCvAudit){await loadCvFunnel();await loadPrivateCvAudit();if(data)render();}},60000);
-}
+setInterval(async()=>{
+  if(!cvFunnelSource || (location.pathname.endsWith('/marketing_privado.html')&&!privateCvAudit)){
+    await loadCvFunnel();
+    await loadPrivateCvAudit();
+    if(data)render();
+  }
+},60000);
 })();
 </script></body></html>
