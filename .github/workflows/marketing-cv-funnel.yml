@@ -1,7 +1,8 @@
 name: LCM - Funil comercial CV CRM por safra
 on:
+  # Início das coletas: 06h, 12h e 18h no horário de Brasília (UTC-3).
   schedule:
-    - cron: '20 13 * * *'
+    - cron: '0 9,15,21 * * *'
   push:
     branches: [main]
     paths:
@@ -82,3 +83,4 @@ jobs:
             sleep 5
           done
           exit 1
+

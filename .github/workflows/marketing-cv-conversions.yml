@@ -1,8 +1,8 @@
 name: LCM - Conversoes CV por empreendimento e dia
 on:
-  # Executa após a atualização diária de Marketing (11:15 UTC).
+  # Início das coletas: 06h, 12h e 18h no horário de Brasília (UTC-3).
   schedule:
-    - cron: '45 11 * * *'
+    - cron: '0 9,15,21 * * *'
   push:
     branches: [main]
     paths:
@@ -47,3 +47,4 @@ jobs:
             sleep 5
           done
           exit 1
+
