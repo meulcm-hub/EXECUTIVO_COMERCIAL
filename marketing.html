@@ -90,8 +90,8 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .funnel-column .cv-transition-text{max-width:100px;font-size:9px}
 .funnel-column .funnel-results{gap:6px}
 }
-.audit-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,.75fr);gap:16px;align-items:start}
-.audit-table{min-width:650px}
+.audit-full{width:100%;min-width:0}
+.audit-table{min-width:650px;width:100%}
 .audit-table th,.audit-table td{padding:11px 9px}
 .audit-table th{font-size:11px}
 .audit-table td{font-size:12px}
@@ -99,7 +99,7 @@ input[type=file]{display:none}.button{display:inline-flex;align-items:center;jus
 .audit-stat{padding:9px 0;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e8eeed;font-size:12px}
 .audit-stat b{font-variant-numeric:tabular-nums}
 .audit-note{font-size:11px;line-height:1.55;color:#647984}
-@media(max-width:950px){.audit-split{grid-template-columns:1fr}}
+
 footer{margin:20px 0 0;font-size:11px;color:#87949d;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){main{padding:12px}.heading{display:block}.pill{display:inline-block;margin-top:10px}.kpis{gap:9px}.kpi{padding:14px}.kpi strong{font-size:21px}.status{grid-template-columns:repeat(2,1fr)}.barrow{grid-template-columns:1.2fr 1fr 75px;gap:7px}}
@@ -191,19 +191,12 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <section class="panel" id="cvAuditPanel" style="margin-top:15px">
 <h2>Auditoria do Funil CV CRM</h2>
 <p class="sub">Conferência das pessoas únicas por etapa, com os mesmos filtros de período e empreendimento do funil acima. Quem alcançou uma etapa avançada também conta nas anteriores.</p>
-<div class="audit-split">
-<div>
+<div class="audit-full">
 <h3 style="font-size:14px;margin:4px 0 12px">Clientes por empreendimento e etapa</h3>
 <div class="tablewrap"><table class="table audit-table"><thead><tr><th>Empreendimento</th><th class="num">Prospect</th><th class="num">Agend.</th><th class="num">Visita</th><th class="num">Análise</th><th class="num">Venda</th></tr></thead>
 <tbody id="cvAuditRows"><tr><td colspan="6">Aguardando leitura do funil.</td></tr></tbody>
 <tfoot id="cvAuditTotals"></tfoot></table></div>
 <p class="audit-note" id="cvAuditCoverage">O detalhamento individual de clientes exige acesso autenticado; não disponibilizamos IDs nem informações pessoais nesta página pública.</p>
-</div>
-<div>
-<h3 style="font-size:14px;margin:4px 0 12px">Conferência do vínculo com reservas</h3>
-<div id="cvAuditReservations" class="audit-note">Aguardando publicação do diagnóstico agregado da API de reservas.</div>
-<p class="audit-note" style="margin-top:11px">Estes totais de reservas correspondem à coleta inteira, não necessariamente ao período escolhido. Vendas da tabela à esquerda respeitam a safra selecionada.</p>
-</div>
 </div>
 </section>
 <footer>Atualização automática por GitHub Actions. Datas personalizadas usam até 90 dias de histórico agregado. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. Dados agregados publicados em página pública, sem identificação pessoal. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
@@ -557,12 +550,10 @@ function renderCvFunnel(visible){
 }
 function renderCvAudit(visible){
   const table=$('cvAuditRows'),foot=$('cvAuditTotals'),coverage=$('cvAuditCoverage');
-  const reservations=$('cvAuditReservations');
-  table.replaceChildren();foot.replaceChildren();reservations.replaceChildren();
+  table.replaceChildren();foot.replaceChildren();
   if(!cvFunnelSource||!data||!visible.length){
     const row=el('tr');const cell=el('td','', 'Auditoria indisponível: aguarde a sincronização.');cell.colSpan=6;row.append(cell);table.append(row);
     coverage.textContent='IDs e dados pessoais não são publicados no dashboard público.';
-    reservations.textContent='Sem diagnóstico disponível.';
     return;
   }
   const {since,until}=data.period;
@@ -586,25 +577,7 @@ function renderCvAudit(visible){
   coverage.textContent='Cobertura: '+found+' de '+projects.length+' empreendimento(s).'+
     (missing.length?' Sem dados: '+missing.join(', ')+'.':'')+
     ' Dados pessoais e IDs dos clientes não são expostos nesta página pública.';
-  const audit=cvFunnelSource.reservation_link_audit;
-  if(!audit){
-    reservations.textContent='A rotina já possui o diagnóstico interno. Os totais agregados serão exibidos após a próxima coleta do CV CRM.';
-    return;
-  }
-  const stats=[
-    ['Reservas consultadas','reservas_consultadas'],
-    ['Reservas com lead identificado','reservas_com_lead_identificado'],
-    ['Reservas com prospect na safra de 90 dias','reservas_com_prospect_na_safra'],
-    ['Reservas com ID não encontrado','reservas_id_nao_encontrado'],
-    ['Reservas com lead fora da safra','reservas_lead_fora_da_safra'],
-    ['Reservas classificadas como venda','reservas_classificadas_venda'],
-    ['Vendas com lead na safra de 90 dias','vendas_com_prospect_na_safra'],
-    ['Prospects com venda validada','prospects_com_venda_validada']
-  ];
-  stats.forEach(([label,key])=>{
-    const div=el('div');div.className='audit-stat';
-    div.append(el('span','',label),el('b','',nf(audit[key]??0)));reservations.append(div);
-  });
+
 }
 let dailySource=null;
 let validatedWindows={};
