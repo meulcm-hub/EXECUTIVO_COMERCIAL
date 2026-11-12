@@ -654,19 +654,28 @@ async function loadCvAudit(){
   auditLoading=true;
   try{
     status.textContent='Carregando auditoria atualizada…';
-    const response=await fetch(auditPrivatePage?
-      '/api/funil/privado?version='+Date.now():'data/cv-audit.json?version='+Date.now(),
-      {cache:'no-store',credentials:auditPrivatePage?'same-origin':'omit'});
-    if(response.status===202){status.textContent='Sincronização automática em andamento no CV CRM.';return;}
-    if(!response.ok)throw Error(response.status===404?
-      'A publicação automática da auditoria ainda não foi concluída.':
-      'Não foi possível carregar a auditoria (HTTP '+response.status+').');
-    const report=await response.json();
-    if(report.schema_version!==1||!Array.isArray(report.rows)||
-      !report.period||typeof report.period.since!=='string'||typeof report.period.until!=='string'||
-      !report.rows.every(row=>row&&typeof row.project==='string'&&
-        auditColumns.every(key=>typeof row[key]==='string')))
-      throw Error('A auditoria publicada está em formato inválido.');
+    const sources=auditPrivatePage?['/api/funil/privado?version='+Date.now()]:[
+      'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-audit.json?version='+Date.now(),
+      'data/cv-audit.json?version='+Date.now()
+    ];
+    let report=null,lastError=null;
+    for(const source of sources){
+      try{
+        const response=await fetch(source,{cache:'no-store',credentials:auditPrivatePage?'same-origin':'omit'});
+        if(response.status===202){status.textContent='Sincronização automática em andamento no CV CRM.';return;}
+        if(!response.ok)throw Error(response.status===404?
+          'A publicação automática da auditoria ainda não foi concluída.':
+          'Não foi possível carregar a auditoria (HTTP '+response.status+').');
+        const candidate=await response.json();
+        if(candidate.schema_version!==1||!Array.isArray(candidate.rows)||
+          !candidate.period||typeof candidate.period.since!=='string'||typeof candidate.period.until!=='string'||
+          !candidate.rows.every(row=>row&&typeof row.project==='string'&&
+            auditColumns.every(key=>typeof row[key]==='string')))
+          throw Error('A auditoria publicada está em formato inválido.');
+        report=candidate;break;
+      }catch(error){lastError=error;}
+    }
+    if(!report)throw lastError||Error('Auditoria ainda não publicada.');
     cvAuditData=report;
     updateAuditStatusOptions();
     renderCvAuditDetails(auditVisible());
