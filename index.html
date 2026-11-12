@@ -184,9 +184,35 @@ tbody tr:nth-child(even){background:#f8faf8}
 #audience .aud-legend-row small{color:#788996}
 #audience .aud-muted{font-size:11px;color:#83919b}
 @media(max-width:650px){#audience .cards{grid-template-columns:1fr}#audience .aud-donut-wrap{grid-template-columns:1fr}#audience .aud-bar-row{grid-template-columns:minmax(70px,1fr) minmax(60px,1fr) 36px 42px;gap:6px}}
-</style></head><body><header class="site-header"><div class="brand"><img class="brand-logo" src="./logo_empresa.png" alt="LCM Construção"><div class="brand-copy"><h1>COMERCIAL LCM</h1><p>Relatório de vendas · Desempenho comercial</p></div></div><button class="pdf-button" type="button" onclick="printActiveReport()">Baixar PDF</button></header><main>
-<nav><button class="active" data-view="exec">Visão de Vendas</button><button data-view="audience">Público Comprador</button><button data-view="marketing">Visão de Marketing</button></nav>
-<section id="exec" class="view active">
+</style><link rel="stylesheet" href="lcm-dashboard.css"><script src="lcm-shell.js" defer></script><script src="lcm-overview.js" defer></script></head><body data-lcm-page="executive"><header class="site-header"><div class="brand"><img class="brand-logo" src="./logo_empresa.png" alt="LCM Construção"><div class="brand-copy"><h1>COMERCIAL LCM</h1><p>Relatório de vendas · Desempenho comercial</p></div></div><button class="pdf-button" type="button" onclick="printActiveReport()">Baixar PDF</button></header><main>
+<nav><button class="active" data-view="overview">Visão Geral</button><button data-view="exec">Visão de Vendas</button><button data-view="audience">Público Comprador</button><button data-view="marketing">Visão de Marketing</button></nav>
+<section id="overview" class="view">
+<div class="lcm-page-intro"><div><div class="lcm-eyebrow">LCM • Inteligência comercial</div><h1>Visão Geral</h1><p>Marketing e comercial em uma única visão.</p></div><span class="lcm-sync" id="ovSync">Carregando histórico</span></div>
+<form class="lcm-overview-filters" id="ovFilters">
+<label for="ovProject">Empreendimento<select id="ovProject"><option value="all">Todos os 4 empreendimentos vinculados</option></select></label>
+<label for="ovSince">Data inicial<input type="date" id="ovSince" required></label>
+<label for="ovUntil">Data final<input type="date" id="ovUntil" required></label>
+<button type="submit">Aplicar período</button>
+</form>
+<p id="ovStatus" class="lcm-overview-status" role="status">Consultando os dados publicados de marketing e do funil.</p>
+<div class="lcm-overview-kpis">
+<div class="lcm-metric"><div class="lcm-metric-icon" data-icon="marketing"></div><div><small>Investimento Meta Ads</small><strong id="ovSpend">—</strong><span class="lcm-metric-caption">Campanhas ativas • período selecionado</span></div></div>
+<div class="lcm-metric"><div class="lcm-metric-icon" data-icon="people"></div><div><small>Prospects no CV</small><strong id="ovProspects">—</strong><span class="lcm-metric-caption">Entradas elegíveis • safra do funil</span></div></div>
+<div class="lcm-metric"><div class="lcm-metric-icon" data-icon="sales"></div><div><small>Vendas no período</small><strong id="ovSales">—</strong><span class="lcm-metric-caption">Comercial • data da venda</span></div></div>
+<div class="lcm-metric"><div class="lcm-metric-icon" data-icon="money"></div><div><small>VGV vendido</small><strong id="ovVgv">—</strong><span class="lcm-metric-caption">Comercial • contratos do período</span></div></div>
+</div>
+<div class="lcm-overview-grid">
+<section class="panel"><h2>Captação por dia</h2><p>Novos cadastros no CV CRM por origem declarada.</p><div id="ovChart" aria-live="polite"></div><div class="lcm-chart-legend"><span><i></i>Facebook</span><span><i></i>Google</span></div></section>
+<section class="panel"><h2>Funil comercial</h2><p>Mesma safra de entrada, com evolução após o período.</p><div id="ovFunnel"></div><a class="lcm-overview-link" href="marketing.html#lcm-funnel">Explorar o funil →</a></section>
+</div>
+<div class="lcm-overview-grid">
+<section class="panel"><h2>Resultado por empreendimento</h2><p>Prospects por entrada no CV; vendas e VGV por data da venda na base comercial.</p><div class="tablewrap"><table class="lcm-overview-table"><thead><tr><th>Empreendimento</th><th>Prospects</th><th>Vendas</th><th>VGV</th></tr></thead><tbody id="ovProjects"></tbody></table></div><a class="lcm-overview-link" href="#exec">Ver Executivo Comercial →</a></section>
+<section class="panel"><h2>Marketing e conversão</h2><p>Conversão calculada exclusivamente sobre a safra do funil CV CRM.</p><div class="lcm-ratio-grid"><div><small>Custo por prospect*</small><strong id="ovCpp">—</strong></div><div><small>Conversão da safra</small><strong id="ovConversion">—</strong></div><div><small>Vendas da safra</small><strong id="ovCohortSales">—</strong></div></div><a class="lcm-overview-link" href="marketing.html">Explorar Marketing →</a><p class="lcm-overview-footnote" style="margin-top:18px">*Investimento Meta ÷ prospects Facebook e Google. Indicador comparativo, sem atribuição individual às campanhas.</p></section>
+</div>
+<p class="lcm-overview-footnote" id="ovSources">Comercial: base incorporada do relatório executivo. Marketing e CV CRM: histórico publicado pelo GitHub Actions. Os recortes têm regras próprias e não devem ser somados.</p>
+</section>
+
+<section id="exec" class="view">
 <div class="filters audit-filters"><label>Pesquisar empreendimento, imobiliária, bloco ou unidade<input id="auditQ" placeholder="Digite para pesquisar"></label><label>Empreendimento<select id="auditProject"><option value="">Todos</option></select></label><label>Etapa<select id="auditStage"><option value="">Todas</option></select></label><label>Imobiliária<select id="auditAgency"><option value="">Todas</option></select></label><label>Bloco<select id="auditBlock"><option value="">Todos</option></select></label><label>Venda a partir de<input type="date" id="auditFrom"></label><label>Venda até<input type="date" id="auditTo"></label><button id="auditClear">Limpar filtros</button><button class="primary" id="auditCsv">Exportar CSV</button></div>
 <div class="cards" id="execKpis"></div><div class="panel"><h2>Vendas por empreendimento no período</h2><div id="execRanking"></div></div><p class="muted" id="execPeriod"></p><div class="sectiontitle">Auditoria de Vendas e Consolidado Financeiro</div><div id="audit-inline-host"></div>
 </section>
@@ -274,10 +300,10 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.query
 function printActiveReport(){
  const selected=document.querySelector('nav button.active[data-view]');
  const view=selected?.dataset.view||document.querySelector('.view.active')?.id||'exec';
- document.body.classList.remove('print-view-exec','print-view-audit','print-view-audience');
+ document.body.classList.remove('print-view-overview','print-view-exec','print-view-audit','print-view-audience');
  document.body.classList.add('print-view-'+view);
  window.print();
 }
-window.addEventListener('afterprint',()=>document.body.classList.remove('print-view-exec','print-view-audit','print-view-audience'));
+window.addEventListener('afterprint',()=>document.body.classList.remove('print-view-overview','print-view-exec','print-view-audit','print-view-audience'));
 const auditSection=document.getElementById("audit");const auditHost=document.getElementById("audit-inline-host");if(auditSection&&auditHost){auditSection.classList.add("active");auditHost.appendChild(auditSection);auditSection.style.display="block";}renderFilteredDashboard();renderAudience();
 </script></body></html>
