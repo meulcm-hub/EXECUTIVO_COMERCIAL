@@ -149,7 +149,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .cv-breakdown b{color:#163d4c}
 @media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-chart-card{grid-column:1/-1}}
 @media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
-</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=329d20df91a1" defer></script><link rel="stylesheet" href="lcm-creatives.css?v=7e24e33e3ba3"></head>
+</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=329d20df91a1" defer></script><link rel="stylesheet" href="lcm-creatives.css?v=ac4c5d6d3e8f"></head>
 <body data-lcm-page="marketing"><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="toolbar">
@@ -244,7 +244,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </main>
 <script src="lcm-cv-query.js?v=c541cb05b8ef"></script>
 <script src="lcm-date-range.js?v=6d4dff9ed8a1"></script>
-<script src="lcm-creatives.js?v=727987278686"></script>
+<script src="lcm-creatives.js?v=28d2d903514f"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
@@ -264,11 +264,7 @@ const allids=new Set(map.map(m=>m.id));
 let campaignSource=null;
 let data=null;
 let creativesSelection='';
-const creatives=window.LcmCreatives?.mount($('lcmCreatives'),{
-  onProjectChange(value){
-    if(value==='all'||allids.has(value)){$('project').value=value;render();}
-  }
-});
+const creatives=window.LcmCreatives?.mount($('lcmCreatives'));
 function el(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
 function bars(id,rows,fmt){const host=$(id);host.replaceChildren();if(!rows.length){host.className='empty';host.textContent='Sem dados nesta seleção.';return}host.className='';const max=Math.max(...rows.map(x=>Number(x.value)||0),1);for(const r of rows){const line=el('div','barrow'),name=el('div','barname',r.name),track=el('div','track'),fill=el('div','fill'),value=el('div','barvalue',fmt(r.value));fill.style.width=Math.max(0,Number(r.value||0)/max*100)+'%';track.append(fill);line.append(name,track,value);host.append(line)}}
 function campaignTotals(id,since,until){

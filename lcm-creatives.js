@@ -105,23 +105,21 @@
   function labelStatus(status) {return STATUS[status] || 'Não informado';}
   function mediaName(type) {return {video:'Vídeo',image:'Imagem',carousel:'Carrossel',unknown:'Mídia indisponível'}[type] || 'Mídia indisponível';}
   let activeController=null;
-  function mount(container, settings) {
+  function mount(container) {
     if (typeof container === 'string') container=document.querySelector(container);
     if (!container) throw new Error('Contêiner de criativos não encontrado');
     if (container.lcmCreatives) return container.lcmCreatives;
-    settings=settings || {};
-    const state={source:null,error:false,loading:false,project:'all',since:null,until:null,accountIds:null,campaign:'all',media:'all',status:'ACTIVE',tab:'creatives',limit:12,sequence:0};
+    const state={source:null,error:false,loading:false,project:'all',since:null,until:null,accountIds:null,campaign:'all',media:'all',tab:'creatives',limit:12,sequence:0};
     container.classList.add('lcm-creatives');
     const heading=el('header','lc-header'),headingText=el('div','lc-heading-text'),title=el('h2','','Campanhas e Criativos');
     const headingIcon=el('span','lc-heading-icon');headingIcon.append(icon('megaphone'));
     headingText.append(title,el('p','','Imagens, vídeos e desempenho dos anúncios por empreendimento.'));
     const period=el('span','lc-period'),periodText=el('span');period.append(icon('calendar'),periodText);heading.append(headingIcon,headingText,period);
+    const context=el('p','lc-context');
     const form=el('form','lc-filters');form.setAttribute('aria-label','Filtrar campanhas e criativos');
     function field(text, name) {const wrap=el('label','lc-field'),label=el('span','',text),select=el('select');select.name=name;wrap.append(label,select);form.append(wrap);return select;}
-    const projectSelect=field('Empreendimento','creative-project');option(projectSelect,'all','Todos os 4 empreendimentos vinculados');
     const campaignSelect=field('Campanha','creative-campaign');option(campaignSelect,'all','Todas as campanhas');
     const mediaSelect=field('Tipo de mídia','creative-media');[['all','Todos os tipos'],['image','Imagem'],['video','Vídeo'],['carousel','Carrossel']].forEach(x=>option(mediaSelect,...x));
-    const statusSelect=field('Status atual','creative-status');[['ACTIVE','Ativo'],['all','Todos os status']].forEach(x=>option(statusSelect,...x));
     const apply=button('lc-filter-button','');apply.append(icon('filter'),el('span','','Filtrar'));apply.type='submit';form.append(apply);
     const kpis=el('div','lc-kpis');
     const metrics={};
@@ -141,8 +139,8 @@
     });
     const message=el('p','lc-message');message.setAttribute('role','status');message.setAttribute('aria-live','polite');
     const view=el('div','lc-view');view.id='lc-creative-view';view.setAttribute('role','tabpanel');
-    const footnote=el('p','lc-footnote','Status informado na coleta, não na data histórica. Anúncios ativos sem entrega também podem aparecer com zero. Impressões e cliques não representam pessoas únicas. CPC médio = investimento ÷ cliques totais.');
-    container.replaceChildren(heading,form,kpis,tabs,message,view,footnote);
+    const footnote=el('p','lc-footnote','Somente anúncios ativos no momento da coleta, seguindo o empreendimento e o período selecionados acima. Anúncios ativos sem entrega também podem aparecer com zero. Impressões e cliques não representam pessoas únicas. CPC médio = investimento ÷ cliques totais.');
+    container.replaceChildren(heading,context,form,kpis,tabs,message,view,footnote);
     let modal=null;
     function closeModal() {
       if (!modal) return;
@@ -171,28 +169,16 @@
     }
     function updateOptions() {
       const source=state.source;if(!source)return;
-      const previousProject=state.project;projectSelect.replaceChildren();option(projectSelect,'all','Todos os 4 empreendimentos vinculados');
-      for (const id of LINKED) option(projectSelect,id,PROJECT_NAMES[id]);
-      // Outras contas só surgem se a tela principal permitir sua seleção explícita.
-      if(previousProject!=='all' && !LINKED.has(String(previousProject))) {
-        const ad=source.ads.find(item=>String(item.account_id)===String(previousProject) || item.project===previousProject);
-        if(ad)option(projectSelect,previousProject,ad.account_name || previousProject);
-      }
-      projectSelect.value=previousProject;
-      const selected=source.ads.filter(ad=>matchesProject(ad,state.project,state.accountIds));
+      const selected=source.ads.filter(ad=>ad.status==='ACTIVE' && matchesProject(ad,state.project,state.accountIds));
       const campaigns=new Map(selected.map(ad=>[ad.account_id+'/'+ad.campaign_id,ad.campaign_name || 'Campanha']));
       campaignSelect.replaceChildren();option(campaignSelect,'all','Todas as campanhas');
       [...campaigns].sort((a,b)=>a[1].localeCompare(b[1],'pt-BR')).forEach(([id,name])=>option(campaignSelect,id,name));
       if(!campaigns.has(state.campaign))state.campaign='all';campaignSelect.value=state.campaign;
-      const statuses=[...new Set(selected.map(ad=>ad.status).filter(Boolean))].filter(status=>status!=='ACTIVE').sort();
-      statusSelect.replaceChildren();option(statusSelect,'ACTIVE','Ativo');option(statusSelect,'all','Todos os status');statuses.forEach(status=>option(statusSelect,status,labelStatus(status)));
-      if(state.status!=='ACTIVE' && state.status!=='all' && !statuses.includes(state.status))state.status='all';statusSelect.value=state.status;
     }
     function applyFilters(event) {
-      if(event)event.preventDefault();state.campaign=campaignSelect.value;state.media=mediaSelect.value;state.status=statusSelect.value;state.limit=12;draw();
+      if(event)event.preventDefault();state.campaign=campaignSelect.value;state.media=mediaSelect.value;state.limit=12;draw();
     }
-    form.addEventListener('submit',applyFilters);[campaignSelect,mediaSelect,statusSelect].forEach(select=>select.addEventListener('change',applyFilters));
-    projectSelect.addEventListener('change',()=>{const value=projectSelect.value;state.project=value;state.accountIds=null;state.limit=12;updateOptions();draw();if(settings.onProjectChange)settings.onProjectChange(value);});
+    form.addEventListener('submit',applyFilters);[campaignSelect,mediaSelect].forEach(select=>select.addEventListener('change',applyFilters));
     function empty(title, description, retry) {
       const node=el('div','lc-empty');node.append(icon('image'),el('strong','',title),el('p','',description));if(retry)node.append(button('lc-text-button',typeof retry==='string'?retry:'Tentar novamente',refresh));view.replaceChildren(node);
     }
@@ -217,32 +203,35 @@
     }
     function draw() {
       periodText.textContent='Período: '+dateLabel(state.since)+' – '+dateLabel(state.until);
+      const projectName=(!state.project || state.project==='all')?'Todos os 4 empreendimentos vinculados':PROJECT_NAMES[String(state.project)] || state.source?.ads.find(ad=>matchesProject(ad,state.project,state.accountIds))?.account_name || 'Empreendimento selecionado acima';
+      context.textContent=projectName+' · Somente anúncios ativos';
       for(const [key,node] of Object.entries(tabButtons)){node.setAttribute('aria-selected',String(key===state.tab));node.tabIndex=key===state.tab?0:-1;node.classList.toggle('is-selected',key===state.tab);}view.setAttribute('aria-labelledby',tabButtons[state.tab].id);
       message.textContent='';Object.values(metrics).forEach(node=>node.textContent='—');
       if(state.loading && !state.source){empty('Carregando campanhas e criativos','Consultando a última atualização automática.');return;}
       if(!state.source){empty(state.error?'Não foi possível carregar os criativos':'Criativos aguardando sincronização',state.error?'Tente novamente em instantes.':'As imagens, os vídeos e os indicadores aparecerão após a primeira coleta automática.',state.error?true:'Atualizar criativos');return;}
-      const result=query(state.source,state);
+      const result=query(state.source,{...state,status:'ACTIVE'});
       if(!result || !result.overlap){empty('Período sem cobertura de criativos','Histórico disponível de '+dateLabel(state.source.period.since)+' a '+dateLabel(state.source.period.until)+'.');return;}
       for(const key of Object.keys(metrics))metrics[key].textContent=key==='spend'?money.format(result.total[key]):key==='cpc'?(result.total.cpc===null?'—':money.format(result.total.cpc)):nf.format(result.total[key]);
       const count=result.ads.length;tabButtons.creatives.lastChild.textContent='Criativos ('+nf.format(count)+')';
       const sync=new Date(state.source.generated_at_utc);const synced=Number.isNaN(sync.getTime())?'':' · Atualizado em '+sync.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'});
       message.textContent=(result.partial?'Cobertura parcial: '+dateLabel(state.source.period.since)+' a '+dateLabel(state.source.period.until)+'. ':'')+nf.format(count)+' anúncio(s) nesta seleção'+synced+'.';
       if(state.error)message.textContent+=' A atualização falhou; exibindo a última coleta disponível.';
-      if(!count){empty('Nenhum anúncio nesta seleção','Altere a campanha, o tipo de mídia ou o status atual para consultar outros criativos.');return;}
+      if(!count){empty('Nenhum anúncio ativo nesta seleção','Altere a campanha, o tipo de mídia ou os filtros de empreendimento e período no topo da página.');return;}
       const ads=[...result.ads].sort((a,b)=>b.metrics.spend-a.metrics.spend || String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
       if(state.tab==='creatives'){
         const grid=el('div','lc-creative-grid');ads.slice(0,state.limit).forEach(ad=>grid.append(card(ad)));view.replaceChildren(grid);
         if(ads.length>state.limit){const more=button('lc-load-more','Mostrar mais criativos',()=>{state.limit+=12;draw();});view.append(more);}
       } else if(state.tab==='campaigns') {
-        view.replaceChildren(table(['Campanha','Anúncios','Impressões','Cliques','Investimento','Leads formulário','CPC médio'],campaignRows(ads).map(row=>[row.name,nf.format(row.ads),nf.format(row.impressions),nf.format(row.clicks),money.format(row.spend),nf.format(row.form_leads),row.cpc===null?'—':money.format(row.cpc)])));
+        view.replaceChildren(table(['Campanha','Empreendimento','Anúncios','Impressões','Cliques','Investimento','Leads formulário','CPC médio'],campaignRows(ads).map(row=>[row.name,row.account_name || 'Não informado',nf.format(row.ads),nf.format(row.impressions),nf.format(row.clicks),money.format(row.spend),nf.format(row.form_leads),row.cpc===null?'—':money.format(row.cpc)])));
       } else {
-        view.replaceChildren(el('p','lc-comparison-note','Ordenado por investimento no período selecionado.'),table(['Criativo','Campanha','Tipo','Impressões','Cliques','CTR','Investimento','Leads formulário','CPC médio'],ads.map(ad=>[ad.name || 'Anúncio',ad.campaign_name || 'Campanha',mediaName(ad.media_type),nf.format(ad.metrics.impressions),nf.format(ad.metrics.clicks),ad.metrics.ctr===null?'—':percent.format(ad.metrics.ctr)+'%',money.format(ad.metrics.spend),nf.format(ad.metrics.form_leads),ad.metrics.cpc===null?'—':money.format(ad.metrics.cpc)])));
+        view.replaceChildren(el('p','lc-comparison-note','Ordenado por investimento no período selecionado.'),table(['Criativo','Empreendimento','Campanha','Tipo','Impressões','Cliques','CTR','Investimento','Leads formulário','CPC médio'],ads.map(ad=>[ad.name || 'Anúncio',PROJECT_NAMES[String(ad.account_id)] || ad.account_name || 'Não informado',ad.campaign_name || 'Campanha',mediaName(ad.media_type),nf.format(ad.metrics.impressions),nf.format(ad.metrics.clicks),ad.metrics.ctr===null?'—':percent.format(ad.metrics.ctr)+'%',money.format(ad.metrics.spend),nf.format(ad.metrics.form_leads),ad.metrics.cpc===null?'—':money.format(ad.metrics.cpc)])));
       }
     }
     async function readSource() {
       const urls=['https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/marketing-creatives.json',new URL('data/marketing-creatives.json',document.baseURI).href];
       let missing=true;
-      for(const url of urls){
+      for(const baseUrl of urls){
+        const url=new URL(baseUrl);url.searchParams.set('version',String(Date.now()));
         try{
           const response=await fetch(url,{cache:'no-store'});
           if(response.status===404)continue;

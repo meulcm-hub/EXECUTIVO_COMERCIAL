@@ -27,6 +27,11 @@ indisponível; seus resultados permanecem corretamente associados.
 
 ## Métricas e filtros
 
+Empreendimento e período seguem sempre os filtros do topo do Marketing. Não
+existe um segundo seletor de empreendimento nem opção para exibir anúncios
+pausados na galeria: ela mostra somente os anúncios efetivamente ativos.
+Campanha e tipo de mídia são refinamentos opcionais dessa mesma seleção.
+
 Os dados diários permitem aplicar o mesmo período escolhido no Marketing sem
 nova chamada à Meta pelo navegador. O status é o atual no instante da coleta,
 não o status histórico em cada dia. O investimento e as métricas de cada cartão
@@ -37,9 +42,9 @@ mesma pessoa pode aparecer em vários deles. Não há percentuais de crescimento
 inventados nem valores demonstrativos na publicação.
 
 A seção existente “Campanhas ativas — Meta Ads” mantém sua regra de campanhas
-atualmente ativas. Os totais da galeria podem diferir desse quadro quando o
-filtro de status incluir anúncios pausados ou quando parte dos anúncios de uma
-campanha estiver pausada.
+atualmente ativas. Os totais da galeria podem diferir desse quadro quando parte
+dos anúncios de uma campanha estiver pausada, porque a galeria inclui somente
+os anúncios ativos.
 
 ## Contrato JSON (versão 1)
 
@@ -65,6 +70,10 @@ Não existem linhas duplicadas para o mesmo anúncio/dia.
 O coletor publica somente uma projeção explícita: não grava resposta bruta,
 token, cabeçalhos, IDs de leads, telefones nem emails. URLs aceitas usam HTTPS
 em domínios Meta/CDN; URLs com parâmetros de autenticação são rejeitadas.
+As fontes dos vídeos são consultadas também pela biblioteca `/act_ID/advideos`,
+no contexto da conta relacionada ao empreendimento, com consulta individual
+como alternativa. Falta de permissão mantém a miniatura e o link da publicação.
+
 Assinaturas próprias de CDN são preservadas porque permitem carregar a mídia
 e podem expirar; cada coleta renova as URLs disponíveis. O navegador jamais
 consulta a Graph API usando o secret.

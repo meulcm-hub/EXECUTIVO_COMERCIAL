@@ -124,6 +124,30 @@ class CreativeCollectorTests(unittest.TestCase):
         self.assertEqual(result[0]["image_url"], "https://scontent.test.fbcdn.net/history.jpg")
         self.assertEqual(result[0]["daily"][0]["spend"], "12.34")
 
+    def test_account_video_library_supplies_source_without_direct_page_access(self):
+        account = {"id": "act_347253318197280", "currency": "BRL", "name": "LCM Jacarandá"}
+        catalog = [{"id": "123456", "campaign_id": "654321", "effective_status": "ACTIVE",
+                    "creative": {"video_id": "777777", "thumbnail_url": "https://scontent.test.fbcdn.net/thumb.jpg"}}]
+        video = {"id": "777777", "source": "https://video.test.fbcdn.net/video.mp4"}
+        with patch.object(collector.meta, "request", side_effect=[catalog, [self.row()], [video]]) as request, \
+             patch.object(collector, "graph_object") as direct:
+            result = collector.collect_account(account, dt.date(2026, 1, 1), dt.date(2026, 1, 3), {})
+        self.assertEqual(result[0]["video_url"], video["source"])
+        self.assertEqual(request.call_args_list[-1].args[0], "act_347253318197280/advideos")
+        direct.assert_not_called()
+
+    def test_unavailable_video_library_keeps_individual_lookup_and_metrics(self):
+        account = {"id": "act_347253318197280", "currency": "BRL", "name": "LCM Jacarandá"}
+        catalog = [{"id": "123456", "campaign_id": "654321", "effective_status": "ACTIVE",
+                    "creative": {"video_id": "777777"}}]
+        video = {"id": "777777", "source": "https://video.test.fbcdn.net/video.mp4"}
+        with patch.object(collector.meta, "request", side_effect=[catalog, [self.row()], RuntimeError("Biblioteca indisponível")]), \
+             patch.object(collector, "graph_object", return_value=video) as direct:
+            result = collector.collect_account(account, dt.date(2026, 1, 1), dt.date(2026, 1, 3), {})
+        self.assertEqual(result[0]["video_url"], video["source"])
+        self.assertEqual(result[0]["daily"][0]["spend"], "12.34")
+        direct.assert_called_once_with("777777", "id,source,picture,permalink_url")
+
     def test_primary_collection_failure_never_replaces_previous_file(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "creatives.json"
