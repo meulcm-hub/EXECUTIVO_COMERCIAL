@@ -19,7 +19,9 @@ upload manual de planilhas nem publicação do token no navegador.
 Entram no arquivo os anúncios atualmente ativos (mesmo sem entrega) e todos
 os anúncios com entrega no período anual. Anúncios antigos pausados sem
 entrega em 2026 não exigem download de mídia nem ocupam a galeria. Os anúncios
-pausados ou removidos que possuem métricas históricas continuam no arquivo. Se o catálogo não retornar metadados de um anúncio histórico,
+pausados ou removidos que possuem métricas históricas continuam no arquivo. O catálogo é consultado sem um filtro de status computados; anúncios
+históricos ausentes são conferidos individualmente pelo ID retornado nos
+insights. Se o objeto também não retornar metadados de um anúncio histórico,
 ele aparece com status `UNKNOWN`, nome/campanha dos insights e mídia
 indisponível; seus resultados permanecem corretamente associados.
 
