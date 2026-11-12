@@ -205,18 +205,17 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </section>
 <section class="panel" id="cvAuditPanel" style="margin-top:15px">
 <h2>Auditoria do Funil CV CRM</h2>
-<p class="sub">Conferência individual vinculada por ID Lead. Respeita os filtros superiores e utiliza um arquivo local que não é publicado no GitHub Pages.</p>
+<p class="sub">Conferência individual por ID Lead, alimentada automaticamente pelas APIs do CV CRM. Dados pessoais só aparecem no acesso autenticado.</p>
 <div class="audit-full">
 <h3 style="font-size:14px;margin:4px 0 12px">Clientes do Funil CV CRM</h3>
-<div class="audit-import"><label for="cvAuditFile" style="font-size:11px;font-weight:750">Carregar auditoria privada do CV CRM (JSON)</label>
-<input type="file" id="cvAuditFile" accept=".json,application/json" aria-describedby="cvAuditImportStatus">
-<input type="password" id="cvAuditPassword" autocomplete="off" placeholder="Senha do arquivo criptografado" aria-label="Senha da auditoria" style="height:37px;border:1px solid #d8e3df;border-radius:8px;padding:0 10px;font-size:11px;min-width:220px">
-<button type="button" class="button alt" id="cvAuditOpen">Abrir arquivo</button>
-<span id="cvAuditImportStatus" class="audit-note" aria-live="polite">Os dados ficam somente nesta aba do navegador e não são enviados ao site.</span></div>
+<div class="audit-import">
+<span id="cvAuditImportStatus" class="audit-note" aria-live="polite">Sincronização automática do CV CRM. Nenhum arquivo é necessário.</span>
+<a class="button alt" id="cvAuditPrivateLink" href="https://executivo-lcm-auditoria.onrender.com/marketing_privado.html" rel="noopener noreferrer" style="display:none">Abrir auditoria autenticada</a>
+</div>
 <div class="tablewrap"><table class="table audit-table audit-detail"><thead><tr>
 <th>Cliente</th><th>Empreendimento</th><th>Origem</th><th>Data da Entrada</th><th>Data da Venda</th><th>Situação Lead</th><th>Situação Pré-Cadastro</th><th>Situação Reserva</th>
-</tr></thead><tbody id="cvAuditDetailRows"><tr><td colspan="8" class="audit-empty">Carregue o arquivo privado de auditoria acima para visualizar os clientes do período selecionado.</td></tr></tbody></table></div>
-<p class="audit-note">Os dados nominais só aparecem após você selecionar o arquivo privado. Não compartilhe esse arquivo por links públicos nem em computadores de terceiros.</p>
+</tr></thead><tbody id="cvAuditDetailRows"><tr><td colspan="8" class="audit-empty">Os clientes serão exibidos automaticamente após autenticação e sincronização.</td></tr></tbody></table></div>
+<p class="audit-note">Os dados individuais são restritos ao ambiente autenticado. O GitHub Pages não publica nomes, IDs ou informações pessoais.</p>
 <details class="audit-summary"><summary>Ver resumo por empreendimento e etapa</summary>
 <div class="tablewrap"><table class="table audit-table"><thead><tr><th>Empreendimento</th><th class="num">Prospect</th><th class="num">Agend.</th><th class="num">Visita</th><th class="num">Análise</th><th class="num">Venda</th></tr></thead>
 <tbody id="cvAuditRows"><tr><td colspan="6">Aguardando leitura do funil.</td></tr></tbody>
@@ -512,6 +511,7 @@ async function loadCvFunnel(){
   // GitHub Actions publica os dados diretamente em main. O Pages pode atrasar
   // em relação ao branch, então consultar a versão oficial primeiro.
   const sources=[
+    ...(location.pathname.endsWith('/marketing_privado.html')?['/api/funil/publico?version='+Date.now()]:[]),
     'https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/cv-funnel.json?version='+Date.now(),
     'data/cv-funnel.json?version='+Date.now()
   ];
@@ -585,14 +585,14 @@ function renderPrivateCvAudit(visible){
     td.colSpan=8;tr.append(td);target.append(tr);
   }
   if(!privateCvAudit){
-    message('Carregue o arquivo privado de auditoria acima para visualizar os clientes do período selecionado.');
+    message('Aguardando sincronização e autenticação do CV CRM.');
     return;
   }
   if(!data||!visible.length){message('Selecione um período e empreendimento.');return;}
   const allowed=new Set(visible.map(m=>m.project).filter(Boolean));
   const rows=privateCvAudit.rows.filter(r=>
     allowed.has(r.project)&&r.data_entrada>=data.period.since&&r.data_entrada<=data.period.until);
-  if(!rows.length){message('Nenhum cliente encontrado neste recorte do arquivo privado.');return;}
+  if(!rows.length){message('Nenhum cliente encontrado neste período e empreendimento.');return;}
   for(const row of rows){
     const tr=el('tr');
     for(const key of cols){
@@ -605,51 +605,37 @@ function renderPrivateCvAudit(visible){
     target.append(tr);
   }
 }
-function base64Bytes(value){
-  const binary=atob(value);
-  return Uint8Array.from(binary,ch=>ch.charCodeAt(0));
-}
-async function decryptPrivateCvAudit(encrypted,password){
-  if(encrypted.encryption!=='AES-256-GCM'||encrypted.kdf!=='PBKDF2-SHA256'||
-     !Number.isInteger(encrypted.iterations)||encrypted.iterations<200000||
-     encrypted.iterations>1000000)throw Error('Formato criptografado inválido.');
-  if(!password)throw Error('Informe a senha da auditoria para abrir o arquivo.');
-  const secret=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),
-      'PBKDF2',false,['deriveKey']);
-  const key=await crypto.subtle.deriveKey({
-      name:'PBKDF2',salt:base64Bytes(encrypted.salt),
-      iterations:encrypted.iterations,hash:'SHA-256'},
-      secret,{name:'AES-GCM',length:256},false,['decrypt']);
-  let plain;
+async function loadPrivateCvAudit(){
+  const status=$('cvAuditImportStatus');
+  // Na página pública, nunca solicitar nem armazenar dados individuais.
+  const privatePage=location.pathname.endsWith('/marketing_privado.html');
+  const link=$('cvAuditPrivateLink');
+  if(!privatePage){
+    if(link)link.style.display='inline-flex';
+    if(status)status.textContent='Resumo automático disponível. Para ver nomes, abra a auditoria autenticada.';
+    return;
+  }
+  if(link)link.style.display='none';
   try{
-    plain=await crypto.subtle.decrypt({
-      name:'AES-GCM',iv:base64Bytes(encrypted.nonce)},
-      key,base64Bytes(encrypted.ciphertext));
-  }catch(_){throw Error('Senha incorreta ou arquivo criptografado danificado.');}
-  return JSON.parse(new TextDecoder().decode(plain));
-}
-async function loadPrivateCvAuditFile(file){
-  if(!file)return;
-  try{
-    let obj=JSON.parse(await file.text());
-    if(obj.encryption){
-      obj=await decryptPrivateCvAudit(obj,$('cvAuditPassword').value);
+    const response=await fetch('/api/funil/privado?version='+Date.now(),
+      {cache:'no-store',credentials:'same-origin'});
+    if(response.status===202){
+      if(status)status.textContent='Sincronização automática em andamento no CV CRM. Nenhum arquivo é necessário.';
+      return;
     }
+    if(!response.ok)throw Error('HTTP '+response.status);
+    const obj=await response.json();
     const required=['idlead','cliente','empreendimento','project','origem','data_entrada',
       'data_venda','situacao_lead','situacao_precadastro','situacao_reserva'];
     if(obj.schema_version!==1||!Array.isArray(obj.rows)||
        !obj.rows.every(r=>r&&required.every(k=>typeof r[k]==='string')))
-      throw Error('Arquivo não corresponde ao modelo de auditoria CV.');
+      throw Error('Resposta CV CRM sem auditoria validada');
     privateCvAudit=obj;
-    $('cvAuditImportStatus').textContent=nf(obj.rows.length)+
-      ' registros locais carregados. Arquivo mantido somente nesta aba.';
-    $('cvAuditPassword').value='';
+    if(status)status.textContent=nf(obj.rows.length)+' clientes vinculados por ID Lead • atualização automática.';
     renderPrivateCvAudit(map.filter(m=>$('project').value==='all'?Boolean(m.project):
       m.id===$('project').value));
-  }catch(error){
-    privateCvAudit=null;
-    $('cvAuditImportStatus').textContent='Não foi possível ler a auditoria: '+error.message;
-    renderPrivateCvAudit([]);
+  }catch(e){
+    if(status)status.textContent='Auditoria indisponível: '+e.message;
   }
 }
 function renderCvAudit(visible){
@@ -768,6 +754,7 @@ async function load(){
     $('startDate').value=startChoice && startChoice>=obj.period.since && startChoice<=obj.period.until ? startChoice : defaultStart;
     await loadConversionMetrics();
     await loadCvFunnel();
+    await loadPrivateCvAudit();
     await applyDate();
     await loadCampaigns();
   }catch(e){
@@ -784,6 +771,7 @@ async function load(){
       $('endDate').min=x.period.since;$('endDate').max=x.period.until;
       await loadConversionMetrics();
      await loadCvFunnel();
+      await loadPrivateCvAudit();
       render();
       await loadCampaigns();
       $('status').textContent='Somente período consolidado disponível';
@@ -829,8 +817,11 @@ $('apply').addEventListener('click',applyDate);
 for(const id of ['startDate','endDate']){
   $(id).addEventListener('change',()=>{applyDate().catch(e=>{$('appliedPeriod').textContent='Falha ao aplicar período';})});
 }
-$('cvAuditOpen').addEventListener('click',()=>loadPrivateCvAuditFile($('cvAuditFile').files?.[0]));
+// Auditoria carregada pela API autenticada; importação manual removida.
 $('reload').addEventListener('click',load);
 load();
+if(location.pathname.endsWith('/marketing_privado.html')){
+  setInterval(async()=>{if(!privateCvAudit){await loadCvFunnel();await loadPrivateCvAudit();if(data)render();}},60000);
+}
 })();
 </script></body></html>
