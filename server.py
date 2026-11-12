@@ -628,6 +628,97 @@ def compradores_data():
     return FileResponse(ROOT / "perfil_compradores_dados.gz.b64", media_type="text/plain")
 
 
+
+# Funil comercial CV CRM: geração automática no servidor, sem arquivo do usuário.
+# A auditoria individual só é disponibilizada a usuários autenticados.
+_FUNIL_LOCK = __import__("threading").Lock()
+_FUNIL_EXECUTOR = ThreadPoolExecutor(max_workers=1)
+_FUNIL_FUTURE = None
+_FUNIL_LAST_OK = 0.0
+_FUNIL_ERROR = None
+_FUNIL_DIR = Path(__import__("tempfile").gettempdir()) / "executivo-lcm-funil"
+_FUNIL_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _generate_funil():
+    import subprocess
+    import sys
+    environ = os.environ.copy()
+    private_path = _FUNIL_DIR / "cv-funnel-private.json"
+    public_path = _FUNIL_DIR / "data" / "cv-funnel.json"
+    private_path.unlink(missing_ok=True)
+    public_path.unlink(missing_ok=True)
+    environ["CV_AUDIT_PRIVATE_PATH"] = str(private_path)
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "marketing_cv_funnel.py")],
+        cwd=str(_FUNIL_DIR), env=environ, capture_output=True, text=True,
+        timeout=4 * 60 * 60, check=False,
+    )
+    if result.returncode:
+        # Não expor logs da API nem informações de autenticação ao visitante.
+        raise RuntimeError("A coleta CV CRM não foi concluída. Consulte os logs internos.")
+    if not private_path.is_file() or not public_path.is_file():
+        raise RuntimeError("Coleta CV CRM concluída sem os dois relatórios esperados.")
+    public = json.loads(public_path.read_text(encoding="utf-8"))
+    private = json.loads(private_path.read_text(encoding="utf-8"))
+    if (public.get("validated") is not True or
+            public.get("schema_version") != 1 or
+            not isinstance(public.get("cohorts"), list) or
+            not isinstance(private.get("rows"), list)):
+        raise RuntimeError("Relatórios CV CRM com estrutura inválida.")
+    return public, private
+
+
+def _funil_snapshot():
+    global _FUNIL_FUTURE, _FUNIL_LAST_OK, _FUNIL_ERROR
+    with _FUNIL_LOCK:
+        expired = not _FUNIL_LAST_OK or time.time() - _FUNIL_LAST_OK > 6 * 3600
+        if expired and (_FUNIL_FUTURE is None or _FUNIL_FUTURE.done()):
+            # Preserva o último resultado válido enquanto revalida os dados.
+            _FUNIL_FUTURE = _FUNIL_EXECUTOR.submit(_generate_funil)
+        future = _FUNIL_FUTURE
+    if future is None or not future.done():
+        return None
+    try:
+        pair = future.result()
+    except Exception:
+        _FUNIL_ERROR = "Coleta automática CV CRM indisponível."
+        return None
+    _FUNIL_LAST_OK = time.time()
+    _FUNIL_ERROR = None
+    return pair
+
+
+@app.get("/api/funil/publico")
+def funil_publico():
+    pair = _funil_snapshot()
+    if pair is None:
+        return JSONResponse(
+            {"status": "sincronizando" if _FUNIL_ERROR is None else "erro",
+             "mensagem": _FUNIL_ERROR or "Consultando as APIs do CV CRM."},
+            status_code=202 if _FUNIL_ERROR is None else 503,
+            headers={"Cache-Control": "no-store"})
+    return JSONResponse(pair[0], headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/funil/privado")
+def funil_privado(_user: str = Depends(check_dashboard_login)):
+    pair = _funil_snapshot()
+    if pair is None:
+        return JSONResponse(
+            {"status": "sincronizando" if _FUNIL_ERROR is None else "erro",
+             "mensagem": _FUNIL_ERROR or "Consultando as APIs do CV CRM."},
+            status_code=202 if _FUNIL_ERROR is None else 503,
+            headers={"Cache-Control": "no-store"})
+    return JSONResponse(pair[1], headers={"Cache-Control": "no-store"})
+
+
+@app.get("/marketing_privado.html")
+def marketing_privado(_user: str = Depends(check_dashboard_login)):
+    return FileResponse(ROOT / "marketing.html", media_type="text/html",
+                        headers={"Cache-Control": "no-store"})
+
+
 @app.get("/{path:path}")
 def static_files(path: str):
     candidate = (ROOT / path).resolve()
