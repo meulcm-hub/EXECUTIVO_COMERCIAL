@@ -149,3 +149,12 @@ body.lcm-app .audit-table-panel > p.muted.hint,
 body.lcm-app #execPeriod,
 body.lcm-app[data-lcm-page=marketing] .heading p,
 body.lcm-app .lcm-clean-note{display:none!important}
+
+/* Cartões do Público Comprador com o mesmo contraste das demais visões. */
+@media screen{
+html[data-theme=dark] body.lcm-app #audience .aud-panel,
+html[data-theme=dark] body.lcm-app #audience .kpi{background:#182531;border-color:#2b3a46;box-shadow:none}
+html[data-theme=dark] body.lcm-app #audience .aud-track{background:#263d46}
+html[data-theme=dark] body.lcm-app #audience .aud-donut-inner{background:#182531;box-shadow:0 0 0 1px #304754}
+html[data-theme=dark] body.lcm-app #audience .aud-muted{color:#b4c3cd}
+}
