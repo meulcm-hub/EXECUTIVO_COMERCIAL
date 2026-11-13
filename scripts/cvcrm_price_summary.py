@@ -57,15 +57,22 @@ def unpack_tables(payload):
         if "idtabela" in payload:return [payload]
     return []
 
-def date_ok(row):
-    start=row.get("data_vigencia_de")
-    end=row.get("data_vigencia_ate")
+def vigencia(row):
+    """A tabela deve cobrir a data atual, dentro do mês de referência.
+    Uma tabela expirada no dia 1 não passa só por pertencer ao mesmo mês.
+    Vigência ausente/inválida não é presumida ativa.
+    """
     try:
-        if start and dt.date.fromisoformat(str(start)[:10])>NOW:return False
-        if end and dt.date.fromisoformat(str(end)[:10])<NOW:return False
+        start=dt.date.fromisoformat(str(row.get("data_vigencia_de") or "")[:10])
+        end=dt.date.fromisoformat(str(row.get("data_vigencia_ate") or "")[:10])
     except ValueError:
-        return False
-    return True
+        return None
+    if start>end or not (start<=NOW<=end):
+        return None
+    return start,end
+
+def date_ok(row):
+    return vigencia(row) is not None
 
 def approved(row):
     return str(row.get("aprovado","")).strip().upper() in ("S","SIM","1","TRUE")
@@ -80,10 +87,15 @@ def currency_value(v):
     return round(n,2) if 10000<=n<=200000000 else None
 
 def summarize(tables):
-    """Não somar séries ao valor_total, para evitar dupla contagem."""
+    """Seleciona tabela aprovada, vigente HOJE no mês atual, com início mais recente.
+    Não agrega preços entre tabelas ou séries de pagamento.
+    Empate de data entre tabelas distintas requer validação manual.
+    """
     selected=[]
     for row in tables:
-        if not isinstance(row,dict) or not approved(row) or not date_ok(row):continue
+        if not isinstance(row,dict) or not approved(row):continue
+        dates=vigencia(row)
+        if dates is None:continue
         tid=row.get("idtabela")
         if tid is None:continue
         units=row.get("unidades")
@@ -97,17 +109,23 @@ def summarize(tables):
             key=str(uid)
             if key in values and values[key]!=price:continue
             values[key]=price
-        if values:
-            selected.append((str(tid),values))
+        if values: selected.append((dates[0],dates[1],str(tid),values))
     if not selected:return None
-    # Quando mais de uma tabela está vigente, nunca misturar valores de tabelas
-    # diferentes ou alegar uma tabela única sem aprovação da política comercial.
-    if len(selected)!=1:return {"status":"multiple_current_approved_tables","table_count":len(selected)}
-    tid,values=selected[0]
+    selected.sort(key=lambda x:x[0],reverse=True)
+    newest=selected[0][0]
+    winning=[row for row in selected if row[0]==newest]
+    distinct={row[2] for row in winning}
+    if len(distinct)!=1:
+        return {"status":"ambiguous_same_start_date","table_count":len(distinct),
+                "reference_month":NOW.strftime("%Y-%m")}
+    start,end,tid,values=winning[0]
     prices=sorted(values.values())
     return {"status":"ok","table_id":tid,"priced_units":len(prices),
       "minimum":prices[0],"median":round(median(prices),2),
-      "maximum":prices[-1],"currency":"BRL"}
+      "maximum":prices[-1],"currency":"BRL",
+      "reference_month":NOW.strftime("%Y-%m"),
+      "effective_from":start.isoformat(),"effective_to":end.isoformat(),
+      "selection_rule":"approved_active_today_latest_effective_start"}
 
 def collect(fetch_projects,fetch_tables):
     projects=[];seen=set()
