@@ -63,3 +63,16 @@ O agrupamento e a nomenclatura estão em `lcm-leads-stage-config.js`. Os dois pa
 **Proteção:** o extrato operacional com IDs e histórico de situações deverá ser processado no runner privado; somente agregados não identificáveis poderão ser publicados no GitHub Pages. O módulo não foi integrado a um backend autenticado para carteira individual.
 
 Teste: `node --test tests/test_leads_stage_classification.cjs`.
+
+## Coleta integral desde o primeiro lead — 13/11/2026
+
+Novo coletor **independente do Marketing**: `scripts/leads_full_history.py`.
+Consulta `GET /api/v1/cvdw/leads` **sem data inicial, sem origem, sem situação e sem empreendimento**. Percorre todas as páginas declaradas pela API e falha se faltarem páginas ou registros sem ID/data válidos. Escolhe o snapshot mais recente por `idlead` e preserva a data de cadastro original `data_cad` (não substitui pela `referencia_data` de alteração). A data inicial oficial publicada é o menor `data_cad` real, nunca 2026-01-01 presumido.
+
+Arquivo público esperado após coleta e auditoria: `data/leads-all-summary.json`. Nunca contém nomes, telefones, CPF ou IDs individuais. Só agregados para o dashboard. Leads sem projeto são `SEM EMPREENDIMENTO`.
+
+A primeira execução integral pode ser longa e depende da disponibilidade da API, permissões, do limite de paginação e dos GitHub Actions. **Sem confirmação da execução e da cobertura, não anunciar total completo**. O GitHub Pages exibirá pendência caso o arquivo não esteja validado.
+
+Workflow: `.github/workflows/leads-full-history.yml`. Executa três vezes por dia e por despacho manual e alteração do coletor. Testes em `tests/test_leads_full_history.py`.
+
+A base histórica completa não substitui o histórico de movimentações e não permite inferir etapa, SLA ou venda a partir de situação textual isolada; por enquanto a página mantém o funil de Marketing em seção identificada como fonte parcial. Dados individuais deverão ser consultados em ambiente com acesso controlado. Mesmo dois nomes são dados pessoais e não devem ser publicados em Pages sem proteção.
