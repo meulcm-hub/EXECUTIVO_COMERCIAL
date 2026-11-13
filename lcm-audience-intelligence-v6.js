@@ -30,7 +30,7 @@ const heading=text('div');
 heading.append(text('h1','','♧  Público Comprador'),text('p','','Perfil, origem e comportamento dos compradores.'));
 const headerButtons=text('div','ci-header-actions');
 const exportBtn=text('button','ci-export','↓  Exportar PDF');
-exportBtn.type='button';exportBtn.onclick=()=>window.print();headerButtons.append(exportBtn);
+exportBtn.type='button';exportBtn.onclick=()=>window.print();headerButtons.append(text('span','ci-app-build','IBGE · V6'),exportBtn);
 header.append(heading,headerButtons);ui.append(header);
 const tabs=text('nav','ci-tabs');tabs.setAttribute('aria-label','Seções do Público Comprador');
 const tabNames=[['overview','Visão Geral'],['profile','Perfil do Comprador'],['origin','Origem Geográfica'],['ibge','Potencial da Região (IBGE)'],['compare','Comparativo por Empreendimento']];
@@ -219,6 +219,8 @@ async function ibge(o){
  const selected=project.value;
  const top=panel("Endereço do empreendimento","region","Referência física informada pela LCM em 13/11/2026; pode precisar de confirmação do ponto exato do terreno.");
  wrap.append(top);
+ if(activeSalesFilters())wrap.append(text('p','ci-quality','Filtros de venda ativos: IBGE permanece geográfico por empreendimento. Etapa, imobiliária e período não modificam a população do município.'));
+
  if(!selected){
   top.append(text("p","ci-no-data","Selecione um empreendimento para visualizar seu endereço, indicadores do município e situação do estudo do entorno."));
   return;
