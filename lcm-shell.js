@@ -16,7 +16,7 @@ money:'<circle cx="12" cy="12" r="9"/><path d="M15 8H10a2 2 0 0 0 0 4h4a2 2 0 0 
 window.LcmIcon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(icons[name]||icons.home)+'</svg>';
 const body=document.body;
 // A navegação entre visões também precisa renovar o HTML em cache.
-const uiVersion='lcm-map-visible-v2';
+const uiVersion='lcm-audience-premium-v1';
 function pageUrl(href){
  const url=new URL(href,location.href);
  url.searchParams.set('ui',uiVersion);
@@ -114,5 +114,15 @@ if(root){
   filter.append(jump);
  }
 }
+// Nova apresentação do Público Comprador, carregada apenas nessa visão.
+let premiumLoading=null;
+function loadPremium(){
+ if(!root||location.hash!=='#audience'||premiumLoading)return;
+ premiumLoading=buyerAsset('link','lcm-audience-premium.css')
+  .then(()=>buyerAsset('script','lcm-audience-premium.js'))
+  .catch(error=>{console.warn('Camada visual do Público Comprador indisponível',error);premiumLoading=null;});
+}
+window.addEventListener('hashchange',loadPremium);
+loadPremium();
 window.addEventListener('hashchange',openBuyerMap);openBuyerMap();
 })();
