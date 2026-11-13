@@ -82,6 +82,25 @@ function kind(panel){
  return 'others';
 }
 const moved=new Set();
+function extendVerifiedKpis(){
+ if(!kpis)return;
+ const selected=document.getElementById('audienceProject')?.value||'Todos os empreendimentos';
+ const obj=typeof AUD!=='undefined'?(AUD[selected]||AUD['Todos os empreendimentos']):null;
+ if(!obj)return;
+ kpis.querySelectorAll('[data-aud-premium-extra]').forEach(n=>n.remove());
+ const first=kpis.querySelector('.kpi small');
+ if(first)first.textContent='Idades classificadas';
+ const metrics=[
+  ['Sexo informado',(obj['Sexo']||[]).reduce((n,x)=>n+Math.max(0,Number(x.count)||0),0)],
+  ['Municípios identificados',(obj['Cidade']||[]).filter(x=>Number(x.count)>0).length]
+ ];
+ for(const [label,value]of metrics){
+  const card=make('div','kpi');
+  card.dataset.audPremiumExtra='1';
+  card.append(make('small','',label),make('strong','',value.toLocaleString('pt-BR')),make('span','','Registros classificados na seleção'));
+  kpis.append(card);
+ }
+}
 function correctDisplayedPercentages(){
  // A base anterior dividia todas as dimensões pelo total de faixas etárias.
  // Uma dimensão com mais respostas podia ultrapassar 100%.
@@ -123,6 +142,7 @@ function relocate(){
   sections.origin.prepend(map);
   setTimeout(()=>map.lcmBuyerMap?.invalidateSize(),80);
  }
+ extendVerifiedKpis();
  correctDisplayedPercentages();
  for(const [heading,container]of [[overviewHeader,sections.demographic],[originHeader,sections.origin],[othersHeader,sections.others]]){
   heading.hidden=!container.children.length;
