@@ -15,14 +15,32 @@ class SpatialCensus2022Tests(unittest.TestCase):
  def test_unverified_never_publishable(self):
   site=json.loads((ROOT/"config/ibge-project-addresses.json").read_text())["projects"]
   data=json.loads((ROOT/"config/ibge-project-centers-review.json").read_text())["points"]
+  # Force unverified on ALL test centers, even if the production config later adds approvals.
+  data=[{**p,"center":{**p["center"],"verified":False}} for p in data]
   selected,unresolved=spatial.compute(site,{p["project"]:p for p in data},"publish")
   self.assertEqual(len(selected),0)
-  self.assertEqual(len(unresolved),14)
- def test_review_only_with_existing_candidate_and_no_adjacent_leak(self):
-  site=json.loads((ROOT/"config/ibge-project-addresses.json").read_text())["projects"]
-  data=json.loads((ROOT/"config/ibge-project-centers-review.json").read_text())["points"]
-  selected,_=spatial.compute(site,{p["project"]:p for p in data},"review")
-  self.assertEqual({x["project"] for x,_ in selected},{"RESIDENCIAL MONTTEBELO","RESIDENCIAL TURQUESA PARQUE"})
+  self.assertEqual(len(unresolved),len(site))
+ def test_review_candidates_allowed_but_not_publishable(self):
+  a={"project":"Projeto A"}
+  b={"project":"Projeto B"}
+  c={"project":"Projeto C"}
+  points={
+   "Projeto A":{"center":{"lat":-19.8,"lng":-43.9,"verified":False,"source":"CV CRM","precision":"address_number"}},
+   "Projeto B":{"center":{"lat":-19.95,"lng":-44.2,"verified":False,"source":"CV CRM","precision":"address_number"}}
+  }
+  selected,unresolved=spatial.compute([a,b,c],points,"review")
+  self.assertEqual(len(selected),2)
+  self.assertEqual(len(unresolved),1)
+  blocked,_=spatial.compute([a,b,c],points,"publish")
+  self.assertEqual(blocked,[])
+ def test_adjacent_parcels_cannot_use_the_same_center(self):
+  a={"project":"A","adjacency_group":"A/B","same_reference_address_adjacent_distinct_sites":True}
+  b={"project":"B","adjacency_group":"A/B","same_reference_address_adjacent_distinct_sites":True}
+  center={"lat":-19.8,"lng":-43.9,"verified":True,"source":"CV CRM","precision":"address_number",
+   "verified_by":"LCM","verified_at":"2026-11-13","verification_evidence":"documented field review"}
+  selected,unresolved=spatial.compute([a,b],{"A":{"center":center},"B":{"center":dict(center)}},"publish")
+  self.assertEqual(selected,[])
+  self.assertEqual(len(unresolved),2)
  def test_point_requires_review_evidence(self):
   p={"source":"CV CRM","precision":"address_number","lat":-19.95,"lng":-44.17,"verified":True}
   self.assertFalse(spatial.valid_point(p))
