@@ -1,0 +1,37 @@
+name: LCM - Produzir dados geograficos IBGE apos aprovacao
+on:
+  workflow_dispatch:
+    inputs:
+      validate_centers:
+        description: 'Digitar APROVADO para gerar dados apenas de terrenos com verified=true e evidencias'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  ibge-publish-artifacts:
+    if: inputs.validate_centers == 'APROVADO'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check "geopandas==1.1.1" "pyogrio==0.11.1" "shapely==2.1.2" "pyproj==3.7.2"
+      - name: Validar metodologia e aprovacoes
+        run: python -m unittest discover -s tests -p test_ibge_spatial_context.py -v
+      - name: Calcular e empacotar recortes 2022 verificaveis
+        run: python scripts/ibge_build_spatial_context.py --publish
+      - name: Entregar arquivos para revisao antes de adicionar ao site
+        uses: actions/upload-artifact@v4
+        with:
+          name: ibge-setores-publicacao-revisada
+          path: |
+            data/ibge-project-context.json
+            data/ibge-sectors/*.geojson
+            artifacts/ibge-spatial-status.json
+          retention-days: 7
+          if-no-files-found: ignore

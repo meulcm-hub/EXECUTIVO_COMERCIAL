@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "review_pending",
+  "comment": "Candidatos obtidos em auditorias de geocodificação, não equivalentes a centro validado. O pipeline jamais usa verified=false para publicação.",
+  "points": [
+    {
+      "project": "RESIDENCIAL MONTTEBELO",
+      "center": {
+        "lat": -19.779563,
+        "lng": -43.9123178,
+        "source": "CV CRM",
+        "geocoder": "OpenStreetMap Nominatim",
+        "precision": "address_number",
+        "verified": false
+      },
+      "evidence": "GitHub Actions #43464918342"
+    },
+    {
+      "project": "RESIDENCIAL TURQUESA PARQUE",
+      "center": {
+        "lat": -19.9514569,
+        "lng": -44.1778992,
+        "source": "CV CRM",
+        "geocoder": "OpenStreetMap Nominatim",
+        "precision": "address_number",
+        "verified": false
+      },
+      "evidence": "GitHub Actions #43468171080"
+    }
+  ],
+  "required_for_approval": [
+    "validar geografia no terreno/portaria com fonte independente",
+    "confirmar cidade e endereço pelo cadastro CV CRM",
+    "distinguir pontos de terrenos vizinhos",
+    "revisor identificado e data da validação",
+    "revisar eventual diferença entre endereço de correspondência e obra física"
+  ]
+}

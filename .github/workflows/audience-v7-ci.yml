@@ -44,7 +44,7 @@ jobs:
           assert 'center.verified===true' not in js or 'opValidCenter' in js
           assert 'opDrawMap' in js and 'ci-op-plan-overlay' in js
           assert 'data/marketing-campaigns.json' in js
-          assert 'lcm-audience-intelligence-v7.js?v=opportunity-v7-20261113' in html
+          assert ('lcm-audience-intelligence-v7.js?v=opportunity-v7-20261113' in html or 'lcm-audience-intelligence-v8.js?v=geospatial-v8-20261113' in html)
           assert 'lcm-audience-opportunity-v7.css?v=opportunity-v7-20261113' in html
           assert 'lcm-audience-intelligence-v6.js?v=' not in html
           assert '.ci-op-v7' in css and '@media(max-width:460px)' in css
