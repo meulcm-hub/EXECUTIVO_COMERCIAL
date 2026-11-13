@@ -403,6 +403,7 @@ async function opDrawMap(container,options){
 }
 async function ibge(o){
  const view=panels.ibge;view.replaceChildren();
+ opportunityPlanData=null;
  const ticket=++ibgeSession;
  if(opportunityMap){opportunityMap.remove();opportunityMap=null;}
  const outer=opElem("div","ci-op-v7");view.append(outer);
@@ -419,6 +420,7 @@ async function ibge(o){
  const districtF=opFilter("Bairro",[["","Todos os bairros"]],()=>draw());bar.append(districtF.outer);
  const apply=opElem("button","ci-op-btn ci-op-primary","⌕  Filtrar");apply.type="button";
  apply.onclick=()=>draw();bar.append(apply);outer.append(bar);
+ outer.append(opParagraph("Cidade e bairro filtram a origem dos compradores; indicadores municipais IBGE estão vinculados ao local do empreendimento. Indicadores do raio exigem cálculo censitário aprovado.","ci-op-scope"));
  const metricRow=opElem("div","ci-op-metrics");outer.append(metricRow);
  const mid=opElem("div","ci-op-split");
  const compare=opCard("Compradores LCM × Potencial da Região","▥","Comparação entre registros históricos LCM e população oficial, com universos e abrangências distintos.");
@@ -432,7 +434,7 @@ async function ibge(o){
  const recogrid=opElem("div","ci-op-reco-grid");reco.append(recogrid);outer.append(reco);
  const footer=opElem("div","ci-op-footer");
  const generate=opElem("button","ci-op-btn ci-op-primary ci-op-generate","✦  Gerar plano de campanha completo");
- generate.type="button";generate.onclick=()=>{if(opportunityPlanData)opOpenPlan(opMarkdownPlan(opportunityPlanData));};
+ generate.type="button";generate.disabled=true;generate.onclick=()=>{if(opportunityPlanData)opOpenPlan(opMarkdownPlan(opportunityPlanData));};
  footer.append(generate,opParagraph("Planejamento com fontes, motivos, limitações e opção de salvar em PDF."));outer.append(footer);
  const provenance=opElem("div","ci-op-data-footer");
  provenance.append(opSource("OFICIAL","IBGE · Censo 2022","População/área/densidade do município quando consultáveis."),
@@ -480,7 +482,10 @@ async function ibge(o){
   const r=context?.radii?.[radius];
   const validRegion=opValidCenter(context)&&opValidRadii(r);
   const region=validRegion?r:null;
-  const count=opRange(o,"Sexo").total;
+  const isBuyerPt=p=>norm(p.project)===norm(project.value)&&Number.isInteger(p.count)&&p.count>=5;
+  const localized=(district?(buyers?.neighborhoods||[]).filter(p=>isBuyerPt(p)&&norm(p.neighborhood)===norm(district)&&(!city||norm(p.city)===norm(city))):(city?(buyers?.cities||[]).filter(p=>isBuyerPt(p)&&norm(p.city)===norm(city)):(buyers?.cities||[]).filter(isBuyerPt)));
+  const count=localized.reduce((a,p)=>a+p.count,0);
+  const locSubtitle=district?"Compradores por bairro":city?"Compradores por cidade":"Compradores geolocalizados";
   const salesSelection=salesFor(project.value);
   const moneyRows=opRange(o,"Renda familiar");
   let market=null;
@@ -490,7 +495,7 @@ async function ibge(o){
    opKpi("População (IBGE)",region?nf(region.population):municipal?nf(municipal.v[93]):"—",region?radius+" km · Censo 2022":"Município inteiro · Censo 2022","♧",region?"ESTIMATIVA SETORIAL":"IBGE MUNICIPAL"),
    opKpi("Domicílios",region?nf(region.households):"—",region?radius+" km · Censo 2022":"Base setorial por raio pendente","⌂",region?"ESTIMATIVA SETORIAL":"PENDENTE"),
    opKpi("Renda média domiciliar",region&&Number.isFinite(region.averageHouseholdIncome)?money(region.averageHouseholdIncome):"—",region&&Number.isFinite(region.averageHouseholdIncome)?"Censo 2022 · raio "+radius+" km":"Tabela de rendimento por setor pendente","▤",region?"FONTE VERIFICAR":"PENDENTE"),
-   opKpi("Compradores LCM",count?nf(count):"—",count?"Registros classificados por gênero":"Sem cobertura de perfil nesta fonte","♙","LCM · HISTÓRICO"),
+   opKpi("Compradores LCM",count?nf(count):"—",count?locSubtitle:"Sem pontos agregados de origem","♙","LCM · ORIGEM AGREGADA"),
    opKpi("Potencial de mercado",market==null?"—":nf(market),market==null?"Modelo auditado ainda indisponível":"Domicílios compatíveis · hipótese documentada","◎",market==null?"PENDENTE":"ESTIMATIVA")
   );
   compareBody.replaceChildren();
@@ -508,6 +513,7 @@ async function ibge(o){
   if(municipal)insightRows.push(opLine("Escala do mercado",nf(municipal.v[93])+" habitantes em todo o município; isso não mede a população no raio nem potenciais compradores."));
   if(!validRegion)insightRows.push(opLine("Limite do cruzamento","Sem coordenadas e tabelas censitárias setoriais validadas, não há comparação quantitativa com renda ou idade do entorno."));
   if(!insightRows.length)insightRows.push(opLine("Dados insuficientes","Ainda não há agregados seguros para gerar um insight comparativo."));
+  if(city||district)insightRows.push(opLine("Cobertura dos filtros","Cidade e bairro atualizam origem geográfica e contagem localizada; renda e idade continuam agregadas ao empreendimento."));
   insights.append(opElem("h4","","✧  Insights do Cruzamento"),...insightRows);
   function drawGraph(){
    graph.replaceChildren();
@@ -593,6 +599,8 @@ function attachMap(){
 }
 function showTab(key){
  currentTab=key;
+ host.classList.toggle('ci-op-mode',key==='ibge');
+ if(key!=='ibge'&&opportunityMap){opportunityMap.remove();opportunityMap=null;}
  for(const [name,p]of Object.entries(panels))p.hidden=name!==key;
  for(const btn of tabs.querySelectorAll('button')){btn.classList.toggle('is-active',btn.dataset.tab===key);btn.setAttribute('aria-current',btn.dataset.tab===key?'page':'false');}
  if(key==='ibge')ibge(data());
