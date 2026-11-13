@@ -29,7 +29,7 @@ class PublicAuditTests(unittest.TestCase):
         source = self.fixture()
         result = audit.public_report(source)
         self.assertEqual(set(result["rows"][0]), set(audit.FIELDS)|{"entry_dates"})
-        self.assertEqual(result["rows"][0]["cliente"], "Cliente fictício çã")
+        self.assertEqual(result["rows"][0]["cliente"], "Cliente fictício")
         self.assertEqual(result["period"], source["period"])
         self.assertNotIn("123", json.dumps(result))
         self.assertNotIn("teste@example.invalid", json.dumps(result))
