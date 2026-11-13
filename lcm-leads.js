@@ -61,20 +61,44 @@ function drawKpis(f,rows,c){
  putKpi(node,'Vendas vinculadas',state.source.sales_link_validated?fmt(c.stages[4]):'—',
    state.source.sales_link_validated?'Taxa de conversão: '+(c.total?fmt(100*c.stages[4]/c.total):'0')+'%':'Vinculação de vendas em auditoria');
 }
-function drawFunnel(rows,c){
- const node=clear('funnel');
- steps.forEach((name,i)=>{
-  const amount=c.stages[i],share=c.total?100*amount/c.total:0;
-  const previous=i?c.stages[i-1]:c.total;
-  const rate=i?(previous?100*amount/previous:0):100;
-  const item=document.createElement('button');item.type='button';item.className='funnel-row';
-  item.setAttribute('aria-pressed',String($('stage').value===String(i)));
-  item.style.maxWidth=(100-i*8)+'%';
-  item.append(txt('b',fmt(amount)+' · '+name),txt('span',fmt(share)+'% do total'+(i?' · '+fmt(rate)+'% da etapa anterior':'')));
-  item.addEventListener('click',()=>{$('stage').value=$('stage').value===String(i)?'all':String(i);render();});
-  node.append(item);
- });
- node.append(txt('p','Etapas são cumulativas e identificam o maior estágio alcançado após a entrada. A soma das barras não é o total de pessoas.','hint'));
+function drawOpportunityFunnels(rows,c){
+ const config=window.LcmLeadStages;
+ if(!config)throw new Error('Taxonomia de etapas indisponível');
+ const cumulative=clear('opportunityCumulative');
+ const historical={
+  'AGENDAMENTO':c.stages[1],
+  'VISITA':c.stages[2],
+  'ANÁLISE DE CRÉDITO':c.stages[3],
+  'VENDA REALIZADA':state.source.sales_link_validated?c.stages[4]:null
+ };
+ const verifiedMax=Math.max(1,...Object.values(historical).filter(Number.isFinite));
+ for(const name of config.detailed){
+  const amount=Object.prototype.hasOwnProperty.call(historical,name)?historical[name]:null;
+  const line=txt('div','','opportunity-line');
+  line.append(txt('span',name,'opportunity-name'));
+  const slot=txt('div','','opportunity-slot');
+  if(amount!==null&&Number.isFinite(amount)){
+   const bar=txt('div','','opportunity-bar');
+   bar.style.width=Math.max(2,100*amount/verifiedMax)+'%';
+   slot.append(bar);
+   line.append(slot,txt('strong',fmt(amount)));
+  }else{
+   slot.append(txt('div','Histórico não disponível','opportunity-missing'));
+   line.append(slot,txt('strong','—'));
+  }
+  cumulative.append(line);
+ }
+ cumulative.append(txt('p','Apenas Agendamento, Visita, Análise e Venda usam as etapas já validadas no funil do Marketing. A coorte disponível não registra o histórico CAD/C e CAD/A nem engloba todas as origens; não é possível calcular perdas ou taxas entre essas 16 etapas.','hint'));
+ const current=clear('opportunityCurrent');
+ for(const name of config.groups){
+  const line=txt('div','','opportunity-line opportunity-current');
+  line.append(txt('span',name,'opportunity-name'));
+  const slot=txt('div','','opportunity-slot');
+  slot.append(txt('div','Aguardando situação atual do CV CRM','opportunity-missing'));
+  line.append(slot,txt('strong','—'));
+  current.append(line);
+ }
+ current.append(txt('p','O arquivo atual contém o estágio máximo de uma coorte, não a situação atual da oportunidade. Contagens e percentuais deste painel dependem de leitura de situações e IDs únicos das oportunidades, para todas as origens.','hint'));
 }
 function bars(node,items){node.replaceChildren();const max=Math.max(1,...items.map(x=>x.value));for(const item of items){
  const r=txt('div','','baritem');r.append(txt('span',item.label));const track=txt('div','','bar-track');
@@ -130,7 +154,7 @@ function render(){
  }
  const rows=selected(f),c=counts(rows);state.groups=rows;
  $('scopeNote').textContent='Fonte CV CRM validada até '+state.source.as_of+' · '+fmt(c.total)+' grupos de lead/empreendimento na seleção. Período de entrada: '+f.since+' a '+f.until+'. Atenção: esta base reflete a coorte histórica de captação do funil (escopo anterior Facebook/Google), não os 100% dos leads do CV CRM. Não contém interações, SDRs nem identificação pessoal.';
- drawKpis(f,rows,c);drawFunnel(rows,c);drawOrigins(rows,c);drawTrend(rows);drawProjects(rows);insights(rows,c);
+ drawKpis(f,rows,c);drawOpportunityFunnels(rows,c);drawOrigins(rows,c);drawTrend(rows);drawProjects(rows);insights(rows,c);
 }
 function csv(){
  if(!state.source)return;
