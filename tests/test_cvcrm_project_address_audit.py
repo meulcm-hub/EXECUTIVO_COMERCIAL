@@ -42,7 +42,7 @@ class ProjectAddressAuditTests(unittest.TestCase):
 
     def test_repeated_page_rejected(self):
         with self.assertRaisesRegex(ValueError,"repeated"):
-            audit.audit(lambda page:([{"endereco":"Rua","cidade":"Cidade"}],None))
+            audit.audit(lambda page:([{"endereco":"Rua","cidade":"Cidade"}],2))
 
     def test_credentials_host_pinned(self):
         good={"CVCRM_DOMINIO":"https://lcm.cvcrm.com.br","CVCRM_EMAIL":"e","CVCRM_TOKEN":"t"}
