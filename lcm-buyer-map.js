@@ -7,6 +7,18 @@ function validSource(source){
  if(source?.schema_version!==1||source.coverage?.min_group_size!==5||!Array.isArray(source.cities)||!Array.isArray(source.neighborhoods))return false;
  return [['cities','city'],['neighborhoods','neighborhood']].every(([key,precision])=>source[key].every(p=>p&&typeof p.project==='string'&&p.project&&typeof p.city==='string'&&/^[A-Z]{2}$/.test(p.uf)&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&p.lat>=-34&&p.lat<=6&&p.lng>=-74&&p.lng<=-32&&Number.isSafeInteger(p.count)&&p.count>=5&&p.precision===precision&&(key!=='neighborhoods'||typeof p.neighborhood==='string'&&p.neighborhood)));
 }
+function validPostalSource(data){
+ return data?.schema_version===1 && Array.isArray(data.postal_codes) &&
+ data.postal_codes.every(p=>p && typeof p.project==='string' && p.project &&
+ /^[0-9]{8}$/.test(p.postal_code) && typeof p.city==='string' &&
+ /^[A-Z]{2}$/.test(p.uf) && Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
+ p.lat>=-34 && p.lat<=6 && p.lng>=-74 && p.lng<=-32 &&
+ Number.isSafeInteger(p.count) && p.count>0 && p.precision==='postal_code');
+}
+function postalPointsFor(data,project){
+ const key=norm(project);
+ return validPostalSource(data)?data.postal_codes.filter(p=>!key||norm(p.project)===key):[];
+}
 function pointsFor(source,project,mode,city){
  if(!validSource(source))return [];
  const key=norm(project),rows=mode==='neighborhoods'?source.neighborhoods:source.cities;
@@ -15,29 +27,29 @@ function pointsFor(source,project,mode,city){
 function groupLocations(points){
  const groups=new Map();
  for(const p of points){
-  const key=[norm(p.city),p.uf,norm(p.neighborhood),p.lat,p.lng].join('|');
-  if(!groups.has(key))groups.set(key,{city:p.city,uf:p.uf,neighborhood:p.neighborhood||'',lat:p.lat,lng:p.lng,projects:new Map()});
+  const key=[norm(p.city),p.uf,norm(p.neighborhood),p.postal_code||'',p.lat,p.lng].join('|');
+  if(!groups.has(key))groups.set(key,{city:p.city,uf:p.uf,neighborhood:p.neighborhood||'',postal_code:p.postal_code||'',lat:p.lat,lng:p.lng,projects:new Map()});
   const group=groups.get(key);group.projects.set(p.project,(group.projects.get(p.project)||0)+p.count);
  }
  return [...groups.values()];
 }
-const helpers={norm,validSource,pointsFor,groupLocations};
+const helpers={norm,validSource,validPostalSource,postalPointsFor,pointsFor,groupLocations};
 if(typeof document==='undefined'){root.LcmBuyerMap=helpers;if(typeof module!=='undefined')module.exports=helpers;return;}
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e;}
 function mount(host,settings){
  if(typeof host==='string')host=document.querySelector(host);if(!host)throw Error('Contêiner do mapa ausente');
  if(host.lcmBuyerMap)return host.lcmBuyerMap;settings=settings||{};
  const L=settings.leaflet||root.L,select=settings.projectSelect||document.getElementById('audienceProject');
- let source=null,map=null,markers=null,tile=null,labels=null,project=select?.value||'',mode='cities',focusCity=null,sequence=0,disposed=false,started=false;
+ let source=null,postalSource=null,map=null,markers=null,tile=null,labels=null,project=select?.value||'',mode='cities',focusCity=null,sequence=0,disposed=false,started=false,startedPostal=false;
  host.classList.add('panel','lcm-buyer-map');
- const heading=node('div','bm-heading'),title=node('div');title.append(node('h2','','Localização dos compradores'),node('p','','Cidades e bairros com localização confirmada.'));
+ const heading=node('div','bm-heading'),title=node('div');title.append(node('h2','','Localização dos compradores'),node('p','','Localização dos compradores por CEP, cidade ou bairro.'));
  const controls=node('div','bm-controls'),modeLabel=node('label','','Localização por'),modeSelect=node('select');
- for(const [value,text]of [['cities','Cidade'],['neighborhoods','Bairro']]){const e=node('option','',text);e.value=value;modeSelect.append(e);}modeLabel.append(modeSelect);
+ for(const [value,text]of [['cities','Cidade'],['neighborhoods','Bairro'],['postal','CEP']]){const e=node('option','',text);e.value=value;modeSelect.append(e);}modeLabel.append(modeSelect);
  const layerLabel=node('label','','Visualização'),layerSelect=node('select');for(const [value,text]of [['satellite','Satélite'],['streets','Ruas']]){const e=node('option','',text);e.value=value;layerSelect.append(e);}layerLabel.append(layerSelect);
  const reset=node('button','bm-reset','Ver Brasil');reset.type='button';controls.append(modeLabel,layerLabel,reset);heading.append(title,controls);
  const context=node('p','bm-context'),legend=node('div','bm-legend'),status=node('p','bm-status','Carregando localizações…');status.setAttribute('role','status');
- const canvas=node('div','bm-canvas');canvas.setAttribute('role','region');canvas.setAttribute('aria-label','Mapa interativo de cidades e bairros dos compradores');canvas.tabIndex=0;
- const foot=node('p','bm-footnote','Pontos agregados por localidade. Clique em um ponto para consultar os compradores por empreendimento.');host.replaceChildren(heading,context,legend,status,canvas,foot);
+ const canvas=node('div','bm-canvas');canvas.setAttribute('role','region');canvas.setAttribute('aria-label','Mapa interativo de compradores por CEP, cidade ou bairro');canvas.tabIndex=0;
+ const foot=node('p','bm-footnote','Pontos agregados por CEP ou localidade, nunca endereços de residências individuais.');host.replaceChildren(heading,context,legend,status,canvas,foot);
  const names=new Map();for(const option of select?.options||[])if(option.value)names.set(norm(option.value),option.textContent);
  const projectName=value=>names.get(norm(value))||String(value).replace(/\b\w/g,c=>c.toUpperCase());
  let palette=new Map();
@@ -59,24 +71,40 @@ function mount(host,settings){
  }
  function initialize(){if(map)return true;if(!L?.map){status.textContent='Não foi possível abrir o mapa. Atualize a página para tentar novamente.';return false;}map=L.map(canvas,{scrollWheelZoom:false}).setView([-14.2,-51.9],4);markers=L.layerGroup().addTo(map);basemap();return true;}
  function popup(group){
-  const box=node('div','bm-popup');box.append(node('strong','',group.neighborhood?group.neighborhood+' · '+group.city+'/'+group.uf:group.city+'/'+group.uf));
+  const box=node('div','bm-popup');box.append(node('strong','',group.postal_code?'CEP '+group.postal_code+' · '+group.city+'/'+group.uf:group.neighborhood?group.neighborhood+' · '+group.city+'/'+group.uf:group.city+'/'+group.uf));
   const list=node('ul');for(const [p,n]of [...group.projects].sort((a,b)=>b[1]-a[1])){const item=node('li'),dot=node('i');dot.style.background=color(p);item.append(dot,node('span','',projectName(p)),node('b','',n.toLocaleString('pt-BR')));list.append(item);}box.append(list);
   if(mode==='cities'&&pointsFor(source,project,'neighborhoods',{city:norm(group.city),uf:group.uf}).length){const button=node('button','bm-popup-button','Ver bairros desta cidade');button.type='button';button.onclick=()=>{focusCity={city:norm(group.city),uf:group.uf};mode=modeSelect.value='neighborhoods';draw(true);};box.append(button);}return box;
  }
  function draw(fit){
   context.textContent=select?.selectedOptions?.[0]?.textContent||'Todos os empreendimentos';if(!source||!visible())return;if(!initialize())return;
-  const groups=groupLocations(pointsFor(source,project,mode,focusCity));markers.clearLayers();legend.replaceChildren();
+  const rows=mode==='postal'?postalPointsFor(postalSource,project):pointsFor(source,project,mode,focusCity);
+  const groups=groupLocations(rows);markers.clearLayers();legend.replaceChildren();
   const projects=[...new Set(groups.flatMap(g=>[...g.projects.keys()]))].sort();for(const p of projects){const item=node('span'),dot=node('i');dot.style.background=color(p);item.append(dot,node('span','',projectName(p)));legend.append(item);}
-  for(const g of groups){const icon=pie(g);L.marker([g.lat,g.lng],{icon:L.divIcon({className:'bm-marker',html:icon.html,iconSize:[icon.size,icon.size],iconAnchor:[icon.size/2,icon.size/2]}),title:(g.neighborhood?g.neighborhood+', ':'')+g.city+'/'+g.uf}).bindPopup(popup(g),{maxWidth:360}).addTo(markers);}
-  status.textContent=groups.length?groups.length.toLocaleString('pt-BR')+' '+(mode==='cities'?'cidade(s)':'bairro(s)')+' com localização confirmada'+(focusCity?' em '+focusCity.city+'/'+focusCity.uf:'')+'.':'Não há localidades confirmadas com quantidade suficiente para este filtro.';
-  map.invalidateSize();if(fit){if(!project&&!focusCity)map.setView([-14.2,-51.9],4);else if(groups.length===1)map.setView([groups[0].lat,groups[0].lng],mode==='cities'?10:13);else if(groups.length)map.fitBounds(groups.map(g=>[g.lat,g.lng]),{padding:[35,35],maxZoom:mode==='cities'?11:14});}
+  for(const g of groups){const icon=pie(g);L.marker([g.lat,g.lng],{icon:L.divIcon({className:'bm-marker',html:icon.html,iconSize:[icon.size,icon.size],iconAnchor:[icon.size/2,icon.size/2]}),title:(g.postal_code?'CEP '+g.postal_code+', ':g.neighborhood?g.neighborhood+', ':'')+g.city+'/'+g.uf}).bindPopup(popup(g),{maxWidth:360}).addTo(markers);}
+  status.textContent=groups.length?groups.length.toLocaleString('pt-BR')+' '+(mode==='postal'?'CEP(s)':mode==='cities'?'cidade(s)':'bairro(s)')+' com localização confirmada'+(focusCity?' em '+focusCity.city+'/'+focusCity.uf:'')+'.':'Não há localidades confirmadas com quantidade suficiente para este filtro.';
+  map.invalidateSize();if(fit){if(!project&&!focusCity)map.setView([-14.2,-51.9],4);else if(groups.length===1)map.setView([groups[0].lat,groups[0].lng],mode==='cities'?10:mode==='postal'?14:13);else if(groups.length)map.fitBounds(groups.map(g=>[g.lat,g.lng]),{padding:[35,35],maxZoom:mode==='cities'?11:mode==='postal'?15:14});}
  }
  async function refresh(){
   if(!visible())return;const current=++sequence;started=true;status.textContent='Carregando localizações…';
   const urls=settings.sourceUrl?[settings.sourceUrl]:['https://raw.githubusercontent.com/meulcm-hub/EXECUTIVO_COMERCIAL/main/data/buyer-locations.json','data/buyer-locations.json'];
   let next=null;for(const value of urls){try{const url=new URL(value,document.baseURI);url.searchParams.set('version',String(Date.now()));const response=await fetch(url,{cache:'no-store'});if(!response.ok)continue;const data=await response.json();if(validSource(data)){next=data;break;}}catch(_){}}
   if(disposed||current!==sequence)return;if(!next){status.textContent='Não foi possível carregar as localizações. Tente atualizar a página.';return;}
-  source=next;palette=new Map([...new Set([...source.cities,...source.neighborhoods].map(p=>p.project))].sort().map((p,i)=>[p,colors[i%colors.length]]));draw(true);
+  source=next;
+  const postalUrls=settings.postalSourceUrl?[settings.postalSourceUrl]:['data/buyer-postal-locations.json'];
+  let postal=null;
+  for(const value of postalUrls){
+   try{const url=new URL(value,document.baseURI);url.searchParams.set('version',String(Date.now()));
+    const response=await fetch(url,{cache:'no-store'});if(!response.ok)continue;
+    const data=await response.json();if(validPostalSource(data)){postal=data;break;}
+   }catch(_){}
+  }
+  if(disposed||current!==sequence)return;
+  postalSource=postal;
+  if(!postalSource?.postal_codes?.length && mode==='postal')mode=modeSelect.value='cities';
+  if(postalSource?.postal_codes?.length && !startedPostal){mode=modeSelect.value='postal';startedPostal=true;}
+  for(const option of modeSelect.options)if(option.value==='postal')option.disabled=!postalSource?.postal_codes?.length;
+  palette=new Map([...new Set([...source.cities,...source.neighborhoods,...(postalSource?.postal_codes||[])].map(p=>p.project))].sort().map((p,i)=>[p,colors[i%colors.length]]));
+  draw(true);
  }
  function setProject(value){project=value||'';focusCity=null;draw(true);}
  const change=()=>setProject(select?.value||'');select?.addEventListener('change',change);
