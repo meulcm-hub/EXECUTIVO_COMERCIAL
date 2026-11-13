@@ -80,7 +80,7 @@ def load_basic_by_uf(zip_path,uf):
     with ZipFile(zip_path) as z:
         candidates=[n for n in z.namelist() if n.endswith(".csv") and "basico" in n.lower()]
         if len(candidates)!=1:raise ValueError("Arquivo básico sem CSV único e reconhecido")
-        with z.open(candidates[0]) as raw, io.TextIOWrapper(raw,encoding="utf-8-sig",newline="") as reader:
+        with z.open(candidates[0]) as raw, io.TextIOWrapper(raw,encoding="latin-1",newline="") as reader:
             rows=csv.DictReader(reader,delimiter=";")
             required={"CD_SETOR","CD_UF","v0001","v0007"}
             if not required<=set(rows.fieldnames or []):raise ValueError("Variáveis de população/domicílios alteradas no IBGE")
