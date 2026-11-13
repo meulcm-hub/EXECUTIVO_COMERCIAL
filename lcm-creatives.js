@@ -149,7 +149,7 @@
     const apply=button('lc-filter-button','');apply.append(icon('filter'),el('span','','Filtrar'));apply.type='submit';form.append(apply);
     const kpis=el('div','lc-kpis');
     const metrics={};
-    for (const [key,label,ico] of [['impressions','Impressões','impressions'],['clicks','Cliques','clicks'],['spend','Investimento','spend'],['form_leads','Leads formulário','leads'],['messages','Conversas WhatsApp','leads'],['cpc','CPC médio','cpc']]) {
+    for (const [key,label,ico] of [['impressions','Impressões dos anúncios ativos','impressions'],['clicks','Cliques dos anúncios ativos','clicks'],['spend','Investimento · ver escopo','spend'],['form_leads','Formulários · ver escopo','leads'],['messages','WhatsApp · ver escopo','leads'],['cpc','CPC dos anúncios ativos','cpc']]) {
       const card=el('div','lc-kpi'),labelEl=el('span','lc-kpi-label'),value=el('strong','','—');labelEl.append(icon(ico),el('span','',label));card.append(labelEl,value);kpis.append(card);metrics[key]=value;
     }
     const tabs=el('div','lc-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Visão de campanhas e criativos');
@@ -230,7 +230,7 @@
     function draw() {
       periodText.textContent='Período: '+dateLabel(state.since)+' – '+dateLabel(state.until);
       const projectName=(!state.project || state.project==='all')?'Todos os 4 empreendimentos vinculados':PROJECT_NAMES[String(state.project)] || state.source?.ads.find(ad=>matchesProject(ad,state.project,state.accountIds))?.account_name || 'Empreendimento selecionado acima';
-      context.textContent=projectName+' · Galeria: somente anúncios ativos · '+(state.campaignSource?'Resumo sem filtros: campanhas ativas da Meta':'Resumo: anúncios ativos da Meta');
+      context.textContent=projectName+' · Galeria: somente anúncios ativos · '+(state.campaignSource?'Totais de captação sem filtros extras: campanhas ativas da Meta':'Resumo: anúncios ativos da Meta');
       for(const [key,node] of Object.entries(tabButtons)){node.setAttribute('aria-selected',String(key===state.tab));node.tabIndex=key===state.tab?0:-1;node.classList.toggle('is-selected',key===state.tab);}view.setAttribute('aria-labelledby',tabButtons[state.tab].id);
       message.textContent='';Object.values(metrics).forEach(node=>node.textContent='—');
       if(state.loading && !state.source){empty('Carregando campanhas e criativos','Consultando a última atualização automática.');return;}
