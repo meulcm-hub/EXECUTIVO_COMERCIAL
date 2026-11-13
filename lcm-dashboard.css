@@ -141,3 +141,11 @@ body.lcm-app main table th:not(:last-child),
 body.lcm-app main table td:not(:last-child){border-right:1px solid #e1e9e4}
 @media screen{html[data-theme=dark] body.lcm-app main table th:not(:last-child),
 html[data-theme=dark] body.lcm-app main table td:not(:last-child){border-right-color:#344956}}
+
+/* Legendas retiradas da apresentação, conforme revisão do dashboard. */
+body.lcm-app #ovSources,
+body.lcm-app main > p.muted:last-child,
+body.lcm-app .audit-table-panel > p.muted.hint,
+body.lcm-app #execPeriod,
+body.lcm-app[data-lcm-page=marketing] .heading p,
+body.lcm-app .lcm-clean-note{display:none!important}
