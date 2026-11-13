@@ -3,8 +3,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import sys
 
 path=Path(__file__).resolve().parents[1]/"scripts"/"cvcrm_geocode_projects.py"
+sys.path.insert(0,str(path.parent))
 spec=importlib.util.spec_from_file_location("cv_geocode",path)
 geo=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(geo)
