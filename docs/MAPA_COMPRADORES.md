@@ -21,7 +21,7 @@ O script `scripts/buyer_locations.py` usa o cache por padrão. Uma consulta
 geográfica adicional é opcional (`--geocode`), sequencial, com intervalo de
 15,1 segundos, respeitando quatro consultas por minuto para rotinas recorrentes.
 `--one-time` destina-se apenas a um lote manual único, com 1,1 segundo de intervalo.
-O workflow automático não habilita geocodificação externa.
+O workflow apenas valida e gera um artefato de localidades para revisão; não altera a branch principal nem habilita geocodificação externa.
 
 Leaflet 1.9.4 está incluído em `vendor/leaflet`, com sua licença. O fundo
 satélite usa Esri World Imagery com atribuição; a opção Ruas usa OpenStreetMap.
