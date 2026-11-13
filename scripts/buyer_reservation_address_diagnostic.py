@@ -6,6 +6,7 @@ fixos e contagens de uma amostra de no máximo dez reservas por endpoint.
 """
 import json
 import os
+import re
 import sys
 import unicodedata
 import urllib.error
@@ -30,6 +31,18 @@ FIELDS = {
     'latitude': ('latitude', 'lat'),
     'longitude': ('longitude', 'lng', 'lon'),
 }
+BUYER_CONTAINERS = {
+    'cliente': ('cliente', 'clientes'),
+    'comprador': ('comprador', 'compradores'),
+    'pessoa': ('pessoa', 'pessoas'),
+    'titular': ('titular', 'titulares'),
+    'proponente': ('proponente', 'proponentes'),
+    'dados_cliente': ('dadoscliente',),
+    'dados_comprador': ('dadoscomprador',),
+    'dados_pessoa': ('dadospessoa',),
+}
+LINK_FIELDS = ('idpessoa', 'idcliente', 'idtitular')
+BUYER_PREFIXES = ('cliente', 'comprador', 'pessoa', 'titular', 'proponente')
 
 
 def norm(value):
@@ -49,6 +62,19 @@ def address_fields(value):
             if any(scalar_present(keys.get(alias)) for alias in aliases)}
 
 
+def qualified_root_candidates(record):
+    """Flat fields need an explicit buyer prefix/suffix, never generic address keys."""
+    keys = {norm(key): item for key, item in record.items()}
+    return [{name for name, aliases in FIELDS.items()
+             if any(scalar_present(keys.get(alias + prefix))
+                    or scalar_present(keys.get(prefix + alias)) for alias in aliases)}
+            for prefix in BUYER_PREFIXES]
+
+
+def qualified_root_fields(record):
+    return set().union(*qualified_root_candidates(record))
+
+
 def objects(value):
     if isinstance(value, dict):
         yield value
@@ -58,7 +84,7 @@ def objects(value):
 
 def buyer_addresses(record):
     """Only explicit buyer containers qualify; project/unit addresses never do."""
-    candidates = []
+    candidates = qualified_root_candidates(record)
     for key, value in record.items():
         if norm(key) not in BUYERS:
             continue
@@ -103,8 +129,24 @@ def summarize(records):
     summary = {'reservas_na_amostra': len(records), 'residencia_em_contexto_cliente': 0,
                'logradouro_numero_cidade_uf_no_mesmo_endereco': 0,
                'endereco_principal_sem_contexto_cliente': 0,
-               'campos_cliente': {name: 0 for name in FIELDS}}
+               'campos_cliente': {name: 0 for name in FIELDS},
+               'campos_principais': {name: 0 for name in FIELDS},
+               'campos_cliente_qualificados_na_raiz': {name: 0 for name in FIELDS},
+               'vinculos_cliente': {name: 0 for name in LINK_FIELDS},
+               'conteineres_cliente': {name: 0 for name in BUYER_CONTAINERS}}
     for record in records:
+        normalized = {norm(key): value for key, value in record.items()}
+        for name in address_fields(record):
+            summary['campos_principais'][name] += 1
+        for name in qualified_root_fields(record):
+            summary['campos_cliente_qualificados_na_raiz'][name] += 1
+        for name in LINK_FIELDS:
+            summary['vinculos_cliente'][name] += int(scalar_present(normalized.get(name)))
+        for name, aliases in BUYER_CONTAINERS.items():
+            summary['conteineres_cliente'][name] += int(any(
+                alias in normalized and (isinstance(normalized[alias], (dict, list))
+                                         or scalar_present(normalized[alias]))
+                for alias in aliases))
         candidates = buyer_addresses(record)
         fields = set().union(*candidates) if candidates else set()
         if fields:
@@ -139,12 +181,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def fetch(opener, base, email, token, path, commercial=False):
-    params = {'pagina': 1, 'registros_por_pagina': SAMPLE_SIZE}
-    if commercial:
-        params.update({'faturar': 'false', 'retornar_integradas': 'true'})
-    request = urllib.request.Request(base + path + '?' + urllib.parse.urlencode(params),
-                                     headers={'email': email, 'token': token, 'Accept': 'application/json'})
+def read_payload(opener, request):
     with opener.open(request, timeout=30) as response:
         if response.status == 204:
             return []
@@ -153,7 +190,56 @@ def fetch(opener, base, email, token, path, commercial=False):
         body = response.read(MAX_BODY_BYTES + 1)
         if len(body) > MAX_BODY_BYTES:
             raise ValueError('oversize response')
-        return rows(json.loads(body))
+        return json.loads(body)
+
+
+def fetch(opener, base, email, token, path, commercial=False):
+    params = {'pagina': 1, 'registros_por_pagina': SAMPLE_SIZE}
+    if commercial:
+        params.update({'faturar': 'false', 'retornar_integradas': 'true'})
+    request = urllib.request.Request(base + path + '?' + urllib.parse.urlencode(params),
+                                     headers={'email': email, 'token': token, 'Accept': 'application/json'})
+    return rows(read_payload(opener, request))
+
+
+def positive_reservation_id(value):
+    # A path segment must never accept a URL, sign, float, bool or arbitrary text.
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError('invalid reservation identifier')
+    value = str(value)
+    if not re.fullmatch(r'[0-9]{1,20}', value) or int(value) <= 0:
+        raise ValueError('invalid reservation identifier')
+    return str(int(value))
+
+
+def first_reservation_id(records):
+    for record in records[:1]:
+        for key, value in record.items():
+            if norm(key) == 'idreserva':
+                try:
+                    return positive_reservation_id(value)
+                except ValueError:
+                    continue
+    return None
+
+
+def detail_rows(payload):
+    """Detail endpoint may return a single reservation without a list wrapper."""
+    if isinstance(payload, dict):
+        for key in ('dados', 'data', 'reserva'):
+            if key in payload:
+                return detail_rows(payload[key])
+        if (any(norm(key) in BUYERS or norm(key) == 'idreserva' for key in payload)
+                or address_fields(payload) or qualified_root_fields(payload)):
+            return [payload]
+    return rows(payload)
+
+
+def fetch_reservation_detail(opener, base, email, token, reservation_id):
+    reservation_id = positive_reservation_id(reservation_id)
+    request = urllib.request.Request(base + '/api/v1/comercial/reservas/' + reservation_id,
+                                     headers={'email': email, 'token': token, 'Accept': 'application/json'})
+    return detail_rows(read_payload(opener, request))
 
 
 def main(environ=None, opener=None):
@@ -164,12 +250,15 @@ def main(environ=None, opener=None):
         return 2
     opener = opener or urllib.request.build_opener(NoRedirect())
     successful = 0
+    reservation_id = None
     for label, path, commercial in (
             ('CVDW Reservas', '/api/v1/cvdw/reservas', False),
             ('Comercial Reservas', '/api/v1/comercial/reservas', True)):
         try:
             records = fetch(opener, base, email, token, path, commercial)
             report = summarize(records)
+            if not commercial:
+                reservation_id = first_reservation_id(records)
         except urllib.error.HTTPError as error:
             print(label + ': consulta recusada ou indisponível; HTTP ' + str(int(error.code)) + '.')
             continue
@@ -178,6 +267,18 @@ def main(environ=None, opener=None):
             continue
         successful += 1
         print(label + ': ' + json.dumps(report, ensure_ascii=False, sort_keys=True))
+    if reservation_id is not None:
+        label = 'Detalhe Comercial Reserva'
+        try:
+            records = fetch_reservation_detail(opener, base, email, token, reservation_id)
+            print(label + ': ' + json.dumps(summarize(records), ensure_ascii=False, sort_keys=True))
+            successful += 1
+        except urllib.error.HTTPError as error:
+            print(label + ': consulta recusada ou indisponível; HTTP ' + str(int(error.code)) + '.')
+        except (urllib.error.URLError, TimeoutError, ValueError, TypeError, OSError, OverflowError):
+            print(label + ': consulta incompleta ou estrutura inesperada; nenhum dado exibido.')
+    else:
+        print('Detalhe Comercial Reserva: não consultado; identificador válido indisponível na amostra CVDW.')
     print('Diagnóstico limitado à amostra; nenhum endereço, identificador ou valor pessoal foi publicado.')
     return 0 if successful else 1
 
