@@ -56,9 +56,8 @@ const stage=field('Etapa da venda',[['','Todas as etapas'],...stages.map(x=>[x,x
 const origin=field('Imobiliária (origem da venda)',[['','Todas as imobiliárias']]);
 const period=field('Período da venda',[['','Todo o histórico'],...years.map(x=>[x,x])]);
 const scope=text('p','ci-data-note ci-filter-scope','Filtros de etapa, imobiliária e período aplicados somente aos registros de vendas. O perfil dos compradores e os dados IBGE não possuem vínculo individual para esse cruzamento.');
-filters.append(scope);
 const apply=text('button','ci-filter-button','Filtrar');apply.type='button';apply.onclick=()=>render();
-filters.append(apply);ui.append(filters);
+filters.append(apply,scope);ui.append(filters);
 for(const [key]of tabNames)ui.append(panels[key]);
 const foot=text('p','ci-data-note','Base de vendas: empreendimento, etapa, imobiliária e data disponíveis. Perfil demográfico: somente agregados por empreendimento. Imobiliária responsável não equivale à origem de captação do lead.');
 ui.append(foot);
