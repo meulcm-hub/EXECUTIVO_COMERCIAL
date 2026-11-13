@@ -89,3 +89,18 @@ Validação local sem credenciais:
 ```sh
 python -m unittest discover -s tests -p 'test_marketing_creatives.py'
 ```
+
+## Reconciliação Meta × CV CRM — 13/11/2026
+
+A apresentação foi ajustada para não comparar subconjuntos diferentes como se fossem o mesmo total:
+
+- **Marketing principal:** campanhas atualmente `ACTIVE`, somadas ao longo do período selecionado. Mensagens (`onsite_conversion.messaging_conversation_started_7d`) são contadas independentemente de o nome da campanha conter WADS/WhatsApp. Formulários usam `onsite_conversion.lead_grouped`. Campanhas de reconhecimento permanecem no gasto total.
+- **Campanhas e Criativos:** na seleção sem filtro extra por campanha/mídia, os KPIs de investimento, formulários e WhatsApp passam a usar **exatamente o mesmo arquivo de campanhas ativas** (`data/marketing-campaigns.json`), com os mesmos IDs de conta e intervalo. Impressões, cliques, CPC e a lista de criativos continuam sendo **somente anúncios com status ACTIVE**, provenientes de `data/marketing-creatives.json`; a diferença de escopo é visível.
+- Selecionar uma campanha ou tipo de mídia refina os criativos e seus indicadores. Essa seleção não deve ser confundida com o total de campanhas ativas.
+- **CV CRM:** prospects são registros únicos, cuja data e origem seguem critérios próprios da safra. Resultados Meta são eventos atribuídos, não pessoas únicas. A interface agora confronta os dois números com nota explícita, sem forçar igualdade.
+- Clique total das contas não pode ser usado como denominador de conversão dos resultados exclusivos das campanhas ativas. A taxa misturada foi retirada da apresentação.
+- As coletas de campanhas e criativos são independentes; sua última atualização e eventual defasagem devem continuar visíveis.
+
+Snapshot da fonte real (01/01/2026 a 12/11/2026, quatro contas vinculadas): 5.156 formulários e 876 conversas em campanhas ativas, total 6.032 eventos. A regra antiga de filtro pelo nome da campanha mostrava apenas 568 conversas. O funil CV registrava 5.908 prospects, número que não é comparável diretamente.
+
+Testes adicionados em `tests/test_marketing_meta_alignment.cjs`; workflow `marketing-meta-alignment.yml`.
