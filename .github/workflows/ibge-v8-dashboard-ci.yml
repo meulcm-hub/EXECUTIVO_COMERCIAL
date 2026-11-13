@@ -1,0 +1,63 @@
+name: LCM - Testar integracao geoespacial V8 no dashboard
+on:
+  pull_request:
+    paths:
+      - index.html
+      - lcm-audience-intelligence-v8.js
+      - data/ibge-geolocation-readiness.json
+      - config/ibge-project-centers-review.json
+      - scripts/ibge_build_spatial_context.py
+      - .github/workflows/ibge-v8-dashboard-ci.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar JavaScript
+        run: node --check lcm-audience-intelligence-v8.js
+      - name: Verificar isolamentos, dados reais e travas
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          js=Path('lcm-audience-intelligence-v8.js').read_text()
+          html=Path('index.html').read_text()
+          readiness=json.loads(Path('data/ibge-geolocation-readiness.json').read_text())
+          projects=readiness['projects']
+          assert len(projects)==14
+          assert len([p for p in projects if p['status']=='exact_geocoder_candidate_unverified'])==2
+          assert len([p for p in projects if p['status']=='site_center_not_verified'])==12
+          assert 'lcm-audience-intelligence-v8.js?v=geospatial-v8-20261113' in html
+          assert 'lcm-audience-intelligence-v7.js?v=' not in html
+          for token in ('opValidCenter(options.context)','sector_intersection_area_weighted','population_density_km2',
+            'ibge-geolocation-readiness.json','metaFeed','window.print()','ci-op-layer'):
+            assert token in js, token
+          assert 'opValidCenter(options.context)&&region&&region.type' in js
+          print('V8 dashboard integration checks PASS')
+          PY
+      - name: Instalar Playwright e Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Navegar em desktop e celular
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 > /tmp/lcm-http.log 2>&1 &
+          sleep 2
+          node tests/audience_v7_browser.cjs
+      - name: Capturas para conferencia visual
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v8-geospatial-ui-screenshots
+          path: artifacts/ibge-v7-*.png
+          retention-days: 7
+          if-no-files-found: ignore
