@@ -1,0 +1,43 @@
+name: LCM - Geocodificacao de empreendimentos CV CRM (revisao)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/cvcrm_geocode_projects.py
+      - tests/test_cvcrm_geocode_projects.py
+      - .github/workflows/cvcrm-geocode-projects.yml
+permissions:
+  contents: read
+concurrency:
+  group: cvcrm-geocode-projects-one-time
+  cancel-in-progress: false
+jobs:
+  geocode:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Testar validacao e protecao dos dados
+        run: python -m unittest discover -s tests -p test_cvcrm_geocode_projects.py -v
+      - name: Consultar CV CRM e localizar enderecos em lote unico
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+          LCM_GEOCODER_USER_AGENT: "LCM-IBGE/1.0 (https://github.com/meulcm-hub/EXECUTIVO_COMERCIAL)"
+        run: python scripts/cvcrm_geocode_projects.py
+      - name: Disponibilizar candidatos para revisao (sem enderecos)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coordenadas-empreendimentos-para-revisao
+          path: artifacts/cvcrm-project-geocoding-review.json
+          retention-days: 7
+          if-no-files-found: error
