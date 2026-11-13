@@ -50,16 +50,29 @@ function field(label,options){
 }
 const projects=Array.from(new Set([...Object.keys(source).filter(k=>k!=='Todos os empreendimentos'),'RESIDENCIAL TERRA SOLIS','RESIDENCIAL EXTREMA MEU LAR']));
 const project=field('Empreendimento',[['','Todos os empreendimentos'],...projects.map(x=>[x,x])]);
-const stage=field('Etapa',[['','Todas as etapas — sem vínculo demográfico']]);
-const origin=field('Origem',[['','Todas as origens — sem vínculo por etapa']]);
-const period=field('Período',[['','Base integral — sem datas individuais']]);
-for(const sel of [stage,origin,period]){sel.disabled=true;sel.title='Esta fonte contém apenas agregados por empreendimento. Habilitar este filtro exigiria registros com vínculo de data, etapa e comprador.';}
+const stages=[...new Set(sales.map(s=>norm(s.stage)==='etapa unica'?'Etapa única':String(s.stage||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+const years=[...new Set(sales.map(s=>String(s.date||'').slice(0,4)).filter(y=>/^20[0-9]{2}$/.test(y)))].sort().reverse();
+const stage=field('Etapa da venda',[['','Todas as etapas'],...stages.map(x=>[x,x])]);
+const origin=field('Imobiliária (origem da venda)',[['','Todas as imobiliárias']]);
+const period=field('Período da venda',[['','Todo o histórico'],...years.map(x=>[x,x])]);
+const scope=text('p','ci-data-note ci-filter-scope','Filtros de etapa, imobiliária e período aplicados somente aos registros de vendas. O perfil dos compradores e os dados IBGE não possuem vínculo individual para esse cruzamento.');
+filters.append(scope);
 const apply=text('button','ci-filter-button','Filtrar');apply.type='button';apply.onclick=()=>render();
 filters.append(apply);ui.append(filters);
 for(const [key]of tabNames)ui.append(panels[key]);
-const foot=text('p','ci-data-note','As distribuições demográficas são agregadas e podem ter coberturas diferentes por categoria. Etapa, origem de captação e período exigem cruzamento validado com registros individuais; filtros indisponíveis até integração segura.');
+const foot=text('p','ci-data-note','Base de vendas: empreendimento, etapa, imobiliária e data disponíveis. Perfil demográfico: somente agregados por empreendimento. Imobiliária responsável não equivale à origem de captação do lead.');
 ui.append(foot);
-project.addEventListener('change',()=>render());
+function refreshAgencies(){
+ const prev=origin.value;
+ const key=project.value;
+ const names=[...new Set(sales.filter(s=>!key||norm(s.project)===norm(key)).map(s=>String(s.agency||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+ origin.replaceChildren(new Option('Todas as imobiliárias',''));
+ for(const name of names)origin.add(new Option(name,name));
+ if(names.includes(prev))origin.value=prev;
+}
+project.addEventListener('change',()=>{refreshAgencies();render();});
+for(const control of [stage,origin,period])control.addEventListener('change',()=>render());
+refreshAgencies();
 function data(){return source[project.value||'Todos os empreendimentos']||{};}
 function rows(o,key){return Array.isArray(o?.[key])?o[key].filter(x=>valid(x.count)&&Number(x.count)>0).map(x=>({label:String(x.label||'Não informado'),count:Number(x.count)})):[];}
 function sum(arr){return arr.reduce((a,x)=>a+x.count,0);}
@@ -96,7 +109,19 @@ function buildInsights(o){
  }
  p.append(cards);return p;
 }
-function salesFor(key){return sales.filter(s=>(!key||norm(s.project)===norm(key))&&Number.isFinite(Number(s.total))&&Number(s.total)>0);}
+function salesFor(key){
+ return sales.filter(s=>{
+  if(key&&norm(s.project)!==norm(key))return false;
+  if(stage.value&&norm(stage.value)!==norm(s.stage))return false;
+  if(origin.value&&origin.value!==String(s.agency||'').trim())return false;
+  if(period.value&&String(s.date||'').slice(0,4)!==period.value)return false;
+  return Number.isFinite(Number(s.total))&&Number(s.total)>0;
+ });
+}
+function activeSalesFilters(){return !!(stage.value||origin.value||period.value);}
+function coverageNotice(){
+ return 'Os filtros de etapa, imobiliária e período alteram exclusivamente indicadores da base de vendas. Perfis agregados e IBGE continuam por empreendimento.';
+}
 function overview(o){
  const wrap=panels.overview;wrap.replaceChildren();
  const sex=rows(o,'Sexo'),age=rows(o,'Faixa etária');
@@ -109,6 +134,9 @@ function overview(o){
   metric('Tempo médio de compra','—','Necessárias datas de entrada e venda por comprador','age')
  );
  wrap.append(summary);
+ const validSales=salesFor(project.value);
+ const saleCount=text('p','ci-quality','Vendas na seleção: '+nf(validSales.length)+'. '+(activeSalesFilters()?coverageNotice():'Dados do histórico de vendas, não equivalentes ao total de perfis demográficos.'));
+ wrap.append(saleCount);
  if(totalSex!==totalAge){const warn=text('p','ci-quality','Atenção à cobertura: gênero '+nf(totalSex)+' registros; faixa etária '+nf(totalAge)+'. Não é correto apresentar esses totais como o mesmo universo de compradores.');wrap.append(warn);}
  const dem=text('div','ci-profile-grid');dem.append(
   profileCard(o,'Sexo','gender',true),profileCard(o,'Faixa etária','age'),profileCard(o,'Renda familiar','income'),profileCard(o,'Estado civil','civil',true));
@@ -123,6 +151,7 @@ function overview(o){
 }
 function profile(o){
  const wrap=panels.profile;wrap.replaceChildren();
+ if(activeSalesFilters())wrap.append(text('p','ci-quality',coverageNotice()));
  const grid=text('div','ci-profile-grid');grid.append(
   profileCard(o,'Sexo','gender',true),profileCard(o,'Faixa etária','age'),
   profileCard(o,'Renda familiar','income'),profileCard(o,'Estado civil','civil',true),
@@ -131,6 +160,7 @@ function profile(o){
 }
 function geographic(o){
  const wrap=panels.origin;wrap.replaceChildren();
+ if(activeSalesFilters())wrap.append(text('p','ci-quality',coverageNotice()));
  const lead=panel('Mapa de concentração dos compradores','cities','Coordenadas aproximadas, sem representar residências individuais');
  const slot=text('div','ci-map-anchor');slot.dataset.mapAnchor='origin';lead.append(slot);wrap.append(lead);
  const cards=text('div','ci-geo-rank');
@@ -289,7 +319,7 @@ function compare(){
   body.append(r);
  }
  table.append(body);scroll.append(table);card.append(scroll);wrap.append(card);
- wrap.append(text('p','ci-data-note','Não há conversão de leads comparável nesta fonte. Ticket médio usa a base de vendas, e o perfil usa agregados demográficos de cobertura distinta.'));
+ wrap.append(text('p','ci-data-note','Ticket médio respeita os filtros de etapa, imobiliária e período. Perfil de renda, idade e cidade é agregado histórico por empreendimento e não pode ser segmentado por esses filtros. Não há conversão de leads comparável nesta fonte.'));
 }
 function attachMap(){
  const map=$('lcmBuyerMap');if(!map)return;
