@@ -35,6 +35,11 @@ def records(payload):
         if isinstance(value,dict):
             for inner in ("items","dados","conversoes"):
                 if isinstance(value.get(inner),list):return value[inner]
+            # Exemplo oficial v1 apresenta "dados" como objeto único.
+            # Não considerar esse formato uma falha na integração.
+            if "idlead" in value or "data_conversao" in value:return [value]
+            indexed=[item for key,item in value.items() if str(key).isdigit() and isinstance(item,dict)]
+            if indexed:return indexed
     raise ValueError("schema")
 
 def classify_keys(rows):
@@ -64,11 +69,11 @@ def main():
                        "data_de":"2026-11-01","data_ate":"2026-11-13"})
         items=records(payload)
         counts=classify_keys(items)
-        print("Endpoint de conversões v1: HTTP 200")
+        print("Endpoint de conversões v1: resposta HTTP 200, estrutura reconhecida")
         print("Diagnóstico agregado de campos: "+json.dumps(counts,sort_keys=True))
         if not items:print("Amostra vazia; cobertura não validada.")
         if not counts.get("form_field_filled"):
-            print("Vínculo formulário não confirmado na amostra. Não publicar atribuição.")
+            print("A resposta v1 não demonstrou ID de formulário. Campo NÃO documentado no contrato da API v1; usar nome/data/idlead apenas como indícios, não atribuição de anúncio.")
         else:
             print("Campo de formulário presente; validar formato e correspondência em ambiente privado antes de atribuir campanhas.")
         return 0
