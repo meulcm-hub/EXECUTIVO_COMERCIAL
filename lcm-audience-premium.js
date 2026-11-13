@@ -48,7 +48,7 @@ function field(label,options){
  const wrapper=text('label','ci-filter');wrapper.append(text('span','',label));
  const select=document.createElement('select');for(const [v,l]of options){const o=new Option(l,v);select.add(o);}wrapper.append(select);filters.append(wrapper);return select;
 }
-const projects=Object.keys(source).filter(k=>k!=='Todos os empreendimentos');
+const projects=Array.from(new Set([...Object.keys(source).filter(k=>k!=='Todos os empreendimentos'),'RESIDENCIAL TERRA SOLIS','RESIDENCIAL EXTREMA MEU LAR']));
 const project=field('Empreendimento',[['','Todos os empreendimentos'],...projects.map(x=>[x,x])]);
 const stage=field('Etapa',[['','Todas as etapas — sem vínculo demográfico']]);
 const origin=field('Origem',[['','Todas as origens — sem vínculo por etapa']]);
