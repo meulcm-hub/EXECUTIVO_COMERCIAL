@@ -194,18 +194,9 @@
       "project_id": 16,
       "project": "RESIDENCIAL FLORES DO CERRADO JACARANDÁ",
       "table_id": 294,
-      "table_name": "Tabela - Novembro/2026",
-      "status": "ok",
+      "status": "review_required_price_outlier",
       "reference_month": "2026-11",
-      "effective_from": "2026-11-01",
-      "effective_to": "2026-12-07",
-      "priced_units": 254,
-      "minimum": 19000.0,
-      "median": 270000.0,
-      "maximum": 270000.0,
-      "currency": "BRL",
-      "price_field": "valor",
-      "selection_rule": "active_today_latest_effective_start"
+      "priced_units": 254
     }
   ]
 }
