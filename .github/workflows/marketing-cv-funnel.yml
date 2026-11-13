@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - 'scripts/marketing_cv_funnel.py'
+      - 'scripts/cv_facebook_scope.py'
+      - 'tests/test_cv_audit_cohort.py'
       - 'scripts/publish_cv_audit.py'
       - 'tests/test_publish_cv_audit.py'
       - 'tests/test_marketing_cv_funnel.py'
