@@ -203,8 +203,8 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-arrow" aria-hidden="true">↓</div>
 <div class="funnel-step level-2"><span class="funnel-label">CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-3"><span class="funnel-label">RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Leads de formulário gerados pela Meta</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Formulários ÷ cliques: —</span></div>
-</div><p class="metric-note" id="caveat">Fonte: Meta Ads. Formulários e conversas não são pessoas únicas; cliques totais não equivalem a cliques no link.</p>
+<div class="funnel-step level-3"><span class="funnel-label">RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Formulários e conversas de WhatsApp</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Resultados ÷ cliques: —</span></div>
+</div><p class="metric-note" id="caveat">Fonte: Meta Ads. Resultados = formulários + conversas WhatsApp. Essa soma não representa pessoas únicas; cliques totais não equivalem a cliques no link.</p>
 </div>
 <div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Acompanhe a evolução da mesma safra de prospects, inclusive após o período selecionado.</p>
 <div class="status" id="cvFunnel">
@@ -317,7 +317,7 @@ function renderCampaigns(visible){
    $('spend').textContent='—';$('formsMeta').textContent='—';
    $('waMeta').textContent='—';$('cpl').textContent='—';
    $('fLeads').textContent='—';$('fFormBreakdown').textContent='—';
-   $('fWhatsApp').textContent='—';$('fConversion').textContent='Formulários ÷ cliques: —';
+   $('fWhatsApp').textContent='—';$('fConversion').textContent='Resultados ÷ cliques: —';
  };
  const table=$('campaignTable');table.replaceChildren();
  const foot=$('campaignTotals');foot.replaceChildren();
@@ -339,18 +339,19 @@ function renderCampaigns(visible){
  if(parts.some(p=>p.value===null)){blank();addTotal('—','—','—','—');return;}
  const forms=parts.reduce((n,p)=>n+p.value.formLeads,0);
  const wa=parts.reduce((n,p)=>n+p.value.whatsapp,0);
+ const results=forms+wa;
  const expense=parts.reduce((n,p)=>n+p.value.spend,0);
- const combined=forms+wa>0?expense/(forms+wa):null;
+ const combined=results>0?expense/results:null;
  $('spend').textContent=money(expense);
  $('formsMeta').textContent=nf(forms);
- $('fLeads').textContent=nf(forms);
+ $('fLeads').textContent=nf(results);
  $('fFormBreakdown').textContent=nf(forms);
  $('fWhatsApp').textContent=nf(wa);
  const clicks=visible.reduce((sum,m)=>sum+Number(data.meta_accounts.find(a=>String(a.account_id)===m.id)?.clicks||0),0);
  const hasClicks=visible.every(m=>data.meta_accounts.some(a=>String(a.account_id)===m.id));
  $('fConversion').textContent=hasClicks&&clicks>0?
-    'Formulários ÷ cliques: '+(forms/clicks*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':
-    'Formulários ÷ cliques: —';
+    'Resultados ÷ cliques: '+(results/clicks*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':
+    'Resultados ÷ cliques: —';
  $('waMeta').textContent=nf(wa);
  $('cpl').textContent=combined===null?'—':money(combined);
  const rows=parts.flatMap(p=>p.value.campaigns.map(c=>({...c,project:p.name})))
@@ -554,7 +555,7 @@ function render(){
     creativesSelection=creativeKey;
     creatives?.update({project:choice,since:data.period.since,until:data.period.until});
   }
-  $('caveat').textContent='Fonte: Meta Ads. Cliques totais ÷ impressões não é o CTR de link. Formulários ÷ cliques é uma razão indicativa; formulários e conversas WhatsApp são apresentados separadamente para evitar interpretação de pessoas únicas.';
+  $('caveat').textContent='Fonte: Meta Ads. Resultados = formulários + conversas WhatsApp; essa soma não representa pessoas únicas. Resultados ÷ cliques é uma razão indicativa; cliques totais não equivalem a cliques no link.';
 }
 // As métricas do funil por safra só são mostradas quando a integração
 // publicar contagens de IDs únicos consistentes, incluindo retroprogressão.
