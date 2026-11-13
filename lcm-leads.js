@@ -6,7 +6,27 @@ const projects={
  'residencial flores do cerrado jacaranda':'Jacarandá',
  'residencial village lagoas':'Village Lagoas',
  'spe arraial costa verde club':'Arraial Costa Verde',
- 'residencial jatoba':'Jatobá'};
+ 'residencial jatoba':'Jatobá',
+ 'residencial extrema meu lar':'Extrema Meu Lar',
+ 'residencial flores do cerrado ipe':'Ipê',
+ 'residencial flamboyant':'Flamboyant',
+ 'residencial green plaza':'Green Plaza',
+ 'residencial terra solis':'Terra Solis',
+ 'spe arraial costa verde':'Arraial Costa Verde',
+ 'residencial santa catarina':'Santa Catarina',
+ 'residencial terra mater':'Terra Mater',
+ 'residencial turquesa parque':'Turquesa Parque',
+ 'residencial monttebelo':'Monttebelo',
+ 'sem empreendimento':'SEM EMPREENDIMENTO'};
+const NO_PROJECT='sem empreendimento';
+function projectKey(raw){
+ const x=String(raw??'').trim().replace(/\s+/g,' ').toLowerCase();
+ if(!x||['null','undefined','não informado','nao informado','não identificado','nao identificado','sem vinculo','sem vínculo','sem empreendimento','-','--'].includes(x))return NO_PROJECT;
+ return x;
+}
+function projectTitle(key){return projects[key]||key.replace(/\b\w/g,m=>m.toUpperCase());}
+function projectKeys(){return [...new Set([...Object.keys(projects),...state.source.prospects.map(g=>projectKey(g.project))])];}
+
 const steps=['Prospect','Agendamento','Visita','Análise de crédito','Venda concluída'];
 const fmt=n=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1}).format(n);
 const dateValid=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -27,7 +47,8 @@ function filters(){return {since:$('since').value,until:$('until').value,project
 function selected(f){
  if(!dateValid(f.since)||!dateValid(f.until)||f.since>f.until)return [];
  return state.source.prospects.flatMap((g,index)=>{
-  if(f.project!=='all'&&g.project!==f.project)return [];
+  const project=projectKey(g.project);
+  if(f.project!=='all'&&project!==f.project)return [];
   if(f.origin==='whatsapp'&&!g.whatsapp_acquisition)return [];
   if(f.origin==='other'&&g.whatsapp_acquisition)return [];
   const entries=g.entries.filter(e=>e.date>=f.since&&e.date<=f.until).sort((a,b)=>a.date.localeCompare(b.date));
@@ -36,7 +57,7 @@ function selected(f){
   // Etapa máxima a partir da entrada e ao longo da trajetória observada;
   // a mesma pessoa/empreendimento permanece uma única linha na seleção.
   if(f.stage!=='all'&&first.stage<Number(f.stage))return [];
-  return [{project:g.project,whatsapp:g.whatsapp_acquisition,date:first.date,stage:first.stage,
+  return [{project,whatsapp:g.whatsapp_acquisition,date:first.date,stage:first.stage,
     isNew:g.new_date!==null&&g.new_date>=f.since&&g.new_date<=f.until,index}];
  });
 }
@@ -128,7 +149,8 @@ function drawProjects(rows){
  const host=clear('projectTable'),table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
  const tr=document.createElement('tr');
  ['Empreendimento','Prospects','Visita','Venda','Conversão'].forEach(x=>tr.append(txt('th',x)));head.append(tr);
- for(const [key,name] of Object.entries(projects)){
+ for(const key of projectKeys()){
+  const name=projectTitle(key);
   if($('project').value!=='all'&&$('project').value!==key)continue;
   const subset=rows.filter(r=>r.project===key),c=counts(subset),t=document.createElement('tr');
   [name,fmt(c.total),fmt(c.stages[2]),state.source.sales_link_validated?fmt(c.stages[4]):'—',state.source.sales_link_validated&&c.total?fmt(100*c.stages[4]/c.total)+'%':'—'].forEach(v=>t.append(txt('td',v)));
@@ -138,7 +160,7 @@ function drawProjects(rows){
 function insights(rows,c){
  const host=clear('insights');
  if(!rows.length){host.append(txt('p','Sem registros no recorte selecionado.'));return;}
- const grouped=Object.entries(projects).map(([key,name])=>({name,count:rows.filter(r=>r.project===key).length})).sort((a,b)=>b.count-a.count);
+ const grouped=projectKeys().map(key=>({name:projectTitle(key),count:rows.filter(r=>r.project===key).length})).sort((a,b)=>b.count-a.count);
  const high=grouped[0];
  host.append(txt('p','Maior volume no recorte: '+high.name+' · '+fmt(high.count)+' prospects ('+fmt(100*high.count/c.total)+'%).'));
  host.append(txt('p','Visitas alcançadas: '+fmt(c.stages[2])+' de '+fmt(c.total)+' prospects ('+fmt(100*c.stages[2]/c.total)+'%).'));
@@ -158,7 +180,8 @@ function render(){
 }
 function csv(){
  if(!state.source)return;
- const f=filters(),rows=selected(f),byProject=Object.entries(projects).map(([id,name])=>{
+ const f=filters(),rows=selected(f),byProject=projectKeys().map(id=>{
+ const name=projectTitle(id);
  const c=counts(rows.filter(r=>r.project===id));return [name,c.total,c.new,c.returns,c.whatsapp,...c.stages];});
  const output=[['Empreendimento','Prospects','Novos','Retornos','WhatsApp FB',...steps],...byProject]
    .map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n');
@@ -175,7 +198,7 @@ async function init(){
   state.source=payload;
   $('since').value=payload.period.since;$('until').value=payload.period.until;
   for(const id of ['since','until']){$(id).min=payload.period.since;$(id).max=payload.period.until;}
-  for(const [key,name]of Object.entries(projects))makeOption($('project'),key,name);
+  for(const key of projectKeys())makeOption($('project'),key,projectTitle(key));
   $('sourceState').textContent='CV CRM · atualizado em '+payload.as_of;
   for(const id of ['since','until','project','origin','stage'])$(id).addEventListener('change',render);
   $('reset').addEventListener('click',()=>{
