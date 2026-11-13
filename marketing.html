@@ -304,7 +304,7 @@ function campaignTotals(id,since,until){
      if(date>=since&&date<=until){
        leads+=Number(v.form_leads||0);
        cost+=Number(v.spend||0);
-       if(campaign.is_whatsapp_campaign===true)messages+=Number(v.messages||0);
+       messages+=Number(v.messages||0);
      }
    }
    formLeads+=leads;
@@ -498,10 +498,10 @@ function render(){
   renderCampaigns(visible);
   renderCvFunnel(visible);
   renderCvAudit(visible);
-  const creativeKey=[choice,data.period.since,data.period.until].join('|');
+  const creativeKey=[choice,data.period.since,data.period.until,campaignSource?.generated_at_utc||''].join('|');
   if(creativeKey!==creativesSelection){
     creativesSelection=creativeKey;
-    creatives?.update({project:choice,since:data.period.since,until:data.period.until});
+    creatives?.update({project:choice,since:data.period.since,until:data.period.until,campaignSource});
   }
   $('caveat').textContent='Fonte: Meta Ads. Resultados = formulários + conversas WhatsApp; essa soma não representa pessoas únicas. Resultados ÷ cliques é uma razão indicativa; cliques totais não equivalem a cliques no link.';
 }
