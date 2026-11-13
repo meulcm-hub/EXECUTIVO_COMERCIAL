@@ -33,7 +33,7 @@ const dateValid=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
 const iso=d=>d.toISOString().slice(0,10);
 const parse=s=>new Date(s+'T12:00:00Z');
 const days=(a,b)=>Math.round((parse(b)-parse(a))/86400000)+1;
-const state={source:null,groups:[],group:'month',filterStage:'all'};
+const state={source:null,allHistory:null,groups:[],group:'month',filterStage:'all'};
 function txt(tag,text,cl){const node=document.createElement(tag);node.textContent=text;if(cl)node.className=cl;return node;}
 function clear(id){const node=$(id);node.replaceChildren();return node;}
 function makeOption(select,value,label){const x=document.createElement('option');x.value=value;x.textContent=label;select.append(x);}
@@ -167,9 +167,68 @@ function insights(rows,c){
  host.append(txt('p','Sem dados de SDR, horários de primeira resposta ou últimos contatos: ranking de produtividade e alertas de SLA indisponíveis.'));
  host.append(txt('p','As contagens representam registros únicos por empreendimento na fonte anonimizada. Não comprovam unicidade de uma pessoa em empreendimentos distintos.'));
 }
+function renderAllHistory(){
+ const host=$('allKpis'),note=$('allSourceNote');
+ if(!host||!note)return;
+ host.replaceChildren();
+ const source=state.allHistory;
+ if(!source||!source.validated){
+  note.textContent='A primeira coleta histórica completa ainda não foi publicada ou não passou na validação. Os indicadores abaixo não serão substituídos pelos dados parciais do Marketing.';
+  clear('allProjects');clear('allOrigins');return;
+ }
+ const f=filters();
+ // Sem dimensões que não foram efetivamente coletadas neste relatório.
+ const cells=source.by_registration_project_origin_status.filter(r=>
+  r.date>=f.since&&r.date<=f.until&&
+  (f.project==='all'||projectKey(r.project)===f.project)&&
+  (f.origin==='all'||(f.origin==='whatsapp'
+   ?(/whatsapp/i.test(r.origin)&&/facebook/i.test(r.origin))
+   :!(/whatsapp/i.test(r.origin)&&/facebook/i.test(r.origin)))));
+ const count=cells.reduce((sum,r)=>sum+r.count,0);
+ const projectCounts=new Map(),originCounts=new Map();
+ for(const row of cells){
+  const project=projectTitle(projectKey(row.project));
+  projectCounts.set(project,(projectCounts.get(project)||0)+row.count);
+  const origin=row.origin||'NÃO INFORMADA';
+  originCounts.set(origin,(originCounts.get(origin)||0)+row.count);
+ }
+ putKpi(host,'Leads únicos no período',fmt(count),'Base CV CRM completa; cadastro original');
+ putKpi(host,'Todos os leads identificados',fmt(source.unique_leads),'Todas as datas e origens acessíveis');
+ putKpi(host,'Primeiro cadastro CV',source.earliest_cadastro,'Primeira data confirmada pela API');
+ putKpi(host,'Sem empreendimento',fmt(projectCounts.get('SEM EMPREENDIMENTO')||0),'Não excluídos da base');
+ note.textContent='Coleta integral CV CRM · '+fmt(source.pages_scanned)+' páginas verificadas · '+
+  fmt(source.snapshots_scanned)+' snapshots processados · referência '+source.as_of+
+  '. Período e empreendimento filtram estes indicadores. A etapa detalhada requer outra fonte; não filtra estes totais.';
+ const sorted=(map)=>[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15)
+  .map(([label,value])=>({label,value}));
+ bars($('allProjects'),sorted(projectCounts));bars($('allOrigins'),sorted(originCounts));
+}
+async function loadAllHistory(){
+ try{
+  const response=await fetch('data/leads-all-summary.json?v=full-history-v1',{cache:'no-store'});
+  if(!response.ok)throw new Error('Ainda não publicado');
+  const data=await response.json();
+  if(data?.schema_version!==1||data.validated!==true||
+    data.scope!=='all_accessible_leads'||!Array.isArray(data.by_registration_project_origin_status)||
+    data.by_registration_project_origin_status.reduce((n,r)=>n+Number(r.count||0),0)!==data.unique_leads)
+    throw new Error('Resumo integral sem validação');
+  state.allHistory=data;
+  const projectSelect=$('project'),selected=projectSelect.value,existing=new Set([...projectSelect.options].map(o=>o.value));
+  for(const row of data.by_registration_project_origin_status){
+   const key=projectKey(row.project);
+   if(!existing.has(key)){makeOption(projectSelect,key,projectTitle(key));existing.add(key);}
+  }
+  projectSelect.value=existing.has(selected)?selected:'all';
+  $('since').min=data.earliest_cadastro;$('until').min=data.earliest_cadastro;
+  $('since').max=data.as_of;$('until').max=data.as_of;
+  // Manter período selecionado, disponibilizando todo o histórico anterior.
+  renderAllHistory();
+ }catch(e){state.allHistory=null;renderAllHistory();}
+}
 function render(){
  if(!state.source)return;
  const f=filters();
+ renderAllHistory();
  if(!dateValid(f.since)||!dateValid(f.until)||f.since>f.until||f.since<state.source.period.since||f.until>state.source.period.until){
   $('scopeNote').textContent='Período inválido ou fora da cobertura CV CRM: '+state.source.period.since+' a '+state.source.period.until;
   return;
@@ -215,7 +274,8 @@ async function init(){
   });
   $('export').addEventListener('click',csv);
   render();
- }catch(e){error('Fonte CV CRM indisponível: '+e.message);}
+  await loadAllHistory();
+ }catch(e){error('Fonte CV CRM indisponível: '+e.message);await loadAllHistory();}
 }
 init();
 })();
