@@ -20,6 +20,15 @@ TOKEN = os.environ.get("META_ACCESS_TOKEN", "").strip()
 FIELDS = "account_id,account_name,campaign_id,campaign_name,date_start,date_stop,spend,impressions,clicks"
 DECIMAL = decimal.Decimal
 
+class MetaAPIError(RuntimeError):
+    """Diagnóstico seguro com código estruturado, sem corpo ou URL da API."""
+    def __init__(self, message, code):
+        super().__init__(message)
+        self.code = code
+
+class MetaNetworkError(RuntimeError):
+    pass
+
 
 def request(path, params=None):
     if not TOKEN:
@@ -60,10 +69,10 @@ def request(path, params=None):
                             else "permissão de anúncios insuficiente; verifique ads_read e acesso à conta" if code in (10, 200)
                             else "parâmetro ou conta não aceito pela Meta" if code == 100
                             else "verifique ads_read, conta e token")
-                raise RuntimeError("Meta API retornou HTTP " + str(exc.code) +
-                    " (código " + str(code) + ", subcódigo " + str(subcode) + "): " + category) from None
+                raise MetaAPIError("Meta API retornou HTTP " + str(exc.code) +
+                    " (código " + str(code) + ", subcódigo " + str(subcode) + "): " + category, code) from None
             except urllib.error.URLError:
-                raise RuntimeError("Falha de rede ao consultar a Meta API.") from None
+                raise MetaNetworkError("Falha de rede ao consultar a Meta API.") from None
         if "error" in data:
             raise RuntimeError("Meta API recusou a consulta. Confira permissões e conta.")
         # Consultas diretas a uma conta retornam objeto, sem envelope data.
@@ -105,10 +114,18 @@ def accounts():
     else:
         wanted = DASHBOARD_ACCOUNT_IDS
     # O catálogo preserva os metadados de moeda usados por todos os coletores.
-    result = request("me/adaccounts", {
-        "fields": "id,name,account_status,currency",
-        "limit": "100"
-    })
+    try:
+        result = request("me/adaccounts", {
+            "fields": "id,name,account_status,currency",
+            "limit": "100"
+        })
+    except MetaAPIError as exc:
+        if exc.code not in (10, 200):
+            raise
+        # Tokens de usuário do sistema podem acessar os ativos atribuídos
+        # diretamente, sem permissão para listar o catálogo do usuário.
+        print("Catálogo indisponível; validando contas vinculadas diretamente.", flush=True)
+        result = []
     by_id = {str(row.get("id", "")).removeprefix("act_"):row for row in result}
     # Contas atribuídas por um negócio podem não aparecer em me/adaccounts.
     # Conferir diretamente somente os IDs já vinculados antes de concluir falta de acesso.
@@ -120,7 +137,9 @@ def accounts():
             if not isinstance(item, dict) or str(item.get("id", "")).removeprefix("act_") != aid:
                 raise RuntimeError("Metadados da conta não confirmados")
             by_id[aid] = item
-        except RuntimeError:
+        except RuntimeError as exc:
+            if isinstance(exc, MetaNetworkError) or (isinstance(exc, MetaAPIError) and exc.code == 190):
+                raise
             missing.append(aid)
     if missing:
         names = ", ".join(DASHBOARD_ACCOUNT_LABELS.get(aid, "Conta vinculada") for aid in missing)
