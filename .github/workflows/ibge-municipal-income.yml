@@ -1,0 +1,40 @@
+name: LCM - IBGE renda municipal oficial 2022
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/ibge_publish_municipal_income.py
+      - .github/workflows/ibge-municipal-income.yml
+      - lcm-audience-intelligence-v8.js
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish-official-municipal-income:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Extrair indicador oficial Censo 2022 e validar contrato
+        run: |
+          python scripts/ibge_publish_municipal_income.py
+          python - <<'PY'
+          import json
+          x=json.load(open('data/ibge-municipal-responsible-income.json',encoding='utf-8'))
+          assert x['variable']=='V06004' and x['not_household_income'] is True
+          assert len(x['municipalities'])>=5000
+          PY
+      - name: Publicar somente agregado municipal no site
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/ibge-municipal-responsible-income.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(ibge): atualizar rendimento municipal oficial Censo 2022'
+            git push
+          fi
