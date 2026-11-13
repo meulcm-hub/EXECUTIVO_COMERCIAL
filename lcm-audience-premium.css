@@ -75,6 +75,6 @@ body.lcm-app #audience.aud-premium-v2 .aud-premium-empty{padding:38px 25px;backg
 body.lcm-app #audience.aud-premium-v2 .aud-premium-original-heading{display:none!important}
 body.lcm-app #audience.aud-premium-v2 .aud-premium-tabs{position:relative}
 body.lcm-app #audience.aud-premium-v2 .aud-grid:empty,body.lcm-app #audience.aud-premium-v2 .aud-panels:empty{display:none!important}
-@media(max-width:1400px){body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-demographic{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1100px){body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-demographic{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-origin,body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-others{grid-template-columns:1fr}}
 @media(max-width:520px){body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-demographic{grid-template-columns:1fr}body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.lcm-app #audience.aud-premium-v2 .aud-premium-grid>.aud-panel{padding:14px!important}}
