@@ -215,7 +215,7 @@ function ibgeAddressLine(p){
 }
 
 /* V7: section-specific UI; no changes to the original dashboard views. */
-let opportunityMap=null, opportunityLayers=null, opportunityLeaflet=null;
+let opportunityMap=null, opportunityLayers=null, opportunityLeaflet=null, opportunityMapSeq=0;
 const opportunityCache=new Map();
 let opportunityPlanData=null;
 const opportunitySourceUrls={
@@ -347,9 +347,10 @@ async function opLoadLeaflet(){
  return window.__lcmOpportunityLeafletLoading;
 }
 async function opDrawMap(container,options){
- if(opportunityMap){opportunityMap.remove();opportunityMap=null;}
+ const seq=++opportunityMapSeq;
  const L=await opLoadLeaflet();
- if(!container.isConnected||currentTab!=="ibge")return;
+ if(seq!==opportunityMapSeq||!container.isConnected||currentTab!=="ibge")return;
+ if(opportunityMap){opportunityMap.remove();opportunityMap=null;}
  const map=L.map(container,{scrollWheelZoom:false,zoomControl:true}).setView([-14.2,-51.9],4);
  opportunityMap=map;
  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
@@ -405,6 +406,7 @@ async function ibge(o){
  const view=panels.ibge;view.replaceChildren();
  opportunityPlanData=null;
  const ticket=++ibgeSession;
+ opportunityMapSeq++;
  if(opportunityMap){opportunityMap.remove();opportunityMap=null;}
  const outer=opElem("div","ci-op-v7");view.append(outer);
  const header=opElem("div","ci-op-section-lead");
@@ -428,6 +430,7 @@ async function ibge(o){
  const mapCard=opCard("Mapa de Oportunidades","⌖","Localidades agregadas reais e camadas geográficas disponíveis.");
  const mapLabels=opElem("div","ci-op-layers"),mapCanvas=opElem("div","ci-op-map");
  mapCanvas.setAttribute("aria-label","Mapa interativo de oportunidades");mapCard.append(mapLabels,mapCanvas);
+ const legend=opElem("div","ci-op-map-legend");legend.append(opElem("span","ci-op-legend-city","● Compradores por cidade"),opElem("span","ci-op-legend-district","● Compradores por bairro"),opElem("span","ci-op-legend-sector","▧ Setor IBGE validado"),opElem("span","ci-op-legend-parcel","⌖ Empreendimento confirmado"));mapCard.append(legend);
  const mapNote=opParagraph("Mapa do OpenStreetMap; sem ponto confirmado do terreno ou setores processados, o mapa mostra apenas compradores agregados por cidade/bairro.");
  mapCard.append(mapNote);mid.append(mapCard);outer.append(mid);
  const reco=opCard("Recomendações de Campanhas","◎","Estratégias de teste para Meta Ads e Google Ads com justificativas e políticas de anúncios habitacionais.");
@@ -606,7 +609,7 @@ function attachMap(){
 function showTab(key){
  currentTab=key;
  host.classList.toggle('ci-op-mode',key==='ibge');
- if(key!=='ibge'&&opportunityMap){opportunityMap.remove();opportunityMap=null;}
+ if(key!=='ibge'){opportunityMapSeq++;if(opportunityMap){opportunityMap.remove();opportunityMap=null;}}
  for(const [name,p]of Object.entries(panels))p.hidden=name!==key;
  for(const btn of tabs.querySelectorAll('button')){btn.classList.toggle('is-active',btn.dataset.tab===key);btn.setAttribute('aria-current',btn.dataset.tab===key?'page':'false');}
  if(key==='ibge')ibge(data());
