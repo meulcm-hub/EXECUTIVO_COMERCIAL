@@ -16,7 +16,7 @@ money:'<circle cx="12" cy="12" r="9"/><path d="M15 8H10a2 2 0 0 0 0 4h4a2 2 0 0 
 window.LcmIcon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(icons[name]||icons.home)+'</svg>';
 const body=document.body;
 // A navegação entre visões também precisa renovar o HTML em cache.
-const uiVersion='20261112-horarios';
+const uiVersion='lcm-clean-notes-v1';
 function pageUrl(href){
  const url=new URL(href,location.href);
  url.searchParams.set('ui',uiVersion);
@@ -71,6 +71,18 @@ function active(){
 }
 sidebar.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>closeMenu()));
 window.addEventListener('hashchange',active);active();
+// Retirar as legendas solicitadas e manter mensagens reais de validação.
+const cleanStyles=document.querySelector('link[href*="lcm-dashboard.css"]');
+if(cleanStyles){const asset=new URL(cleanStyles.href,location.href);asset.searchParams.set('v',uiVersion);cleanStyles.href=asset.href;}
+const notes=[
+ ['ovStatus',text=>text.startsWith('Período aplicado:')],
+ ['cvConversionNote',text=>text.includes('Fonte: CV CRM')||text.startsWith('Aguardando publicação do cruzamento privado')]
+];
+for(const [id,isExplanation] of notes){
+ const node=document.getElementById(id);if(!node)continue;
+ const update=()=>node.classList.toggle('lcm-clean-note',isExplanation(node.textContent.trim()));
+ update();new MutationObserver(update).observe(node,{childList:true,subtree:true,characterData:true});
+}
 })();
 
 
