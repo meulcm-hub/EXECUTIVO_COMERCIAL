@@ -121,6 +121,13 @@ def aggregate(rows,when=None):
         start,tid,units=winners[0]
         prices=sorted(entry["price"] for entry in units.values())
         sample=next(iter(units.values()))
+        # Valores de garagens/itens avulsos e registros inconsistentes não devem
+        # reduzir artificialmente o preço de uma unidade residencial.
+        if len(prices)>=5 and prices[0]<median(prices)*0.25:
+            output.append({"project_id":int(pid),"project":sample["project"],
+                "table_id":int(tid),"status":"review_required_price_outlier",
+                "reference_month":when.strftime("%Y-%m"),"priced_units":len(prices)})
+            continue
         output.append({"project_id":int(pid),"project":sample["project"],
             "table_id":int(tid),"table_name":sample["table"],"status":"ok",
             "reference_month":when.strftime("%Y-%m"),"effective_from":start.isoformat(),
