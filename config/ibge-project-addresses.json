@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "source": "endereços fornecidos pelo responsável pela LCM em 2026-11-13; não equivalem a coordenadas verificadas",
+  "verification": "provided_by_user",
+  "projects": [
+    {
+      "project": "RESIDENCIAL MONTTEBELO",
+      "road": "Rua Maria Augusta dos Reis",
+      "number": "320",
+      "district": "Santa Rita",
+      "city": "Santa Luzia",
+      "state": "MG",
+      "postcode": "33080-120"
+    },
+    {
+      "project": "RESIDENCIAL TURQUESA PARQUE",
+      "road": "Rua Júlia Cruz Bahia",
+      "number": "150",
+      "district": "Niterói",
+      "city": "Betim",
+      "state": "MG",
+      "postcode": "32672-100"
+    },
+    {
+      "project": "RESIDENCIAL TERRA SOLIS",
+      "road": "Avenida Beira Mar",
+      "number": "7000",
+      "district": "Orla Taperapuã",
+      "city": "Porto Seguro",
+      "state": "BA",
+      "postcode": "45810-000"
+    },
+    {
+      "project": "Residencial FLAMBOYANT",
+      "road": "Rua RR2",
+      "number": "62",
+      "complement": "Quadra 4, lotes 10/11",
+      "district": "Residencial San Marino",
+      "city": "Senador Canedo",
+      "state": "GO",
+      "postcode": "75262-702",
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Flamboyant/Jatobá",
+      "same_reference_address_adjacent_distinct_sites": true
+    },
+    {
+      "project": "RESIDENCIAL FLORES DO CERRADO IPÊ",
+      "road": "Avenida Wilian da Silva Guimarães",
+      "number": "",
+      "complement": "Quadra 07, lote 17",
+      "district": "Residencial London Park",
+      "city": "Goiânia",
+      "state": "GO",
+      "postcode": "74471-100",
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Ipê/Jacarandá",
+      "same_reference_address_adjacent_distinct_sites": true
+    },
+    {
+      "project": "RESIDENCIAL TERRA MATER",
+      "road": "Rua E",
+      "number": "723",
+      "district": "Loteamento D'Ville",
+      "city": "Porto Seguro",
+      "state": "BA",
+      "postcode": "45810-000"
+    },
+    {
+      "project": "RESIDENCIAL SANTA CATARINA",
+      "road": "Rua Virgínia",
+      "number": "",
+      "number_range": "1310-1420",
+      "district": "Vila Delermano",
+      "city": "Campo Alegre de Goiás",
+      "state": "GO",
+      "postcode": "75795-000",
+      "review": "faixa de números não identifica portaria precisa"
+    },
+    {
+      "project": "RESIDENCIAL JATOBÁ",
+      "road": "Rua RR2",
+      "number": "62",
+      "complement": "Quadra 4, lotes 10/11",
+      "district": "Residencial San Marino",
+      "city": "Senador Canedo",
+      "state": "GO",
+      "postcode": "75262-702",
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Flamboyant/Jatobá",
+      "same_reference_address_adjacent_distinct_sites": true
+    },
+    {
+      "project": "RESIDENCIAL VILLAGE LAGOAS",
+      "road": "Rua Expedicionário Leofredo Gaspar",
+      "number": "1380",
+      "district": "Brasília",
+      "city": "Sete Lagoas",
+      "state": "MG",
+      "postcode": "35702-052"
+    },
+    {
+      "project": "SPE ARRAIAL COSTA VERDE",
+      "road": "",
+      "number": "",
+      "district": "Arraial d'Ajuda",
+      "city": "Porto Seguro",
+      "state": "BA",
+      "postcode": "45810-000",
+      "review": "somente localidade; requer ponto físico do empreendimento"
+    },
+    {
+      "project": "SPE ARRAIAL COSTA VERDE CLUB",
+      "road": "",
+      "number": "",
+      "district": "Arraial d'Ajuda",
+      "city": "Porto Seguro",
+      "state": "BA",
+      "postcode": "45810-000",
+      "review": "somente localidade; requer ponto físico do empreendimento"
+    },
+    {
+      "project": "RESIDENCIAL GREEN PLAZA",
+      "road": "Rua Hudson Gouthier",
+      "number": "278",
+      "district": "Santa Mônica",
+      "city": "Belo Horizonte",
+      "state": "MG",
+      "postcode": "31515-252"
+    },
+    {
+      "project": "RESIDENCIAL EXTREMA MEU LAR",
+      "road": "Alameda Jacarandá",
+      "number": "60",
+      "district": "",
+      "city": "Extrema",
+      "state": "MG",
+      "postcode": "37640-000"
+    },
+    {
+      "project": "RESIDENCIAL FLORES DO CERRADO JACARANDÁ",
+      "road": "Avenida Wilian da Silva Guimarães",
+      "number": "",
+      "complement": "Quadra 07, lote 17",
+      "district": "Residencial London Park",
+      "city": "Goiânia",
+      "state": "GO",
+      "postcode": "74471-100",
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Ipê/Jacarandá",
+      "same_reference_address_adjacent_distinct_sites": true
+    }
+  ]
+}

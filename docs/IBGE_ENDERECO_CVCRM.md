@@ -67,3 +67,13 @@ GitHub Actions: https://github.com/meulcm-hub/EXECUTIVO_COMERCIAL/actions/runs/4
 - **9 sem correspondência exata:** RESIDENCIAL TERRA MATER; RESIDENCIAL SANTA CATARINA; RESIDENCIAL JATOBÁ; RESIDENCIAL VILLAGE LAGOAS; SPE ARRAIAL COSTA VERDE; SPE ARRAIAL COSTA VERDE CLUB; RESIDENCIAL GREEN PLAZA; RESIDENCIAL EXTREMA MEU LAR; RESIDENCIAL FLORES DO CERRADO JACARANDÁ.
 
 O artefato privado `coordenadas-empreendimentos-para-revisao` tem retenção de 7 dias. Não contém logradouros, número nem dados pessoais. Coordenadas candidatas possuem `verified: false`; **não se publica análise por raio** até validar. A consulta foi executada em lote único com pausas e o gatilho de push foi removido.
+
+## Endereços confirmados em 13/11/2026
+
+Foram recebidos 14 endereços ou referências de localização do responsável pelo projeto e preservados em `config/ibge-project-addresses.json`. São dados de cadastro de empreendimentos (não endereços de clientes).
+
+**Esclarecimento do responsável:** Flamboyant/Jatobá e Ipê/Jacarandá são terrenos **vizinhos e distintos** que usam o mesmo endereço de referência. A geocodificação pode evitar consultas duplicadas, mas **não pode atribuir automaticamente a mesma coordenada central a esses empreendimentos**. Para eles, é necessário identificar individualmente o centro de cada lote/terreno por meio de mapa, polígono ou ponto confirmado.
+
+Também não há ponto exato para SPE Arraial Costa Verde e SPE Arraial Costa Verde Club, porque foram informadas apenas a localidade Arraial d'Ajuda e a cidade Porto Seguro. O número de Santa Catarina é uma faixa (`1310–1420`), não uma portaria definida. Os lotes de Ipê/Jacarandá podem ser localizados espacialmente com croqui ou geolocalização do lote, não por número predial inexistente.
+
+O workflow `ibge-geocode-curated.yml` faz um lote controlado de geocodificação, com distinção explícita `adjacent_distinct_site_requires_own_point` para referências idênticas de terrenos vizinhos. Todos os pontos seguem não verificados e não alimentam indicadores censitários até validação independente.

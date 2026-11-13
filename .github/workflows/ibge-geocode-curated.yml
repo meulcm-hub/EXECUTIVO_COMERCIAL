@@ -1,0 +1,38 @@
+name: LCM - Geocodificar enderecos confirmados pelo responsavel
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - config/ibge-project-addresses.json
+      - scripts/geocode_curated_ibge.py
+      - tests/test_geocode_curated_ibge.py
+      - .github/workflows/ibge-geocode-curated.yml
+permissions:
+  contents: read
+concurrency:
+  group: ibge-curated-geocoding-once
+  cancel-in-progress: false
+jobs:
+  geocode-curated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar enderecos e privacidade
+        run: python -m unittest discover -s tests -p test_geocode_curated_ibge.py -v
+      - name: Geocodificar cadastro confirmado, sem publicar coordenadas
+        run: python scripts/geocode_curated_ibge.py
+      - name: Salvar propostas de localizacao para revisao
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ibge-coordenadas-fornecidas-para-revisao
+          path: artifacts/ibge-geocode-curated-review.json
+          retention-days: 7
+          if-no-files-found: error
