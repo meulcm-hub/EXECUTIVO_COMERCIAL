@@ -1,0 +1,41 @@
+name: LCM - Calcular setores IBGE (revisao, sem publicacao)
+on:
+  pull_request:
+    paths:
+      - scripts/ibge_build_spatial_context.py
+      - tests/test_ibge_spatial_context.py
+      - config/ibge-project-centers-review.json
+      - .github/workflows/ibge-geospatial-review.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ibge-geospatial-review
+  cancel-in-progress: false
+jobs:
+  sector-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar ambiente espacial
+        run: python -m pip install --disable-pip-version-check "geopandas==1.1.1" "pyogrio==0.11.1" "shapely==2.1.2" "pyproj==3.7.2"
+      - name: Testar bloqueio de localizacoes e metodologia geometrica
+        run: python -m unittest discover -s tests -p test_ibge_spatial_context.py -v
+      - name: Gerar calculos de revisao com dados IBGE oficiais
+        run: python scripts/ibge_build_spatial_context.py --review
+      - name: Guardar revisao sem publicar na pagina
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setores-ibge-2022-revisao-nao-publicavel
+          path: |
+            artifacts/ibge-spatial-status.json
+            artifacts/ibge-sector-preview.json
+          retention-days: 7
+          if-no-files-found: ignore
