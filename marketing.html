@@ -207,7 +207,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-arrow" aria-hidden="true">↓</div>
 <div class="funnel-step level-2"><span class="funnel-label">CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
-<div class="funnel-step level-3"><span class="funnel-label">RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Formulários e conversas de WhatsApp</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Resultados ÷ cliques: —</span></div>
+<div class="funnel-step level-3"><span class="funnel-label">RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Formulários e conversas de WhatsApp</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Comparação de taxas: —</span></div>
 </div><p class="metric-note" id="caveat">Fonte: Meta Ads. Resultados = formulários + conversas WhatsApp. Essa soma não representa pessoas únicas; cliques totais não equivalem a cliques no link.</p>
 </div>
 <div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Acompanhe a evolução da mesma safra de prospects, inclusive após o período selecionado.</p>
@@ -258,7 +258,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 </main>
 <script src="lcm-cv-query.js?v=lcm-cohort-v1"></script>
 <script src="lcm-date-range.js?v=6d4dff9ed8a1"></script>
-<script src="lcm-creatives.js?v=28d2d903514f"></script>
+<script src="lcm-creatives.js?v=marketing-reconcile-08f1e18"></script>
 <script src="lcm-update-status.js?v=74e5dfbc6c5a"></script>
 <script>
 (()=>{
@@ -354,8 +354,8 @@ function renderCampaigns(visible){
  const clicks=visible.reduce((sum,m)=>sum+Number(data.meta_accounts.find(a=>String(a.account_id)===m.id)?.clicks||0),0);
  const hasClicks=visible.every(m=>data.meta_accounts.some(a=>String(a.account_id)===m.id));
  $('fConversion').textContent=hasClicks&&clicks>0?
-    'Resultados ÷ cliques: '+(results/clicks*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':
-    'Resultados ÷ cliques: —';
+    'Comparação de taxas: bases distintas':
+    'Comparação de taxas: —';
  $('waMeta').textContent=nf(wa);
  $('cpl').textContent=combined===null?'—':money(combined);
  const rows=parts.flatMap(p=>p.value.campaigns.map(c=>({...c,project:p.name})))
@@ -503,7 +503,7 @@ function render(){
     creativesSelection=creativeKey;
     creatives?.update({project:choice,since:data.period.since,until:data.period.until,campaignSource});
   }
-  $('caveat').textContent='Fonte: Meta Ads. Resultados = formulários + conversas WhatsApp; essa soma não representa pessoas únicas. Resultados ÷ cliques é uma razão indicativa; cliques totais não equivalem a cliques no link.';
+  $('caveat').textContent='Meta Ads: impressões e cliques abrangem as contas vinculadas; resultados são das campanhas atualmente ativas. Os universos não permitem taxa de cliques → resultados. Formulários + conversas WhatsApp não equivalem a prospects únicos do CV CRM.';
 }
 // As métricas do funil por safra só são mostradas quando a integração
 // publicar contagens de IDs únicos consistentes, incluindo retroprogressão.
