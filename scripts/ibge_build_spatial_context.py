@@ -170,7 +170,10 @@ def subset_for_center(shp,center):
 
 def make_features(frame,center,counts,km):
     from shapely.geometry import mapping
+    from pyproj import CRS
     shares,intersections=sector_radius_frame(frame,center,km)
+    crs=CRS.from_proj4(f"+proj=aeqd +lat_0={center['lat']} +lon_0={center['lng']} +datum=WGS84 +units=m +no_defs")
+    areas_km2=frame.to_crs(crs).geometry.area/1000000
     records=[]
     for i,share in enumerate(shares):
         if share<=0:continue
@@ -178,11 +181,11 @@ def make_features(frame,center,counts,km):
         if code not in counts:continue
         p,h=counts[code]
         poly=frame.iloc[[i]].to_crs("EPSG:4326").geometry.iloc[0]
-        sector_area=frame.geometry.iloc[i]
-        # geometries reflect the original sector, not an invented heatmap raster
-        density=p/max(0.01,sector_area.area) if False else None
+        sector_area=max(float(areas_km2.iloc[i]),0.0001)
+        density=p/sector_area
         records.append({"type":"Feature","properties":{
             "ibge_sector_code":code,"population":int(p),"households":int(h),
+            "population_density_km2":round(density,1),
             "area_intersection_fraction":round(float(share),4),
             "estimated_people_in_radius":round(p*float(share),1)
           },"geometry":mapping(poly.simplify(0.00003,preserve_topology=True))})
