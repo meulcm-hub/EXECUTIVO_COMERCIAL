@@ -143,7 +143,8 @@ setTab('overview',false);
 // loop de MutationObserver quando os cartões forem reposicionados.
 const watch=new MutationObserver(()=>{
  const map=document.getElementById('lcmBuyerMap');
- if(map&&!map.dataset.premiumPlaced){
+ const pending=root.querySelector('.aud-panel:not(.aud-premium-card)');
+ if((map&&!map.dataset.premiumPlaced)||pending){
   watch.disconnect();
   relocate();
   setTab(active,false);
