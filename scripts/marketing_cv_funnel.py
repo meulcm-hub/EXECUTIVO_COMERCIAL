@@ -168,6 +168,33 @@ def lead_ids(row):
             ids.update(str(v) for v in value if isinstance(v, int) and v>0)
     return ids
 
+def public_prospects(entry_dates, stage_by_lead, new_dates, whatsapp_by_lead):
+    """Projeta as mesmas coortes com a data original elegível, sem IDs.
+
+    new_dates é preenchido somente quando o cadastro original já passou pelas
+    regras de entrada. Não inferir um cadastro novo a partir de uma conversão.
+    """
+    prospects = []
+    for (project, lead), dates in sorted(entry_dates.items()):
+        new_day = new_dates.get((project, lead))
+        if new_day is not None and new_day not in dates:
+            raise RuntimeError("Cadastro original sem entrada correspondente no funil")
+        whatsapp = whatsapp_by_lead.get(lead)
+        if type(whatsapp) is not bool:
+            raise RuntimeError("Origem WhatsApp do cadastro não classificada")
+        events = stage_by_lead.get(lead, ())
+        prospects.append({
+            "project": project,
+            "new_date": new_day.isoformat() if new_day is not None else None,
+            "whatsapp_acquisition": whatsapp,
+            "entries": [
+                {"date": day.isoformat(),
+                 "stage": max((level for event, level in events if event >= day), default=0)}
+                for day in sorted(dates)
+            ],
+        })
+    return prospects
+
 def main():
     base, email, token = credentials()
     today = dt.date.today()
@@ -182,8 +209,10 @@ def main():
     print("Pré-validação de reservas concluída.", flush=True)
     original = {}
     original_details = {}
+    whatsapp_by_lead = {}
     entry_origins = {}
     entry_dates = collections.defaultdict(set)
+    new_dates = {}
     conflicts = set()
     aliases = collections.defaultdict(set)
     for row in read_complete(base, email, token, historical, today,
@@ -200,6 +229,7 @@ def main():
             conflicts.add(lead)
         else:
             original[lead] = current
+            whatsapp_by_lead[lead] = classify_channel(row) == "meta_whatsapp_cv"
             original_details[lead] = {
                 "cliente": str(row.get("nome") or row.get("nome_lead") or row.get("cliente") or "Não informado"),
                 "situacao_lead": row.get("situacao") or row.get("status") or row.get("situacao_lead") or "Não informado",
@@ -218,6 +248,7 @@ def main():
         if lead not in conflicts and accepted and project in PROJECTS and begin <= day <= today:
             entry[(project, lead)] = day
             entry_dates[(project, lead)].add(day)
+            new_dates[(project, lead)] = day
             entry_origins[(project, lead)] = "Novo cadastro"
     possible = {k: next(iter(v)) for k, v in aliases.items() if len(v) == 1}
     seen_events = set()
@@ -374,12 +405,7 @@ def main():
     # usar a primeira entrada elegível por empreendimento; não somar eventos.
     # Um grupo anônimo por cliente/empreendimento mantém todas as entradas.
     # A primeira entrada dentro do filtro é escolhida no navegador.
-    prospects=[]
-    for (project,lead), dates in sorted(entry_dates.items()):
-        events=stage_by_lead.get(lead, ())
-        prospects.append({"project":project,"entries":[
-            {"date":day.isoformat(),"stage":max((level for event,level in events if event>=day),default=0)}
-            for day in sorted(dates)]})
+    prospects = public_prospects(entry_dates, stage_by_lead, new_dates, whatsapp_by_lead)
     # Sem vínculo confiável de vendas, não publicar um zero como resultado definitivo.
     sales_link_validated = bool(sales_audit["reservas_classificadas_venda"]
                                 and sales_audit["vendas_com_idlead"]
@@ -387,6 +413,7 @@ def main():
     if not sales_link_validated:
         print("ATENÇÃO: venda da safra não confirmada; indicador de vendas permanece em auditoria.", flush=True)
     report = {"schema_version": 2, "validated": True,
+              "classification_version": 1,
               "sales_link_validated": sales_link_validated,
               "cohort_mode": "prospect_date", "as_of": today.isoformat(),
               "period": {"since": begin.isoformat(), "until": today.isoformat()},
