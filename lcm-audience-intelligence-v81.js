@@ -562,10 +562,12 @@ async function ibge(o){
     market==null?(region?"Domicílios no raio · elegibilidade não calculada":Number.isFinite(municipal?.homes)?"Domicílios no município · não são compradores potenciais":"Aguardando domicílios oficiais do IBGE"):"Domicílios financeiramente compatíveis · metodologia documentada",
     "◎",market==null?"IBGE · UNIVERSO, NÃO DEMANDA":"ESTIMATIVA AUDITADA")
   );
+  let potentialInfo=outer.querySelector(".ci-op-potential-note");
   if(market==null){
-   const info=opElem("p","ci-op-warning","Potencial comprador ainda não calculável: é necessário cruzar faixas de renda familiar da região, preço e condições de financiamento do empreendimento. O número no cartão é apenas o universo de domicílios, não uma previsão de vendas.");
-   metricRow.after(info);
-  }
+   if(!potentialInfo)potentialInfo=opElem("p","ci-op-warning ci-op-potential-note");
+   potentialInfo.textContent="Potencial comprador ainda não calculável: é necessário cruzar faixas de renda familiar da região, preço e condições de financiamento do empreendimento. O número no cartão é apenas o universo de domicílios, não uma previsão de vendas.";
+   metricRow.after(potentialInfo);
+  }else if(potentialInfo)potentialInfo.remove();
   compareBody.replaceChildren();
   const tabs=opElem("div","ci-op-compare-tabs");
   const graph=opElem("div","ci-op-compare-body");
