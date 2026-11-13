@@ -129,7 +129,7 @@ function render(){
   return;
  }
  const rows=selected(f),c=counts(rows);state.groups=rows;
- $('scopeNote').textContent='Fonte CV CRM validada até '+state.source.as_of+' · '+fmt(c.total)+' grupos de lead/empreendimento na seleção. Período de entrada: '+f.since+' a '+f.until+'. Interações, SDRs e identificação pessoal não estão nesta fonte.';
+ $('scopeNote').textContent='Fonte CV CRM validada até '+state.source.as_of+' · '+fmt(c.total)+' grupos de lead/empreendimento na seleção. Período de entrada: '+f.since+' a '+f.until+'. Atenção: esta base reflete a coorte histórica de captação do funil (escopo anterior Facebook/Google), não os 100% dos leads do CV CRM. Não contém interações, SDRs nem identificação pessoal.';
  drawKpis(f,rows,c);drawFunnel(rows,c);drawOrigins(rows,c);drawTrend(rows);drawProjects(rows);insights(rows,c);
 }
 function csv(){
