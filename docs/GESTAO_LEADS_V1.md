@@ -38,3 +38,28 @@ node --check lcm-leads.js
 node --check lcm-shell.js
 python -m unittest discover -s tests -p test_leads_dashboard_contract.py
 ```
+
+## Taxonomia de oportunidades solicitada — 13/11/2026
+
+**Funil atual: 6 grupos**
+1. PROSPECÇÃO: PROSPECÇÃO, NOVO LEAD
+2. ATENDIMENTO: CONTATO, CAD/C 1, 2, 3, 4, 5, 6, 7
+3. AGENDAMENTO: AGENDAMENTO, CAD/A 1, 3, 7, 14, 20
+4. VISITA: VISITA
+5. ANÁLISE DE CRÉDITO: ANÁLISE DE CRÉDITO
+6. VENDA: VENDA REALIZADA
+
+**Funil acumulado: sequência literal de 16 etapas**
+PROSPECÇÃO → CONTATO → CAD/C 1 → CAD/C 2 → CAD/C 4 → CAD/C 5 → CAD/C 7 → AGENDAMENTO → CAD/A 1 → CAD/A 3 → CAD/A 7 → CAD/A 14 → CAD/A 20 → VISITA → ANÁLISE DE CRÉDITO → VENDA REALIZADA.
+
+A sequência omite CAD/C 3 e CAD/C 6 deliberadamente, conforme solicitação. No funil atual esses estados são agrupados em ATENDIMENTO, como requerido por "CAD/C 1 até 7".
+
+O agrupamento e a nomenclatura estão em `lcm-leads-stage-config.js`. Os dois painéis estão na seção `#funil` da página `leads.html`.
+
+**Diferença de medida:** o funil por oportunidade exige o estado atual de cada lead, deduplicado por projeto+ID. O funil acumulado exige o conjunto real de movimentações históricas desse lead por etapa. Etapas puladas ou sem eventos não devem ser preenchidas por inferência; não necessariamente existe trajetória linear obrigatória em todos os casos.
+
+**Disponibilidade atual:** `data/cv-funnel.json` possui apenas cinco marcos de coorte: prospect, agendamento, visita, análise e venda. Portanto, são exibidos contadores históricos comprovados para os quatro últimos no funil acumulado, com ressalva de cobertura parcial. Os demais níveis detalhados e o funil de **situação atual** permanecem sem contagem até um extrato de oportunidades (todas as origens, estados atuais, IDs e movimentações) ser validado. O filtro "Etapa validada da coorte" permanece ligado à base histórica, não à nova taxonomia completa.
+
+**Proteção:** o extrato operacional com IDs e histórico de situações deverá ser processado no runner privado; somente agregados não identificáveis poderão ser publicados no GitHub Pages. O módulo não foi integrado a um backend autenticado para carteira individual.
+
+Teste: `node --test tests/test_leads_stage_classification.cjs`.
