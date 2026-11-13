@@ -29,6 +29,19 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 OPENER = urllib.request.build_opener(NoRedirect())
 
 
+def safe_message(value):
+    if not isinstance(value, str):
+        return ""
+    text = value
+    if TOKEN:
+        for secret in (TOKEN, urllib.parse.quote(TOKEN, safe=""), urllib.parse.quote_plus(TOKEN)):
+            text = text.replace(secret, "[credencial omitida]")
+    text = re.sub(r"https?://\S+", "[link omitido]", text)
+    text = re.sub(r"\b[A-Za-z0-9_-]{32,}\b", "[valor omitido]", text)
+    text = re.sub(r"\b\d{6,}\b", "[identificador omitido]", text)
+    return " ".join(text.split())[:450]
+
+
 def safe_error(payload, status):
     error = payload.get("error", {}) if isinstance(payload, dict) else {}
     if not isinstance(error, dict):
@@ -55,6 +68,7 @@ def safe_error(payload, status):
         categories.append("permissao_insuficiente")
     return {"ok": False, "http_status": status, "code": code, "subcode": subcode,
             "categories": categories,
+            "message_safe": safe_message(error.get("message")),
             "permissions_mentioned": [p for p in PERMISSIONS if p in message]}
 
 
