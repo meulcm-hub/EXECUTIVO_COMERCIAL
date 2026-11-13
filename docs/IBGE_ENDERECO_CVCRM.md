@@ -55,3 +55,15 @@ Fontes:
 - https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html?edicao=41852&t=downloads
 - https://www.ibge.gov.br/geociencias/organizacao-do-territorio/malhas-territoriais/2971-np-malhas-de-setores-censitarios-divisoes-intramunicipais/26565-malhas-de-setores-censitarios-divisoes-intramunicipais.html
 - https://desenvolvedor.cvcrm.com.br
+
+## Execução real da geocodificação — 13/11/2026
+
+GitHub Actions: https://github.com/meulcm-hub/EXECUTIVO_COMERCIAL/actions/runs/43464918342
+
+- Empreendimentos lidos da API CV CRM: **14**.
+- **1 candidato de correspondência exata:** RESIDENCIAL MONTTEBELO. É candidato de geocodificação, **ainda não aprovado** para o JSON público IBGE.
+- **2 ambíguos:** RESIDENCIAL TURQUESA PARQUE; RESIDENCIAL TERRA SOLIS.
+- **2 incompletos:** Residencial FLAMBOYANT; RESIDENCIAL FLORRES DO CERRADO IPÊ.
+- **9 sem correspondência exata:** RESIDENCIAL TERRA MATER; RESIDENCIAL SANTA CATARINA; RESIDENCIAL JATOBÁ; RESIDENCIAL VILLAGE LAGOAS; SPE ARRAIAL COSTA VERDE; SPE ARRAIAL COSTA VERDE CLUB; RESIDENCIAL GREEN PLAZA; RESIDENCIAL EXTREMA MEU LAR; RESIDENCIAL FLORES DO CERRADO JACARANDÁ.
+
+O artefato privado `coordenadas-empreendimentos-para-revisao` tem retenção de 7 dias. Não contém logradouros, número nem dados pessoais. Coordenadas candidatas possuem `verified: false`; **não se publica análise por raio** até validar. A consulta foi executada em lote único com pausas e o gatilho de push foi removido.
