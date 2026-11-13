@@ -487,10 +487,11 @@ async function ibge(o){
  const readinessTask=opLoad("geo-readiness","data/ibge-geolocation-readiness.json?v=v8",true);
  const buyersTask=opLoad("buyers","data/buyer-locations.json?v=v7",true);
  const incomeTask=opLoad("income-municipal-2022","data/ibge-municipal-responsible-income.json?v=v81",true);
+ const priceTask=opLoad("cv-price-summary-v2","data/cvcrm-approved-price-summary.json?v=cvdw-v2",true);
  const contextTask=opLoad("geodata","data/ibge-project-context.json?v=v7",true);
  const metaTask=opLoad("meta-feed","data/marketing-campaigns.json?v=v7",true);
  
- const [addrResult,buyerResult,contextResult,metaResult,readinessResult,incomeResult]=await Promise.allSettled([addressTask,buyersTask,contextTask,metaTask,readinessTask,incomeTask]);
+ const [addrResult,buyerResult,contextResult,metaResult,readinessResult,incomeResult,priceResult]=await Promise.allSettled([addressTask,buyersTask,contextTask,metaTask,readinessTask,incomeTask,priceTask]);
  if(ticket!==ibgeSession||currentTab!=="ibge")return;
  const addresses=addrResult.status==="fulfilled"?addrResult.value:null;
  const buyers=buyerResult.status==="fulfilled"?buyerResult.value:null;
@@ -499,6 +500,7 @@ async function ibge(o){
  const metaFeed=metaResult.status==="fulfilled"?metaResult.value:null;
  const readiness=readinessResult.status==="fulfilled"?readinessResult.value:null;
  const incomeData=incomeResult.status==="fulfilled"?incomeResult.value:null;
+ const priceData=priceResult.status==="fulfilled"?priceResult.value:null;
  const site=addresses?.projects?.find(p=>norm(p.project)===norm(project.value));
  siteAddress.textContent=site?"Endereço de referência: "+opAddress(site)+(site.same_reference_address_adjacent_distinct_sites?" · Terreno adjacente distinto: centro geográfico próprio pendente.":""):"Endereço de referência indisponível para este empreendimento.";
  const context=contextData?.projects?.find(p=>norm(p.project)===norm(project.value));
@@ -544,6 +546,13 @@ async function ibge(o){
   const locSubtitle=district?"Compradores por bairro":city?"Compradores por cidade":"Compradores geolocalizados";
   const salesSelection=salesFor(project.value);
   const moneyRows=opRange(o,"Renda familiar");
+  const currentMonth=new Date().toISOString().slice(0,7);
+  const priceForProject=priceData?.schema_version===2?
+   priceData.projects?.find(p=>norm(p.project)===norm(project.value)&&p.reference_month===currentMonth):null;
+  const validPrice=priceForProject?.status==="ok"&&Number.isFinite(priceForProject.minimum)&&
+    Number.isFinite(priceForProject.median)&&Number.isFinite(priceForProject.maximum)&&
+    priceForProject.minimum>0&&priceForProject.minimum<=priceForProject.median&&
+    priceForProject.median<=priceForProject.maximum;
   const municipalResponsibleIncome=municipal&&incomeData?.variable==="V06004"&&incomeData?.not_household_income===true
    ?Number(incomeData.municipalities?.[String(municipal.m.id)]):NaN;
   const verifiedMunicipalResponsibleIncome=Number.isFinite(municipalResponsibleIncome)&&municipalResponsibleIncome>0;
@@ -562,10 +571,19 @@ async function ibge(o){
     market==null?(region?"Domicílios no raio · elegibilidade não calculada":Number.isFinite(municipal?.homes)?"Domicílios no município · não são compradores potenciais":"Aguardando domicílios oficiais do IBGE"):"Domicílios financeiramente compatíveis · metodologia documentada",
     "◎",market==null?"IBGE · UNIVERSO, NÃO DEMANDA":"ESTIMATIVA AUDITADA")
   );
+  let priceInfo=outer.querySelector(".ci-op-price-note");
+  if(validPrice){
+   if(!priceInfo)priceInfo=opElem("p","ci-op-scope ci-op-price-note");
+   priceInfo.textContent="CV CRM · tabela vigente "+priceForProject.reference_month+
+     " · "+nf(priceForProject.priced_units)+" unidades precificadas · mínimo "+money(priceForProject.minimum)+
+     " · mediana "+money(priceForProject.median)+" · máximo "+money(priceForProject.maximum)+
+     ". Valores comerciais das unidades; não representam renda familiar nem número de compradores elegíveis.";
+   metricRow.after(priceInfo);
+  }else if(priceInfo)priceInfo.remove();
   let potentialInfo=outer.querySelector(".ci-op-potential-note");
   if(market==null){
    if(!potentialInfo)potentialInfo=opElem("p","ci-op-warning ci-op-potential-note");
-   potentialInfo.textContent="Potencial comprador ainda não calculável: é necessário cruzar faixas de renda familiar da região, preço e condições de financiamento do empreendimento. O número no cartão é apenas o universo de domicílios, não uma previsão de vendas.";
+   potentialInfo.textContent=validPrice?"Preço vigente CV CRM identificado; potencial comprador ainda exige renda familiar regional comparável e condições de financiamento. O número no cartão é apenas o universo de domicílios, não uma previsão de vendas.":"Potencial comprador ainda não calculável: é necessário cruzar faixas de renda familiar da região, preço vigente e condições de financiamento do empreendimento. O número no cartão é apenas o universo de domicílios, não uma previsão de vendas.";
    metricRow.after(potentialInfo);
   }else if(potentialInfo)potentialInfo.remove();
   compareBody.replaceChildren();
