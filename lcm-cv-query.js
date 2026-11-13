@@ -20,6 +20,44 @@ function funnelRow(source,project,since,until){
  }
  return {project,since,until,as_of:source.as_of,validated:true,counts};
 }
+function validDate(value){
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+ const date=new Date(value+'T00:00:00Z');
+ return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;
+}
+function entries(source,projects,since,until){
+ if(source?.schema_version!==2||source.classification_version!==1||
+    !covered(source,since,until)||!validFunnel(source)||
+    !validDate(source.period.since)||!validDate(source.period.until)||
+    !validDate(since)||!validDate(until)||!Array.isArray(projects)||!projects.length||
+    projects.some(project=>typeof project!=='string'||!project))return null;
+ const selected=[...new Set(projects)];
+ const blank=()=>({new:0,returning:0,prospect:0,whatsapp_new:0,whatsapp_returning:0});
+ const result={totals:blank(),projects:Object.fromEntries(selected.map(project=>[project,blank()])),
+   daily:Object.fromEntries(selected.map(project=>[project,{}]))};
+ for(const group of source.prospects){
+   if(!Object.prototype.hasOwnProperty.call(group,'new_date')||
+      typeof group.whatsapp_acquisition!=='boolean'||!group.entries.length||
+      group.entries.some(entry=>!validDate(entry.date)||entry.date<source.period.since||entry.date>source.period.until)||
+      new Set(group.entries.map(entry=>entry.date)).size!==group.entries.length||
+      (group.new_date!==null&&(!validDate(group.new_date)||
+        !group.entries.some(entry=>entry.date===group.new_date)||
+        group.entries.some(entry=>entry.date<group.new_date))))return null;
+   const counts=Object.prototype.hasOwnProperty.call(result.projects,group.project)?result.projects[group.project]:null;
+   if(!counts||!group.entries.some(entry=>entry.date>=since&&entry.date<=until))continue;
+   counts.prospect++;
+   const isNew=group.new_date!==null&&group.new_date>=since&&group.new_date<=until;
+   counts[isNew?'new':'returning']++;
+   if(group.whatsapp_acquisition)counts[isNew?'whatsapp_new':'whatsapp_returning']++;
+   if(isNew){
+     const day=result.daily[group.project][group.new_date]||{new:0,whatsapp_new:0};
+     day.new++;if(group.whatsapp_acquisition)day.whatsapp_new++;
+     result.daily[group.project][group.new_date]=day;
+   }
+ }
+ for(const counts of Object.values(result.projects))for(const key of Object.keys(result.totals))result.totals[key]+=counts[key];
+ return result;
+}
 function conversions(source,since,until){
  if(!covered(source,since,until))return null;
  if(source.schema_version<4)return source.range_unique?.[since+'|'+until]||null;
@@ -43,6 +81,6 @@ function auditDate(row,since,until){
  const dates=Array.isArray(row.entry_dates)?row.entry_dates:[row.data_entrada];
  return dates.filter(day=>day>=since&&day<=until).sort()[0]||null;
 }
-root.LcmCvQuery=Object.freeze({validFunnel,funnelRow,conversions,auditDate});
+root.LcmCvQuery=Object.freeze({validFunnel,funnelRow,entries,conversions,auditDate});
 })(globalThis);
 
