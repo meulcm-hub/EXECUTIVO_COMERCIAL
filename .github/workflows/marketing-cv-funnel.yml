@@ -33,7 +33,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_cv_audit_cohort.py'
           python -m unittest discover -s tests -p 'test_cv_entry_classification.py'
           python -m unittest discover -s tests -p 'test_publish_cv_audit.py'
-          node --test tests/test_annual_cv_query.cjs tests/test_lcm_date_range.cjs
+          node --test tests/test_annual_cv_query.cjs tests/test_lcm_date_range.cjs tests/test_cv_entries_query.cjs
       - name: Consolidar funil CV a partir de IDs somente em memória privada
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
