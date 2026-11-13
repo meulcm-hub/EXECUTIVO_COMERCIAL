@@ -1,0 +1,73 @@
+name: LCM - Validar Potencial da Regiao V7
+on:
+  pull_request:
+    paths:
+      - index.html
+      - lcm-audience-intelligence-v7.js
+      - lcm-audience-opportunity-v7.css
+      - docs/POTENCIAL_REGIAO_IBGE_V7.md
+      - .github/workflows/audience-v7-ci.yml
+      - tests/audience_v7_browser.cjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript V7 — sintaxe
+        run: node --check lcm-audience-intelligence-v7.js
+      - name: Contratos de integridade e integracoes
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          js=Path('lcm-audience-intelligence-v7.js').read_text(encoding='utf-8')
+          html=Path('index.html').read_text(encoding='utf-8')
+          css=Path('lcm-audience-opportunity-v7.css').read_text(encoding='utf-8')
+          addresses=json.loads(Path('config/ibge-project-addresses.json').read_text(encoding='utf-8'))
+          buyers=json.loads(Path('data/buyer-locations.json').read_text(encoding='utf-8'))
+          assert len(addresses['projects'])==14
+          assert len({p['project'] for p in addresses['projects']})==14
+          assert buyers['coverage']['min_group_size']==5
+          assert js.count('async function ibge(o)')==1
+          assert 'ibgeMunicipalNumbers' in js and 'opMunicipalHomes' in js
+          assert 'sector_intersection_area_weighted' in js
+          assert 'marketMethod==="income_compatible_households_documented"' in js
+          assert 'center.verified===true' not in js or 'opValidCenter' in js
+          assert 'opDrawMap' in js and 'ci-op-plan-overlay' in js
+          assert 'data/marketing-campaigns.json' in js
+          assert 'lcm-audience-intelligence-v7.js?v=opportunity-v7-20261113' in html
+          assert 'lcm-audience-opportunity-v7.css?v=opportunity-v7-20261113' in html
+          assert 'lcm-audience-intelligence-v6.js?v=' not in html
+          assert '.ci-op-v7' in css and '@media(max-width:460px)' in css
+          assert 'ci-op-map-legend' in js and 'ci-op-layer' in js
+          assert 'window.print()' in js
+          for expected in ['Meta Ads','Google Ads','População (IBGE)','Domicílios','Renda média domiciliar','Potencial de mercado']:
+              assert expected in js,expected
+          print('Contract and guard checks: PASS')
+          PY
+      - name: Instalar Playwright para teste visual automatizado
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verificar visual e interação em Chromium
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 > /tmp/lcm-http.log 2>&1 &
+          sleep 2
+          node tests/audience_v7_browser.cjs
+      - name: Guardar capturas de desktop e celular
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiencia-v7-capturas
+          path: artifacts/ibge-v7-*.png
+          retention-days: 7
+          if-no-files-found: ignore
