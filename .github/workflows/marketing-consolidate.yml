@@ -35,6 +35,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_marketing_channels.py'
           python -m unittest discover -s tests -p 'test_meta_error_codes.py'
+          python -m unittest discover -s tests -p 'test_meta_account_selection.py'
       - name: Consolidar janelas de 7 e 30 dias
         env:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
