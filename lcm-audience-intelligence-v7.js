@@ -449,18 +449,21 @@ async function ibge(o){
  const addressTask=opLoad("addresses","config/ibge-project-addresses.json?v=v7");
  const buyersTask=opLoad("buyers","data/buyer-locations.json?v=v7",true);
  const contextTask=opLoad("geodata","data/ibge-project-context.json?v=v7",true);
+ const metaTask=opLoad("meta-feed","data/marketing-campaigns.json?v=v7",true);
  const sectorTask=opLoad("sector-map","data/ibge-opportunity-map.geojson?v=v7",true);
- const [addrResult,buyerResult,contextResult,sectorResult]=await Promise.allSettled([addressTask,buyersTask,contextTask,sectorTask]);
+ const [addrResult,buyerResult,contextResult,sectorResult,metaResult]=await Promise.allSettled([addressTask,buyersTask,contextTask,sectorTask,metaTask]);
  if(ticket!==ibgeSession||currentTab!=="ibge")return;
  const addresses=addrResult.status==="fulfilled"?addrResult.value:null;
  const buyers=buyerResult.status==="fulfilled"?buyerResult.value:null;
  const contextData=contextResult.status==="fulfilled"?contextResult.value:null;
  const sectorData=sectorResult.status==="fulfilled"?sectorResult.value:null;
+ const metaFeed=metaResult.status==="fulfilled"?metaResult.value:null;
  const site=addresses?.projects?.find(p=>norm(p.project)===norm(project.value));
  const context=contextData?.projects?.find(p=>norm(p.project)===norm(project.value));
  const cityName=site?.city||"";
  const municipalPromise=site?ibgeMunicipality(site.city,site.state).then(m=>ibgeMunicipalNumbers(m).then(v=>({m,v}))):Promise.reject(Error("Sem município"));
- const municipal=await municipalPromise.catch(()=>null);
+ let municipal=null;
+ municipalPromise.then(result=>{municipal=result;if(ticket===ibgeSession&&currentTab==="ibge")draw();}).catch(()=>{});
  if(ticket!==ibgeSession||currentTab!=="ibge")return;
  const cities=[...new Set([cityName,...(buyers?.cities||[]).filter(p=>norm(p.project)===norm(project.value)).map(p=>p.city)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
  for(const c of cities)cityF.select.add(new Option(c,c));
@@ -544,6 +547,7 @@ async function ibge(o){
    mapNote.textContent="Mapa indisponível no navegador; dados dos compradores continuam apresentados no painel comparativo.";
   });
   recogrid.replaceChildren();
+  const metaAccounts=Array.isArray(metaFeed?.accounts)?metaFeed.accounts.length:0;
   const campaignCity=site?.city||city||"município do empreendimento";
   function recCard(title,brand,items){
    const card=opElem("article","ci-op-campaign");
@@ -564,7 +568,9 @@ async function ibge(o){
     ["Estratégia geográfica","Cidade e regiões permitidas pela plataforma, sem exclusões discriminatórias."],
     ["Medição","Termos de pesquisa, CTR, CPL válido, visitas, conversão e qualidade dos contatos."]
   ]));
-  reco.append(opParagraph("Publicidade habitacional: validar categorias e regras aplicáveis no Meta e no Google. Não segmentar anúncios por idade, gênero, renda individual ou características protegidas. Sem orçamento automático sem dados comparáveis de ROI/CPL.","ci-op-warning"));
+  reco.querySelectorAll(".ci-op-feed-status").forEach(e=>e.remove());
+  reco.append(opParagraph(metaAccounts?"Integração Meta Ads existente: "+nf(metaAccounts)+" contas na base de campanhas. Vínculo campanha-empreendimento ainda não auditado; não foram inferidos resultados. Google Ads: sem conexão confirmada.":"Resultados Meta Ads e Google Ads por empreendimento ainda sem vínculo seguro. Estratégias exibidas são propostas, não campanhas já executadas.","ci-op-feed-status"));
+  reco.append(opParagraph("Publicidade habitacional: revisar as políticas vigentes do Meta e Google. Não excluir pessoas por idade, gênero, raça, renda individual ou outros critérios protegidos. Sem orçamento automático sem dados comparáveis de CPL e conversões.","ci-op-warning"));
   opportunityPlanData={site:site||{project:project.value},radius,municipality:municipal?{population:municipal.v[93]}:null,publicTotal:count,buyerRows:moneyRows.rows,regionStatus:validRegion?"agregado de setores validado":"pendente de geocodificação setorial",market};
   generate.disabled=false;
  }
