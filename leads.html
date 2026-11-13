@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LCM | Gestão de Leads</title><link rel="stylesheet" href="lcm-dashboard.css?v=leads-v1"><link rel="stylesheet" href="lcm-leads.css?v=2">
+<title>LCM | Gestão de Leads</title><link rel="stylesheet" href="lcm-dashboard.css?v=leads-v1"><link rel="stylesheet" href="lcm-leads.css?v=3">
 </head><body class="lcm-leads-page" data-lcm-page="leads">
 <main id="leadApp">
 <header class="lead-head"><div><p class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</p><h1>Gestão de Leads</h1><p>Inteligência, produtividade e conversão comercial.</p></div><div class="source" id="sourceState">Carregando fonte CV CRM...</div></header>
@@ -14,14 +14,15 @@
 <div class="method" id="scopeNote" role="status">Fonte em atualização.</div>
 <section id="visao" aria-labelledby="kpiTitle"><h2 id="kpiTitle">Indicadores executivos</h2><div class="kpis" id="kpis"></div></section>
 <section class="columns" id="funil">
-<article class="panel"><h2>Funil de conversão</h2><p class="muted">Etapas validadas por coorte. Selecione uma etapa para filtrar a análise.</p><div id="funnel"></div></article>
-<article class="panel"><h2>Origem dos leads</h2><p class="muted">Classificação de entrada disponível na fonte atual; não equivale à atribuição por campanha.</p><div id="origins"></div><div id="originLegend" class="muted"></div></article>
+<article class="panel"><h2>Funil de etapas de oportunidade acumulado</h2><p class="muted">16 etapas na sequência comercial LCM. Somente movimentações comprovadas podem gerar contagens.</p><div id="opportunityCumulative"></div></article>
+<article class="panel"><h2>Funil de etapas por oportunidades</h2><p class="muted">Situação atual de cada oportunidade agrupada em seis fases, sem duplicação por lead/empreendimento.</p><div id="opportunityCurrent"></div></article>
 </section>
+<section class="panel" id="origens"><h2>Origem dos leads</h2><p class="muted">Classificação de entrada disponível na fonte atual; não equivale à atribuição por campanha.</p><div id="origins"></div><div id="originLegend" class="muted"></div></section>
 <section class="columns" id="evolucao"><article class="panel"><h2>Evolução de entradas</h2><p class="muted">Cada lead é considerado uma vez na janela selecionada.</p><div class="period-switch"><button data-group="day">Dia</button><button data-group="week">Semana</button><button data-group="month">Mês</button></div><div id="trend"></div></article>
 <article class="panel"><h2>Comparação por empreendimento</h2><div id="projectTable"></div></article></section>
 <section class="columns" id="operacao"><article class="panel"><h2>Produtividade e velocidade de atendimento</h2><div class="unavailable"><strong>Integração operacional pendente</strong><p>A fonte atual não disponibiliza SDR, corretor, primeiro atendimento, último contato ou timestamps de interação. Essas métricas não serão presumidas.</p></div></article><article class="panel"><h2>Leads que precisam de atenção</h2><div class="unavailable"><strong>Fonte de interações necessária</strong><p>Não é possível apontar leads parados, sem resposta ou atrasados por SLA a partir de coortes anônimas.</p></div></article></section>
 <section class="panel"><h2>Insights da operação</h2><div id="insights"></div></section>
 <section class="panel"><h2>Registros individuais e exportação</h2><div class="unavailable"><strong>Disponível apenas em ambiente autenticado</strong><p>Os grupos publicados são anônimos e não possuem ID individual, nome nem telefone. Não publicaremos a carteira dos clientes no GitHub Pages. A integração operacional deverá ser feita em uma aplicação com autenticação e permissões.</p></div><button id="export" class="btn-secondary">Exportar resumo agregado (CSV)</button></section>
 <footer>Fonte: CV CRM · Coortes por empreendimento e período. Resultados mostram somente campos efetivamente disponíveis; não substituem auditoria individual.</footer>
-</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads.js?v=1" defer></script>
+</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=2" defer></script>
 </body></html>
