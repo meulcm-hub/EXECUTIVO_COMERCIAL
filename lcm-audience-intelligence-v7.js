@@ -402,6 +402,17 @@ async function opDrawMap(container,options){
  }
  requestAnimationFrame(()=>{if(container.isConnected)map.invalidateSize();});
 }
+async function opMunicipalHomes(m){
+ const uri="https://servicodados.ibge.gov.br/api/v3/agregados/4712/periodos/2022/variaveis/381?localidades=N6%5B"+encodeURIComponent(m.id)+"%5D";
+ const response=await opLoad("ibge-homes-"+m.id,uri,true);
+ if(!Array.isArray(response))return null;
+ for(const item of response){
+  if(Number(item.id)!==381)continue;
+  const n=Number(item.resultados?.[0]?.series?.[0]?.serie?.["2022"]);
+  if(Number.isFinite(n)&&n>=0)return n;
+ }
+ return null;
+}
 async function ibge(o){
  const view=panels.ibge;view.replaceChildren();
  opportunityPlanData=null;
@@ -464,7 +475,7 @@ async function ibge(o){
  const site=addresses?.projects?.find(p=>norm(p.project)===norm(project.value));
  const context=contextData?.projects?.find(p=>norm(p.project)===norm(project.value));
  const cityName=site?.city||"";
- const municipalPromise=site?ibgeMunicipality(site.city,site.state).then(m=>ibgeMunicipalNumbers(m).then(v=>({m,v}))):Promise.reject(Error("Sem município"));
+ const municipalPromise=site?ibgeMunicipality(site.city,site.state).then(async m=>({m,v:await ibgeMunicipalNumbers(m),homes:await opMunicipalHomes(m)})):Promise.reject(Error("Sem município"));
  let municipal=null;
  municipalPromise.then(result=>{municipal=result;if(ticket===ibgeSession&&currentTab==="ibge")draw();}).catch(()=>{});
  if(ticket!==ibgeSession||currentTab!=="ibge")return;
@@ -499,7 +510,7 @@ async function ibge(o){
   if(validRegion&&Number.isFinite(r.marketPotential)&&r.marketPotential>=0&&r.marketMethod==="income_compatible_households_documented")market=r.marketPotential;
   metricRow.replaceChildren(
    opKpi("População (IBGE)",region?nf(region.population):municipal?nf(municipal.v[93]):"—",region?radius+" km · Censo 2022":"Município inteiro · Censo 2022","♧",region?"ESTIMATIVA SETORIAL":"IBGE MUNICIPAL"),
-   opKpi("Domicílios",region?nf(region.households):"—",region?radius+" km · Censo 2022":"Base setorial por raio pendente","⌂",region?"ESTIMATIVA SETORIAL":"PENDENTE"),
+   opKpi("Domicílios",region?nf(region.households):Number.isFinite(municipal?.homes)?nf(municipal.homes):"—",region?radius+" km · Censo 2022":Number.isFinite(municipal?.homes)?"Município inteiro · Censo 2022":"Base oficial indisponível","⌂",region?"ESTIMATIVA SETORIAL":Number.isFinite(municipal?.homes)?"IBGE MUNICIPAL":"PENDENTE"),
    opKpi("Renda média domiciliar",region&&Number.isFinite(region.averageHouseholdIncome)?money(region.averageHouseholdIncome):"—",region&&Number.isFinite(region.averageHouseholdIncome)?"Censo 2022 · raio "+radius+" km":"Tabela de rendimento por setor pendente","▤",region?"FONTE VERIFICAR":"PENDENTE"),
    opKpi("Compradores LCM",count?nf(count):"—",count?locSubtitle:"Sem pontos agregados de origem","♙","LCM · ORIGEM AGREGADA"),
    opKpi("Potencial de mercado",market==null?"—":nf(market),market==null?"Modelo auditado ainda indisponível":"Domicílios compatíveis · hipótese documentada","◎",market==null?"PENDENTE":"ESTIMATIVA")
