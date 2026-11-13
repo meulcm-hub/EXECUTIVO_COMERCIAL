@@ -192,7 +192,8 @@ function compare(){
 function attachMap(){
  const map=$('lcmBuyerMap');if(!map)return;
  const target=panels[currentTab==='origin'?'origin':'overview'].querySelector('.ci-map-anchor');
- if(target&&map.parentElement!==target){target.append(map);map.classList.add('ci-owned-map');setTimeout(()=>map.lcmBuyerMap?.invalidateSize(),150);}
+ if(target&&map.parentElement!==target){target.append(map);map.classList.add('ci-owned-map');}
+ if(target)setTimeout(()=>{map.lcmBuyerMap?.invalidateSize();map.lcmBuyerMap?.setProject(project.value);},150);
  if(currentTab!=='overview'&&currentTab!=='origin'){map.classList.add('ci-map-parked');}
  else map.classList.remove('ci-map-parked');
 }
