@@ -16,7 +16,7 @@ money:'<circle cx="12" cy="12" r="9"/><path d="M15 8H10a2 2 0 0 0 0 4h4a2 2 0 0 
 window.LcmIcon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(icons[name]||icons.home)+'</svg>';
 const body=document.body;
 // A navegação entre visões também precisa renovar o HTML em cache.
-const uiVersion='lcm-map-cohort-v1';
+const uiVersion='lcm-map-visible-v2';
 function pageUrl(href){
  const url=new URL(href,location.href);
  url.searchParams.set('ui',uiVersion);
@@ -104,6 +104,15 @@ function openBuyerMap(){
   .then(()=>window.LcmBuyerMap?null:buyerAsset('script','lcm-buyer-map.js'))
   .then(()=>window.LcmBuyerMap.mount(host,{projectSelect:document.getElementById('audienceProject')}))
   .catch(()=>{host.textContent='Mapa temporariamente indisponível. Atualize a página para tentar novamente.';buyerMapLoading=null;});
+}
+if(root){
+ const filter=document.getElementById('audienceProject')?.closest('.filters');
+ if(filter){
+  const jump=document.createElement('button');jump.type='button';jump.id='audienceMapJump';jump.textContent='Ver mapa';
+  jump.style.cssText='align-self:end;white-space:nowrap;margin:0 0 0 10px;';
+  jump.onclick=()=>{openBuyerMap();document.getElementById('lcmBuyerMap')?.scrollIntoView({behavior:'smooth',block:'start'});};
+  filter.append(jump);
+ }
 }
 window.addEventListener('hashchange',openBuyerMap);openBuyerMap();
 })();
