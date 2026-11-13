@@ -1,4 +1,5 @@
 import contextlib
+import base64
 import io
 import json
 from pathlib import Path
@@ -121,6 +122,48 @@ class PostalBuyerTests(unittest.TestCase):
         self.assertFalse(geo.valid_cached_point(old,'35702265'))
         result=geo.build_report({('p','35702265'):5},{},{},{'postal_codes':{'35702265':old}})
         self.assertEqual(result['postal_codes'],[])
+
+    def test_encrypted_transport_roundtrip_contains_only_anonymous_aggregates(self):
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding, rsa
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        private=rsa.generate_private_key(public_exponent=65537,key_size=3072)
+        public=private.public_key().public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo)
+        coverage={'buyer_project_pairs':5,'private_name':'PRIVATE BUYER','idcliente':'secret-id'}
+        capture=io.StringIO()
+        with contextlib.redirect_stdout(capture):
+            envelope=geo.encrypt_transport({('test public project','35702265'):5},coverage,
+                {('test public project','35702265'):{'Sete Lagoas'}},public)
+        self.assertEqual(capture.getvalue(),'')
+        encoded=json.dumps(envelope)
+        self.assertNotIn('35702265',encoded);self.assertNotIn('test public project',encoded)
+        self.assertNotIn('PRIVATE BUYER',encoded);self.assertEqual(envelope['alg'],geo.TRANSPORT_ALGORITHM)
+        key=private.decrypt(base64.b64decode(envelope['key']),padding.OAEP(mgf=padding.MGF1(hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+        self.assertEqual(len(key),32);self.assertEqual(len(base64.b64decode(envelope['nonce'])),12)
+        clear=AESGCM(key).decrypt(base64.b64decode(envelope['nonce']),base64.b64decode(envelope['ciphertext']),geo.TRANSPORT_AAD)
+        data=json.loads(clear)
+        self.assertEqual(data,{'schema_version':1,'groups':[{'project':'test public project','postal_code':'35702265','count':5,'cities':['sete lagoas']}],
+                               'coverage':{'buyer_project_pairs':5}})
+        self.assertNotIn('idcliente',clear.decode());self.assertNotIn('private_name',clear.decode())
+        with self.assertRaises(Exception):AESGCM(key).decrypt(base64.b64decode(envelope['nonce']),base64.b64decode(envelope['ciphertext']),b'wrong context')
+
+    def test_transport_rejects_wrong_or_weak_public_keys_and_private_pem(self):
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec, rsa
+        keys=[ec.generate_private_key(ec.SECP256R1()).public_key(),rsa.generate_private_key(public_exponent=65537,key_size=2048).public_key()]
+        for key in keys:
+            pem=key.public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo)
+            with self.assertRaises(ValueError):geo.encrypt_transport({}, {}, {}, pem)
+        with self.assertRaises(ValueError):geo.encrypt_transport({}, {}, {}, b'invalid public key')
+        private=rsa.generate_private_key(public_exponent=65537,key_size=3072)
+        pem=private.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption())
+        with self.assertRaises(ValueError):geo.encrypt_transport({}, {}, {}, pem)
+
+    def test_transport_cli_arguments_are_required_together(self):
+        for args in (['--transport-public-key','public.pem'],['--encrypted-transport','data.enc.json']):
+            with contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as caught:geo.main(args)
+            self.assertEqual(caught.exception.code,2)
 
     def test_credentials_pin_host_and_never_echo_secret(self):
         env={'CVCRM_DOMINIO':'https://lcm.cvcrm.com.br','CVCRM_EMAIL':'private@example.com','CVCRM_TOKEN':'PRIVATE TOKEN'}
