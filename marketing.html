@@ -500,7 +500,7 @@ function render(){
   const metaCvNote=$('metaCvReconciliation');
   const metaResults=$('fLeads').textContent;
   const crmProspects=$('cvFunnelProspect').textContent;
-  if(/^\\d[\\d.]*$/.test(metaResults) && /^\\d[\\d.]*$/.test(crmProspects)){
+  if(/^\d[\d.]*$/.test(metaResults) && /^\d[\d.]*$/.test(crmProspects)){
     metaCvNote.textContent='Conferência de fontes · Meta Ads: '+metaResults+
       ' eventos atribuídos (formulários + conversas) em campanhas ativas; CV CRM: '+
       crmProspects+' prospects únicos na safra consultada. Os indicadores não precisam coincidir: '+
