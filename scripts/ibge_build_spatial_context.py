@@ -229,7 +229,9 @@ def main():
     print("VALIDAÇÃO:",json.dumps({"mode":mode,"processable":len(selected),"unresolved":len(unresolved)}))
     if not selected:
         RESULT.write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding="utf-8")
-        if mode=="publish":print("BLOQUEADO: nenhum centro individual validado. Sem dados falsos.",file=sys.stderr)
+        if mode=="publish":
+            print("BLOQUEADO: nenhum centro individual validado. Sem dados falsos.",file=sys.stderr)
+            raise SystemExit(2)
         return
     import geopandas
     basic=download(BASIC,CACHE/"setores_basico_20260520.zip",30_000_000)
