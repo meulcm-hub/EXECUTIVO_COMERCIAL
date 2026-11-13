@@ -13,7 +13,7 @@ import urllib.request
 
 from cv_join_original_conversions import read_complete, get_lead_page, read_conversion_page
 from marketing_consolidate import norm, to_date, classify_channel
-from cv_conversion_audit import source as conversion_source
+from cv_facebook_scope import classify as facebook_cv_classify, conversion_classify as facebook_event_classify
 
 PROJECTS = ("residencial flores do cerrado jacaranda", "residencial village lagoas",
             "spe arraial costa verde club", "residencial jatoba")
@@ -124,12 +124,14 @@ def paged(base, email, token, path, start, end, *, collection, commercial=False,
     raise RuntimeError("Cobertura de páginas excedida em " + path)
 
 def channel(row):
-    kind = classify_channel(row)
-    return kind.startswith("meta_") or kind == "google_declarada"
+    # Formulário Facebook integrado ao CV ou GE + mídia WhatsApp Facebook.
+    # Não incluir Google, Busca Compartilhada ou outros Painéis Gestor.
+    return facebook_cv_classify(row) is not None
 
 def conversion_channel(row):
-    kind = conversion_source(row)
-    return kind.startswith("meta_") or kind == "google_declarada"
+    # A conversão precisa trazer sua própria origem elegível; não herdar
+    # Facebook do cadastro original para atribuir uma nova entrada.
+    return facebook_event_classify(row) is not None
 
 def sold(row):
     # O CV também expõe a flag de venda efetivada, além da situação comercial.
@@ -229,11 +231,11 @@ def main():
             conflicts.add(lead)
         else:
             original[lead] = current
-            whatsapp_by_lead[lead] = classify_channel(row) == "meta_whatsapp_cv"
+            whatsapp_by_lead[lead] = facebook_cv_classify(row) == "manager_whatsapp_facebook_cv"
             original_details[lead] = {
                 "cliente": str(row.get("nome") or row.get("nome_lead") or row.get("cliente") or "Não informado"),
                 "situacao_lead": row.get("situacao") or row.get("status") or row.get("situacao_lead") or "Não informado",
-                "origem": str(row.get("origem") or row.get("midia") or row.get("origem_cadastro") or "Não informado")
+                "origem": str(row.get("origem") or row.get("origem_cadastro") or "Não informado")
             }
         for idkey, projectkey in (
             ("idempreendimento_primeiro", "empreendimento_primeiro"),
@@ -436,7 +438,7 @@ def main():
                       "prospects_com_venda_validada"
                   )
               },
-              "method": "IDs de prospects por empreendimento e período de entrada. Etapa máxima alcançada após a entrada, contabilizada cumulativamente nas anteriores.",
+              "method": "Cadastro FB (formulário integrado ao CV) ou GE com mídia WhatsApp Facebook, além de retornos de eventos elegíveis. IDs únicos por empreendimento/safra, etapas cumulativas. Origem declarada não comprova campanha paga.",
               "source": "CV CRM v1; contagens agregadas sem IDs ou PII"}
     # Arquivo individual LOCAL: jamais comitar em data/ ou publicar no Pages.
     # É possível importá-lo no dashboard diretamente do computador autorizado.
