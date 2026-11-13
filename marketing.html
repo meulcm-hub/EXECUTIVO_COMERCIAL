@@ -150,15 +150,17 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 .origin-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
 .origin-chart svg{width:100%;height:145px;display:block}
 .origin-labels{display:flex;justify-content:space-between;font-size:10px;color:#778a94}
-.cv-metrics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2.65fr);gap:14px;width:100%}
+.cv-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:100%}
+.cv-metrics .daily-chart-card{grid-column:1/-1;min-height:0}
 .cv-metrics .kpi{min-height:155px}
-.cv-breakdown{margin-top:14px;border-top:1px solid #e6ecec;padding-top:9px;font-size:12px;color:#405965}
+.cv-breakdown{margin-top:14px;border-top:1px solid var(--line);padding-top:9px;font-size:12px;color:var(--muted)}
 .cv-breakdown summary{cursor:pointer;font-weight:650;color:#237a6a}
 .cv-breakdown div{padding-top:9px;line-height:1.5}
-.cv-breakdown b{color:#163d4c}
-@media(max-width:1050px){.cv-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-chart-card{grid-column:1/-1}}
+.cv-breakdown b{color:var(--ink)}
+@media screen{html[data-theme=dark] .cv-breakdown summary{color:#b3d891}}
+@media(max-width:1050px){.cv-metrics{gap:12px}}
 @media(max-width:640px){.cv-metrics{grid-template-columns:1fr}}
-</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=61bdcddbf212" defer></script><link rel="stylesheet" href="lcm-creatives.css?v=ac4c5d6d3e8f"></head>
+</style><link rel="stylesheet" href="lcm-dashboard.css?v=b08e405ebd9d"><script src="lcm-shell.js?v=lcm-map-cohort-v1" defer></script><link rel="stylesheet" href="lcm-creatives.css?v=ac4c5d6d3e8f"></head>
 <body data-lcm-page="marketing"><main>
 <header class="heading"><div><div class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</div><h1>Visão de Marketing</h1><p>Indicadores por empreendimento, com período personalizado de cadastro e investimento, dentro do histórico sincronizado.</p><p id="lastSync" class="note" style="margin-top:5px">Última coleta: aguardando sincronização</p></div><span class="pill" id="status">Sincronização automática</span></header>
 <section class="toolbar">
@@ -177,15 +179,17 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="kpi"><small>CPL combinado indicativo</small><strong id="cpl">—</strong><span>Gasto das campanhas ativas ÷ (formulários + conversas)</span></div>
 </section>
 <section class="panel" style="margin-top:15px">
-<h2>Novos cadastros x retornos no CV CRM</h2>
+<h2>Novos cadastros e retornos adicionais no CV CRM</h2>
 <p class="sub">Apenas origens Facebook e Google. Busca Compartilhada e mídia WhatsApp Facebook são agrupadas em Facebook. Outras origens não entram nesta leitura.</p>
 <div class="cv-metrics">
-<div class="kpi"><small>Novos cadastros</small><strong id="cvNew">Em validação</strong><span>Facebook e Google · data original no CV</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppNew">Em validação</b> são da mídia WhatsApp Facebook</div></details></div>
-<div class="kpi"><small>Retornos confirmados</small><strong id="cvReturned">Em validação</strong><span>Nova conversão após o cadastro inicial</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppReturning">Não apurado</b> são da mídia WhatsApp Facebook</div></details></div>
+<div class="kpi"><small>Novos cadastros</small><strong id="cvNew">—</strong><span>Facebook e Google · data original no CV</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppNew">—</b> são da mídia WhatsApp Facebook</div></details></div>
+<div class="kpi"><small>Retornos adicionais</small><strong id="cvReturned">—</strong><span>Ainda não contados entre os novos deste recorte</span><details class="cv-breakdown"><summary>Ver WhatsApp Facebook</summary><div>Destes, <b id="cvWhatsAppReturning">—</b> são da mídia WhatsApp Facebook</div></details></div>
 
-<div class="kpi daily-chart-card"><small>LEADS POR DIA</small><div class="daily-chart" id="cvLeadsDailyChart"><span class="note">Aguardando dados por dia</span></div></div>
+<div class="kpi"><small>Total de prospects</small><strong id="cvProspects">—</strong><span>Novos + retornos adicionais</span></div>
+<div class="kpi daily-chart-card"><small>NOVOS CADASTROS POR DIA</small><div class="daily-chart" id="cvLeadsDailyChart"><span class="note">Aguardando dados por dia</span></div></div>
 </div>
-<p class="metric-note" id="cvConversionNote">Aguardando publicação do cruzamento privado entre cadastro original, conversões e empreendimentos. Não presumir atribuição às campanhas da Meta.</p>
+<details class="cv-breakdown"><summary>Todos os clientes que retornaram</summary><div><b id="cvAllReturned">—</b> clientes, incluindo os novos que retornaram no período. Cada cliente conta uma vez nesta informação complementar, mesmo quando retorna em mais de um empreendimento.</div></details>
+<p class="metric-note" id="cvConversionNote" hidden></p>
 </section>
 
 <section class="grid">
@@ -252,7 +256,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="marketing-update-row"><aside class="marketing-update" aria-label="Atualização do Marketing" aria-live="polite"><span class="marketing-update-label">Última atualização do Marketing</span><time id="marketingUpdatedAt">Indisponível</time><small id="marketingUpdateState">Aguardando a coleta publicada.</small><small>Coletas programadas: 06h, 12h e 18h · Brasília</small></aside></div>
 <footer>Atualização automática por GitHub Actions. Histórico acumulado desde janeiro de 2026, conforme a cobertura publicada de todas as fontes. Datas fora do período sincronizado não ficam disponíveis. Em recortes não validados, leads e CPL aparecem como indisponíveis. O CPL combinado inclui gastos de todas as campanhas atualmente ativas, inclusive reconhecimento, e divide por formulários e conversas WhatsApp. É um custo indicativo por resultado, não um CPL de leads únicos. A auditoria individual com os nomes dos clientes também é publicada nesta página pública. O período da Meta usa a data da entrega dos anúncios; o CV CRM usa data de cadastro com busca filtrada por data de referência. Como essas datas podem divergir, o CPL é indicativo. Os dados de contagem por empreendimento e dia são públicos. Pequenos grupos podem representar risco de inferência. Não se trata de ROAS ou venda atribuída.</footer>
 </main>
-<script src="lcm-cv-query.js?v=c541cb05b8ef"></script>
+<script src="lcm-cv-query.js?v=lcm-cohort-v1"></script>
 <script src="lcm-date-range.js?v=6d4dff9ed8a1"></script>
 <script src="lcm-creatives.js?v=28d2d903514f"></script>
 <script src="lcm-update-status.js?v=74e5dfbc6c5a"></script>
@@ -433,89 +437,34 @@ function drawLeadsPerDay(dailyByProject,visible,since,until){
   });
   viewport.append(svg);host.append(viewport);
 }
-function renderWhatsAppCV(visible){
-  // Cadastros do CV CRM com mídia WhatsApp Facebook, não eventos de conversão.
-  const target=$('cvWhatsAppNew');
-  if(data&&visible.length&&conversionSource?.validated===true&&conversionSource.schema_version>=3&&
-     data.period.since>=conversionSource.period.since&&data.period.until<=conversionSource.period.until&&
-     visible.every(m=>m.project&&conversionSource.daily?.[m.project])){
-    let count=0;
-    for(const m of visible)for(const [date,value]of Object.entries(conversionSource.daily[m.project]))
-      if(date>=data.period.since&&date<=data.period.until)count+=Number(value.whatsapp_new)||0;
-    target.textContent=nf(count);return;
-  }
-  if(!dailySource||dailySource.schema_version<3||
-      dailySource.cv_counts_validated!==true||
-      dailySource.cv_daily_groups_suppressed!==false||
-      !data||!visible.length||visible.some(m=>!m.project||
-        !dailySource.cv_known_projects?.includes(m.project)||
-        !dailySource.cv_by_project_daily?.[m.project])){
-    target.textContent='Em validação';
-    return;
-  }
-  const {since,until}=data.period;
-  let count=0;
-  const useValidatedConversions=conversionSource?.validated===true && conversionSource.schema_version>=3 &&
-    conversionSource.period && since>=conversionSource.period.since && until<=conversionSource.period.until &&
-    visible.every(m=>conversionSource.daily?.[m.project]);
-  for(const m of visible){
-    const days=useValidatedConversions?conversionSource.daily[m.project]:dailySource.cv_by_project_daily[m.project];
-    for(const [date,values] of Object.entries(days)){
-      if(date>=since&&date<=until)count+=Number(useValidatedConversions?values.whatsapp_new:values.meta_whatsapp_cv)||0;
-    }
-  }
-  target.textContent=nf(count);
-}
 function renderConversionMetrics(visible){
- const ids=['cvNew','cvReturned'];
- $('cvWhatsAppReturning').textContent='Não apurado';
+ const ids=['cvNew','cvReturned','cvProspects','cvWhatsAppNew','cvWhatsAppReturning'];
+ const note=$('cvConversionNote');
  const missing=reason=>{
-   ids.forEach(id=>$(id).textContent='Em validação');
-   $('cvLeadsDailyChart').replaceChildren(el('span','note','Sem dados para gráfico'));
-   $('cvConversionNote').textContent=reason;
+   ids.forEach(id=>$(id).textContent='—');
+   $('cvLeadsDailyChart').replaceChildren(el('span','note','Aguardando atualização dos dados'));
+   note.textContent=reason;note.hidden=false;
  };
- if(!conversionSource||!data||conversionSource.validated!==true||
-    conversionSource.schema_version<2||conversionSource.channel_scope!=='facebook_google'){
-   missing('Aguardando sincronização do CV CRM com a nova regra de origem Facebook e Google.');
-   return;
+ $('cvAllReturned').textContent='—';
+ if(data&&visible.length&&visible.every(m=>m.project)&&conversionSource?.validated===true&&
+    conversionSource.channel_scope==='facebook_google'){
+   const old=LcmCvQuery.conversions(conversionSource,data.period.since,data.period.until);
+   const key=$('project').value==='all'?'all':visible[0].project;
+   if(Number.isInteger(old?.returning?.[key]))$('cvAllReturned').textContent=nf(old.returning[key]);
+ }
+ if(!data||!visible.length||visible.some(m=>!m.project)){
+   missing('Selecione um empreendimento com dados do CV CRM.');return;
  }
  const {since,until}=data.period;
- const availableUntil=conversionSource.period.until;
- if(since<conversionSource.period.since||since>availableUntil){
-   missing('Cruzamento disponível de '+conversionSource.period.since+' até '+availableUntil+'.');
-   return;
- }
- const cut=until>availableUntil?availableUntil:until;
- if(!visible.length||visible.some(m=>!m.project||!conversionSource.daily[m.project])){
-   missing('Empreendimento sem vinculação CV validada.');return;
- }
- const range=LcmCvQuery.conversions(conversionSource,since,cut);
- if(!range){missing('Não existe deduplicação validada para este período.');return;}
- const key=$('project').value==='all'?'all':visible[0].project;
- if(!Number.isInteger(range.returning?.[key])){
-   missing('Retornos ainda não validados nesta seleção.');return;
- }
- let newCount=0;
- for(const m of visible)for(const [date,v] of Object.entries(conversionSource.daily[m.project])){
-   if(date>=since&&date<=cut){
-     newCount+=Number(v.new||0);
-     
-   }
- }
- $('cvNew').textContent=nf(newCount);
- $('cvReturned').textContent=nf(range.returning[key]);
- $('cvWhatsAppReturning').textContent=Number.isInteger(range.returning_whatsapp?.[key])?nf(range.returning_whatsapp[key]):'Não apurado';
- 
- drawLeadsPerDay(conversionSource.daily,visible,since,cut);
- const when=new Date(conversionSource.generated_at_utc).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
- const pending=range.unclassified_return?.[key]||0;
- $('cvConversionNote').textContent=(cut<until?
-  'Dados CV disponíveis até '+cut+'; o período selecionado termina em '+until+'. ':'')+
-  'Fonte: CV CRM · última consolidação '+when+
-  '. Somente Facebook (inclui Busca Compartilhada e WhatsApp Facebook) e Google. '+
-  'Retornos são conversões posteriores à data de cadastro.'+
-  (pending?' '+nf(pending)+' lead(s) sem condição de retorno identificada.':'')+
-  ' Conversões sem empreendimento e outras origens não entram neste bloco.';
+ const result=LcmCvQuery.entries(cvFunnelSource,visible.map(m=>m.project),since,until);
+ if(!result){missing('Aguardando atualização dos dados do CV CRM.');return;}
+ $('cvNew').textContent=nf(result.totals.new);
+ $('cvReturned').textContent=nf(result.totals.returning);
+ $('cvProspects').textContent=nf(result.totals.prospect);
+ $('cvWhatsAppNew').textContent=nf(result.totals.whatsapp_new);
+ $('cvWhatsAppReturning').textContent=nf(result.totals.whatsapp_returning);
+ drawLeadsPerDay(result.daily,visible,since,until);
+ note.textContent='';note.hidden=true;
 }
 function render(){
   if(!data)return;
@@ -546,7 +495,6 @@ function render(){
   $('status').textContent='Histórico aplicado • '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   $('appliedPeriod').textContent='Exibindo: '+data.period.since.split('-').reverse().join('/')+' a '+data.period.until.split('-').reverse().join('/');
   renderConversionMetrics(visible);
-  renderWhatsAppCV(visible);
   renderCampaigns(visible);
   renderCvFunnel(visible);
   renderCvAudit(visible);
