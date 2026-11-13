@@ -1,0 +1,36 @@
+name: LCM - Validacao de localidades do Publico Comprador
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Planilha_Executivo_LCM_COM_RENDA_PERFIL_PUBLICO.xlsx'
+      - 'scripts/buyer_locations.py'
+      - 'data/buyer-geocache.json'
+      - 'tests/test_buyer_locations.py'
+      - '.github/workflows/buyer-locations.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar leitura da base existente
+        run: python -m pip install openpyxl==3.1.5
+      - name: Validar agregacao e localizacao
+        run: python -m unittest discover -s tests -p 'test_buyer_locations.py'
+      - name: Preparar localidades com o cache confirmado
+        run: python scripts/buyer_locations.py
+      - name: Disponibilizar resultado para revisao
+        uses: actions/upload-artifact@v4
+        with:
+          name: localidades-agregadas
+          path: data/buyer-locations.json
+          retention-days: 7

@@ -16,7 +16,7 @@ money:'<circle cx="12" cy="12" r="9"/><path d="M15 8H10a2 2 0 0 0 0 4h4a2 2 0 0 
 window.LcmIcon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(icons[name]||icons.home)+'</svg>';
 const body=document.body;
 // A navegação entre visões também precisa renovar o HTML em cache.
-const uiVersion='lcm-audience-dark-v1';
+const uiVersion='lcm-map-cohort-v1';
 function pageUrl(href){
  const url=new URL(href,location.href);
  url.searchParams.set('ui',uiVersion);
@@ -83,6 +83,27 @@ for(const [id,isExplanation] of notes){
  const update=()=>node.classList.toggle('lcm-clean-note',isExplanation(node.textContent.trim()));
  update();new MutationObserver(update).observe(node,{childList:true,subtree:true,characterData:true});
 }
+// O mapa só carrega quando a visão Público Comprador é aberta.
+let buyerMapLoading=null;
+function buyerAsset(tag,path){
+ return new Promise((resolve,reject)=>{
+  const asset=document.createElement(tag),url=new URL(path,document.baseURI);url.searchParams.set('v',uiVersion);
+  if(tag==='link'){asset.rel='stylesheet';asset.href=url.href;}else{asset.src=url.href;asset.async=true;}
+  asset.onload=resolve;asset.onerror=()=>{asset.remove();reject(new Error('Mapa indisponível'));};document.head.append(asset);
+ });
+}
+function openBuyerMap(){
+ if(!root||location.hash!=='#audience')return;
+ let host=document.getElementById('lcmBuyerMap');
+ if(!host){const anchor=document.getElementById('audienceKpis');if(!anchor)return;host=document.createElement('section');host.id='lcmBuyerMap';host.style.marginBottom='18px';anchor.after(host);}
+ if(host.lcmBuyerMap){host.lcmBuyerMap.invalidateSize();return;}
+ if(buyerMapLoading)return;
+ host.textContent='Carregando mapa…';
+ buyerMapLoading=Promise.all([buyerAsset('link','vendor/leaflet/leaflet.css'),buyerAsset('link','lcm-buyer-map.css')])
+  .then(()=>window.L?null:buyerAsset('script','vendor/leaflet/leaflet.js'))
+  .then(()=>window.LcmBuyerMap?null:buyerAsset('script','lcm-buyer-map.js'))
+  .then(()=>window.LcmBuyerMap.mount(host,{projectSelect:document.getElementById('audienceProject')}))
+  .catch(()=>{host.textContent='Mapa temporariamente indisponível. Atualize a página para tentar novamente.';buyerMapLoading=null;});
+}
+window.addEventListener('hashchange',openBuyerMap);openBuyerMap();
 })();
-
-
