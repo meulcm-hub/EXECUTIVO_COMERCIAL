@@ -434,6 +434,7 @@ async function ibge(o){
  const apply=opElem("button","ci-op-btn ci-op-primary","⌕  Filtrar");apply.type="button";
  apply.onclick=()=>draw();bar.append(apply);outer.append(bar);
  outer.append(opParagraph("Cidade e bairro filtram a origem dos compradores; indicadores municipais IBGE estão vinculados ao local do empreendimento. Indicadores do raio exigem cálculo censitário aprovado.","ci-op-scope"));
+ const siteAddress=opParagraph("Carregando endereço cadastral…","ci-op-location");outer.append(siteAddress);
  const metricRow=opElem("div","ci-op-metrics");outer.append(metricRow);
  const mid=opElem("div","ci-op-split");
  const compare=opCard("Compradores LCM × Potencial da Região","▥","Comparação entre registros históricos LCM e população oficial, com universos e abrangências distintos.");
@@ -473,6 +474,7 @@ async function ibge(o){
  const sectorData=sectorResult.status==="fulfilled"?sectorResult.value:null;
  const metaFeed=metaResult.status==="fulfilled"?metaResult.value:null;
  const site=addresses?.projects?.find(p=>norm(p.project)===norm(project.value));
+ siteAddress.textContent=site?"Endereço de referência: "+opAddress(site)+(site.same_reference_address_adjacent_distinct_sites?" · Terreno adjacente distinto: centro geográfico próprio pendente.":""):"Endereço de referência indisponível para este empreendimento.";
  const context=contextData?.projects?.find(p=>norm(p.project)===norm(project.value));
  const cityName=site?.city||"";
  const municipalPromise=site?ibgeMunicipality(site.city,site.state).then(async m=>({m,v:await ibgeMunicipalNumbers(m),homes:await opMunicipalHomes(m)})):Promise.reject(Error("Sem município"));
@@ -582,7 +584,7 @@ async function ibge(o){
     ["Estratégia geográfica","Cidade e regiões permitidas pela plataforma, sem exclusões discriminatórias."],
     ["Medição","Termos de pesquisa, CTR, CPL válido, visitas, conversão e qualidade dos contatos."]
   ]));
-  reco.querySelectorAll(".ci-op-feed-status").forEach(e=>e.remove());
+  reco.querySelectorAll(".ci-op-feed-status,.ci-op-warning").forEach(e=>e.remove());
   reco.append(opParagraph(metaAccounts?"Integração Meta Ads existente: "+nf(metaAccounts)+" contas na base de campanhas. Vínculo campanha-empreendimento ainda não auditado; não foram inferidos resultados. Google Ads: sem conexão confirmada.":"Resultados Meta Ads e Google Ads por empreendimento ainda sem vínculo seguro. Estratégias exibidas são propostas, não campanhas já executadas.","ci-op-feed-status"));
   reco.append(opParagraph("Publicidade habitacional: revisar as políticas vigentes do Meta e Google. Não excluir pessoas por idade, gênero, raça, renda individual ou outros critérios protegidos. Sem orçamento automático sem dados comparáveis de CPL e conversões.","ci-op-warning"));
   opportunityPlanData={site:site||{project:project.value},radius,municipality:municipal?{population:municipal.v[93]}:null,publicTotal:count,buyerRows:moneyRows.rows,regionStatus:validRegion?"agregado de setores validado":"pendente de geocodificação setorial",market};
