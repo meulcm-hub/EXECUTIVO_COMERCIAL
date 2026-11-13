@@ -86,3 +86,12 @@ body.lcm-app #audience[data-intelligence-v4="1"] .ci-table tr:hover td{backgroun
  body.lcm-app #audience[data-intelligence-v4="1"] .ci-tabs,body.lcm-app #audience[data-intelligence-v4="1"] .ci-filters,body.lcm-app #audience[data-intelligence-v4="1"] .ci-export{display:none!important}
  body.lcm-app #audience[data-intelligence-v4="1"] .ci-card,body.lcm-app #audience[data-intelligence-v4="1"] .ci-metric{break-inside:avoid}
 }
+/* V6: all four selectors are active over sales data; scope shown separately */
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-filters>.ci-filter-scope{grid-column:1/-1;margin:1px 0 0;color:#d3c59a;font-size:11px;line-height:1.5}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-ibge-status{font-size:13px;color:#e3f1f0;line-height:1.7}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-view[data-view="ibge"]>.ci-card{margin-bottom:12px}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-view[data-view="ibge"] .ci-ibge-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-view[data-view="ibge"] .ci-filter{max-width:240px;margin:14px 0}
+@media(max-width:720px){body.lcm-app #audience[data-intelligence-v4="1"] .ci-view[data-view="ibge"] .ci-ibge-stats{grid-template-columns:1fr}}
+
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-app-build{display:inline-block;color:#a5ed7c;background:#1d4238;border:1px solid #3e715b;padding:7px 10px;border-radius:8px;font-size:10px;font-weight:800;margin-right:8px}
