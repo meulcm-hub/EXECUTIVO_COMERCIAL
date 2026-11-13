@@ -1,0 +1,39 @@
+name: LCM - Auditar coerencia Meta Marketing
+on:
+  push:
+    branches: [main]
+    paths:
+      - marketing.html
+      - lcm-creatives.js
+      - tests/test_marketing_meta_alignment.cjs
+      - .github/workflows/marketing-meta-alignment.yml
+  pull_request:
+    paths:
+      - marketing.html
+      - lcm-creatives.js
+      - tests/test_marketing_meta_alignment.cjs
+permissions:
+  contents: read
+jobs:
+  meta-alignment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar JS e reconciliação de escopos
+        run: |
+          node --check lcm-creatives.js
+          node --test tests/test_marketing_meta_alignment.cjs
+      - name: Validar critérios e versão referenciada no HTML
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('marketing.html').read_text(encoding='utf-8')
+          assert 'lcm-creatives.js?v=marketing-reconcile-08f1e18' in text
+          assert 'messages+=Number(v.messages||0)' in text
+          assert 'if(campaign.is_whatsapp_campaign===true)messages+=' not in text
+          assert 'creatives?.update({project:choice,since:data.period.since,until:data.period.until,campaignSource})' in text
+          print('As fontes e os escopos de métricas estão ligados.')
+          PY
