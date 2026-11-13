@@ -91,7 +91,7 @@ class EntryClassificationTests(unittest.TestCase):
         other = [g for g in report["prospects"] if g["project"] == funnel.PROJECTS[1]]
         self.assertEqual(len(other), 1)
         self.assertIsNone(other[0]["new_date"])
-        self.assertTrue(other[0]["whatsapp_acquisition"])
+        self.assertFalse(other[0]["whatsapp_acquisition"])
         self.assertEqual(other[0]["entries"], [{"date": "2026-09-18", "stage": 0}])
 
     def test_ineligible_original_channel_does_not_become_a_new_registration(self):
