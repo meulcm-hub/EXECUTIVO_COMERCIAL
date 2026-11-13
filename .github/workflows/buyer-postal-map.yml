@@ -1,0 +1,41 @@
+name: LCM - Preparar mapa agregado por CEP
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/buyer_postal_locations.py'
+      - 'tests/test_buyer_postal_locations.py'
+      - '.github/workflows/buyer-postal-map.yml'
+permissions:
+  contents: read
+jobs:
+  postal-locations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar leitor da base existente
+        run: python -m pip install openpyxl==3.1.5
+      - name: Validar agrupamento e ausencia de dados individuais
+        run: python -m unittest discover -s tests -p 'test_buyer_postal_locations.py'
+      - name: Preparar apenas pontos agregados por CEP
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/buyer_postal_locations.py --geocode --one-time --max-requests 1000
+      - name: Disponibilizar apenas a projecao publica para revisao
+        uses: actions/upload-artifact@v4
+        with:
+          name: pontos-agregados-por-cep
+          path: |
+            data/buyer-postal-locations.json
+            data/buyer-postal-geocache.json
+          retention-days: 7
+          if-no-files-found: error
