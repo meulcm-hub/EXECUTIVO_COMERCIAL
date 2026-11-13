@@ -141,34 +141,68 @@ function geographic(o){
 }
 async function ibge(o){
  const wrap=panels.ibge;wrap.replaceChildren();
- const top=panel('Potencial demográfico — Censo 2022','region','Resultados oficiais em escala municipal; não equivalem automaticamente ao entorno do empreendimento.');
- const cities=rows(o,'Cidade').sort((a,b)=>b.count-a.count);
- const chosen=cities[0]?.label||'';
- top.append(text('p','ci-no-data',chosen?'Município de referência: '+chosen+'. Para análise por raio/setor é necessário georreferenciar o terreno e cruzar a malha de setores do Censo 2022.':'Nenhum município disponível para esta seleção.'));
- const status=text('p','ci-ibge-status','Consultando fontes oficiais disponíveis…');top.append(status);wrap.append(top);
- const foot=text('p','ci-data-note','Fonte: IBGE, Censo Demográfico 2022. Indicadores municipais não representam necessariamente a vizinhança do empreendimento. Dados setoriais e socioeconômicos precisam de processamento geoespacial validado.');
- wrap.append(foot);
- if(!chosen){status.textContent='Sem município associado ao filtro.';return;}
+ const top=panel('Potencial da região — entorno do empreendimento','region',
+  'Centro geográfico obtido do endereço do empreendimento cadastrado no CV CRM. Fontes censitárias de 2022.');
+ const selected=project.value;
+ if(!selected){
+  top.append(text('p','ci-no-data','Selecione um empreendimento para analisar seu entorno. Não utilizaremos o centro da cidade nem a cidade de origem dos compradores.'));
+  wrap.append(top);return;
+ }
+ const label=text('p','ci-ibge-status','Conferindo localização validada do empreendimento…');
+ top.append(label);wrap.append(top);
  const session=++ibgeSession;
  try{
-  const places=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios',{signal:AbortSignal.timeout(12000)}).then(r=>{if(!r.ok)throw Error('Municípios indisponíveis');return r.json();});
+  const response=await fetch('data/ibge-project-context.json?version=1',{cache:'no-store'});
+  if(!response.ok)throw Error('Nenhuma análise publicada');
+  const payload=await response.json();
   if(currentTab!=='ibge'||session!==ibgeSession)return;
-  const matches=places.filter(p=>norm(p.nome)===norm(chosen));
-  if(matches.length!==1){status.textContent='Município ambíguo ou sem correspondência exata com o IBGE: '+chosen+'.';return;}
-  const id=matches[0].id;
-  const url='https://servicodados.ibge.gov.br/api/v3/agregados/4714/periodos/2022/variaveis/93%7C6318%7C614?localidades=N6%5B'+id+'%5D';
-  const rows=await fetch(url,{signal:AbortSignal.timeout(12000)}).then(r=>{if(!r.ok)throw Error('Agregados indisponíveis');return r.json();});
-  if(currentTab!=='ibge'||session!==ibgeSession)return;
-  const values=new Map();
-  for(const variable of rows){const v=variable.variavel;const series=variable.resultados?.[0]?.series?.[0]?.serie;const n=Number(series?.['2022']);if(Number.isFinite(n))values.set(v,n);}
-  status.replaceChildren();
-  const stats=text('div','ci-ibge-stats');
-  const patterns=[['População residente',/populacao residente/i,'pessoas'],['Densidade demográfica',/densidade demografica/i,'hab./km²'],['Área territorial',/area territorial/i,'km²']];
-  for(const [label,pattern,unit]of patterns){const entry=[...values].find(([key])=>pattern.test(key));stats.append(metric(label,entry?nf(entry[1]):'—','IBGE · 2022 · '+unit,'region'));}
-  status.append(stats);
-  const a=text('a','ci-source-link','Consultar publicação do Censo 2022 no IBGE');
-  a.href='https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html';a.target='_blank';a.rel='noopener noreferrer';top.append(a);
- }catch(error){if(session===ibgeSession)status.textContent='Consulta oficial indisponível no momento. Não foram utilizadas estimativas substitutas.';}
+  if(payload?.schema_version!==1||!Array.isArray(payload.projects))throw Error('Estrutura de dados não validada');
+  const entry=payload.projects.find(p=>norm(p.project)===norm(selected));
+  if(!entry){
+   label.textContent='O endereço deste empreendimento ainda não foi validado no CV CRM para análise por raio. Nenhum indicador aproximado foi publicado.';
+   return;
+  }
+  const center=entry.center;
+  if(!center||center.source!=='CV CRM'||center.verified!==true||
+     center.precision!=='address_number'||
+     !Number.isFinite(center.lat)||!Number.isFinite(center.lng)||
+     center.lat< -34||center.lat>6||center.lng< -74||center.lng> -32){
+   label.textContent='Endereço cadastrado, mas sem coordenadas de precisão suficiente. Análise suspensa.';
+   return;
+  }
+  label.textContent='Localização confirmada do empreendimento · endereço do CV CRM · coordenadas validadas';
+  const selectLabel=text('label','ci-filter','Raio de estudo');
+  const radius=document.createElement('select');
+  for(const km of [1,3,5,10])radius.add(new Option(km+' km',String(km)));
+  radius.value='3';selectLabel.append(radius);top.append(selectLabel);
+  const display=text('div','ci-ibge-stats');top.append(display);
+  function draw(){
+   display.replaceChildren();
+   const chosen=entry.radii?.[radius.value];
+   if(!chosen||chosen.year!==2022||
+      chosen.method!=='sector_intersection_area_weighted'||
+      !Number.isFinite(chosen.population)||!Number.isFinite(chosen.households)||
+      chosen.population<0||chosen.households<0){
+    display.append(text('p','ci-no-data','Este raio ainda não possui cálculo espacial validado a partir dos setores censitários do Censo 2022.'));return;
+   }
+   for(const [title,value,unit]of [
+    ['População estimada',chosen.population,'pessoas · Censo 2022'],
+    ['Domicílios estimados',chosen.households,'domicílios · Censo 2022'],
+    ['Densidade estimada',Number.isFinite(chosen.populationDensity)?chosen.populationDensity:null,'hab./km² · Censo 2022']
+   ])display.append(metric(title,value===null?'—':nf(value),unit,'region'));
+   const warning=text('p','ci-data-note',
+    'Estimativas por ponderação de área de setores intersectados pelo círculo; a distribuição dos moradores dentro de cada setor pode não ser uniforme.');
+   display.append(warning);
+  }
+  radius.addEventListener('change',draw);draw();
+  const sourceLink=text('a','ci-source-link','Fonte oficial: IBGE — Censo Demográfico 2022');
+  sourceLink.href='https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html?edicao=41852&t=downloads';
+  sourceLink.target='_blank';sourceLink.rel='noopener noreferrer';top.append(sourceLink);
+ }catch(_){
+  if(session===ibgeSession){
+   label.textContent='Análise do entorno ainda não publicada: aguardando leitura do endereço no CV CRM, validação das coordenadas e cruzamento espacial com os setores censitários de 2022.';
+  }
+ }
 }
 let ibgeSession=0;
 function compare(){
