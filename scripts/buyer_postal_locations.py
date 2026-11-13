@@ -5,6 +5,7 @@ Coordinates describe an approximate street/postal area from AwesomeAPI.
 They are never described as an individual home or a house-number location.
 """
 import argparse
+import base64
 from collections import Counter, defaultdict
 import datetime as dt
 import hashlib
@@ -383,6 +384,53 @@ def build_report(counts,coverage,city_hints,cache):
                                              'unresolved_eligible_postal_project_groups':sum(n>=MIN_GROUP_SIZE for n in counts.values())-len(points)}}
 
 
+TRANSPORT_AAD = b'LCM-Buyer-Postal-Transport/v1'
+TRANSPORT_ALGORITHM = 'RSA-OAEP-256+A256GCM'
+COVERAGE_KEYS = frozenset((
+    'buyer_project_pairs','reservation_rows_read','matched_buyer_project_pairs',
+    'buyers_missing_postal_code','buyers_conflicting_postal_code','buyers_with_postal_code',
+    'postal_project_groups','eligible_postal_project_groups','suppressed_postal_project_groups'))
+
+
+def encrypt_transport(counts, coverage, hints, public_pem):
+    """Wrap aggregate-only data for a designated local recipient; never writes plaintext.
+
+    Envelope v1 uses RSA-3072 OAEP(SHA256, MGF1-SHA256, label=None) around a
+    random AES-256 key. AES-GCM has a random 12-byte nonce and fixed TRANSPORT_AAD;
+    ciphertext includes its authentication tag. All binary fields use standard base64.
+    """
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding, rsa
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    except ImportError:
+        raise RuntimeError('Dependência de criptografia indisponível') from None
+    if isinstance(public_pem, str):
+        public_pem=public_pem.encode('ascii')
+    public_key=serialization.load_pem_public_key(public_pem)
+    if not isinstance(public_key,rsa.RSAPublicKey) or public_key.key_size != 3072:
+        raise ValueError('Chave pública RSA-3072 necessária para o transporte')
+    groups=[]
+    for (project,cep),count in sorted(counts.items()):
+        if (not isinstance(project,str) or not project or postal_code(cep)!=cep
+                or isinstance(count,bool) or not isinstance(count,int) or count<MIN_GROUP_SIZE):
+            raise ValueError('Agregado postal inválido para transporte')
+        groups.append({'project':project,'postal_code':cep,'count':count,
+                       'cities':sorted({normalize(city) for city in hints.get((project,cep),set()) if normalize(city)})})
+    safe_coverage={key:value for key,value in coverage.items()
+                   if key in COVERAGE_KEYS and isinstance(value,int) and not isinstance(value,bool) and value>=0}
+    plaintext=json.dumps({'schema_version':1,'groups':groups,'coverage':safe_coverage},
+                         ensure_ascii=False,separators=(',',':')).encode('utf-8')
+    aes_key=AESGCM.generate_key(bit_length=256)
+    nonce=os.urandom(12)
+    encrypted=AESGCM(aes_key).encrypt(nonce,plaintext,TRANSPORT_AAD)
+    wrapped_key=public_key.encrypt(aes_key,padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                     algorithm=hashes.SHA256(),label=None))
+    encode=lambda value:base64.b64encode(value).decode('ascii')
+    return {'schema_version':1,'alg':TRANSPORT_ALGORITHM,'key':encode(wrapped_key),
+            'nonce':encode(nonce),'ciphertext':encode(encrypted)}
+
+
 def write_json(path,value):
     path.parent.mkdir(parents=True,exist_ok=True)
     temp=path.with_suffix(path.suffix+'.tmp')
@@ -396,9 +444,15 @@ def main(argv=None):
     parser.add_argument('--output',type=Path,default=ROOT/'data/buyer-postal-locations.json')
     parser.add_argument('--cache',type=Path,default=ROOT/'data/buyer-postal-geocache.json')
     parser.add_argument('--geocode',action='store_true')
+    parser.add_argument('--transport-public-key',type=Path)
+    parser.add_argument('--encrypted-transport',type=Path)
     parser.add_argument('--one-time',action='store_true',help='Lote manual único; consultas de CEP usam intervalo mínimo de 1,1s')
     parser.add_argument('--max-requests',type=int,default=60)
     args=parser.parse_args(argv)
+    if bool(args.transport_public_key) != bool(args.encrypted_transport):
+        parser.error('Informe chave pública e saída criptografada juntas')
+    if args.encrypted_transport and args.encrypted_transport.resolve() in {path.resolve() for path in (args.workbook,args.output,args.cache,args.transport_public_key)}:
+        parser.error('A saída criptografada deve ter um caminho exclusivo')
     if args.one_time and not args.geocode or args.max_requests<0 or args.max_requests>(1000 if args.one_time else 60):
         parser.error('Configuração do lote geográfico inválida')
     universe=buyer_universe(args.workbook)
@@ -410,6 +464,9 @@ def main(argv=None):
         raise RuntimeError('Reservas sem vínculos de compradores; saída preservada')
     counts,coverage,hints=aggregate_reservations(records,universe)
     print('Cobertura postal: '+json.dumps(coverage,sort_keys=True),flush=True)
+    if args.transport_public_key:
+        envelope=encrypt_transport(counts,coverage,hints,args.transport_public_key.read_bytes())
+        write_json(args.encrypted_transport,envelope)
     cache=load_cache(args.cache)
     refresh_cache(cache,{cep for (_project,cep),n in counts.items() if n>=MIN_GROUP_SIZE},geocode=args.geocode,one_time=args.one_time,max_requests=args.max_requests)
     report=build_report(counts,coverage,hints,cache)
