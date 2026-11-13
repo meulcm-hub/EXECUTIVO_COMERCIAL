@@ -555,10 +555,17 @@ async function ibge(o){
    opKpi("Domicílios",region?nf(region.households):Number.isFinite(municipal?.homes)?nf(municipal.homes):"—",region?radius+" km · Censo 2022":Number.isFinite(municipal?.homes)?"Município inteiro · Censo 2022":"Base oficial indisponível","⌂",region?"ESTIMATIVA SETORIAL":Number.isFinite(municipal?.homes)?"IBGE MUNICIPAL":"PENDENTE"),
    opKpi("Renda média do responsável",verifiedMunicipalResponsibleIncome?money(municipalResponsibleIncome):"—",
     verifiedMunicipalResponsibleIncome?"Pessoas responsáveis com rendimento · município · Censo 2022":"Fonte oficial municipal ainda não publicada",
-    "▤",verifiedMunicipalResponsibleIncome?"IBGE V06004 · NÃO É RENDA FAMILIAR":"PENDENTE"),
+    "▤",verifiedMunicipalResponsibleIncome?"IBGE 2022 · RENDIMENTO DO RESPONSÁVEL":"PENDENTE"),
    opKpi("Compradores LCM",count?nf(count):"—",count?locSubtitle:"Sem pontos agregados de origem","♙","LCM · ORIGEM AGREGADA"),
-   opKpi("Potencial de mercado",market==null?"—":nf(market),market==null?"Modelo auditado ainda indisponível":"Domicílios compatíveis · hipótese documentada","◎",market==null?"PENDENTE":"ESTIMATIVA")
+   opKpi(market==null?"Base do potencial residencial":"Potencial de mercado",
+    market==null?(region?nf(region.households):Number.isFinite(municipal?.homes)?nf(municipal.homes):"—"):nf(market),
+    market==null?(region?"Domicílios no raio · elegibilidade não calculada":Number.isFinite(municipal?.homes)?"Domicílios no município · não são compradores potenciais":"Aguardando domicílios oficiais do IBGE"):"Domicílios financeiramente compatíveis · metodologia documentada",
+    "◎",market==null?"IBGE · UNIVERSO, NÃO DEMANDA":"ESTIMATIVA AUDITADA")
   );
+  if(market==null){
+   const info=opElem("p","ci-op-warning","Potencial comprador ainda não calculável: é necessário cruzar faixas de renda familiar da região, preço e condições de financiamento do empreendimento. O número no cartão é apenas o universo de domicílios, não uma previsão de vendas.");
+   metricRow.after(info);
+  }
   compareBody.replaceChildren();
   const tabs=opElem("div","ci-op-compare-tabs");
   const graph=opElem("div","ci-op-compare-body");
