@@ -77,3 +77,14 @@ Foram recebidos 14 endereços ou referências de localização do responsável p
 Também não há ponto exato para SPE Arraial Costa Verde e SPE Arraial Costa Verde Club, porque foram informadas apenas a localidade Arraial d'Ajuda e a cidade Porto Seguro. O número de Santa Catarina é uma faixa (`1310–1420`), não uma portaria definida. Os lotes de Ipê/Jacarandá podem ser localizados espacialmente com croqui ou geolocalização do lote, não por número predial inexistente.
 
 O workflow `ibge-geocode-curated.yml` faz um lote controlado de geocodificação, com distinção explícita `adjacent_distinct_site_requires_own_point` para referências idênticas de terrenos vizinhos. Todos os pontos seguem não verificados e não alimentam indicadores censitários até validação independente.
+
+## Teste com os 14 endereços fornecidos — 13/11/2026
+
+Execução: https://github.com/meulcm-hub/EXECUTIVO_COMERCIAL/actions/runs/43468171080 (concluída com sucesso).
+- 14 empreendimentos distintos; 8 endereços completos distintos geocodificados após deduplicar referências compartilhadas.
+- 1 ponto candidato de precisão por número: **RESIDENCIAL TURQUESA PARQUE**, coordenada ainda **não verificada por pessoa ou fonte independente**.
+- 8 empreendimentos com endereço consultado mas sem correspondência exata no serviço.
+- 5 empreendimentos sem endereço de precisão suficiente para geocodificação por porta (entre eles os dois Arraial, Ipê e Jacarandá, além de Santa Catarina com faixa numérica).
+- **Flamboyant e Jatobá são vizinhos distintos no mesmo endereço de referência**. O mesmo ocorre com **Ipê e Jacarandá**. Não devemos compartilhar uma coordenada única entre esses terrenos.
+
+O resultado foi armazenado no artefato de revisão `ibge-coordenadas-fornecidas-para-revisao` (retenção 7 dias). O workflow teve seu gatilho automático removido após a execução. Ainda não existem indicadores setoriais publicados nem coordenadas aprovadas no dashboard.
