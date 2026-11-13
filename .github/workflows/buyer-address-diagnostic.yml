@@ -1,0 +1,30 @@
+name: CV CRM - Disponibilidade de endereco do comprador na reserva
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/buyer_reservation_address_diagnostic.py'
+      - 'tests/test_buyer_reservation_address_diagnostic.py'
+      - '.github/workflows/buyer-address-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  address-fields:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar que o diagnostico nao divulga dados pessoais
+        run: python -m unittest discover -s tests -p 'test_buyer_reservation_address_diagnostic.py'
+      - name: Verificar presenca de campos sem publicar enderecos
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/buyer_reservation_address_diagnostic.py
