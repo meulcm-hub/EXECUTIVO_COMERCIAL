@@ -29,6 +29,18 @@ class Opener:
         return Response(self.payload)
 
 
+class SequenceOpener(Opener):
+    def __init__(self, payloads):
+        super().__init__(None)
+        self.payloads = iter(payloads)
+    def open(self, request, timeout):
+        self.requests.append(request)
+        value = next(self.payloads)
+        if isinstance(value, Exception):
+            raise value
+        return Response(value)
+
+
 class DiagnosticTest(unittest.TestCase):
     env = {'CVCRM_DOMINIO': 'https://lcm.cvcrm.com.br', 'CVCRM_EMAIL': 'SECRET_EMAIL', 'CVCRM_TOKEN': 'SECRET_TOKEN'}
     address = {'logradouro': 'PRIVATE_STREET', 'numero': '987', 'cidade': 'PRIVATE_CITY', 'uf': 'ZZ', 'cep': 'PRIVATE_POSTCODE'}
@@ -81,6 +93,73 @@ class DiagnosticTest(unittest.TestCase):
 
     def test_redirects_disabled(self):
         self.assertIsNone(d.NoRedirect().redirect_request(None, None, 302, 'private', {}, 'https://evil.example'))
+
+    def test_root_fields_links_and_scalar_buyer_presence_are_static_counts(self):
+        record = {'bairro': 'PRIVATE_BAIRRO', 'cidade': 'PRIVATE_CITY', 'id_pessoa': 'PRIVATE_PERSON_ID',
+                  'idcliente': 23456789, 'id_titular': 'PRIVATE_TITULAR', 'cliente': 'PRIVATE_CUSTOMER',
+                  'dados_cliente': {}, 'PRIVATE_CUSTOM_FIELD': 'PRIVATE_VALUE'}
+        report = d.summarize([record])
+        self.assertEqual(report['campos_principais']['bairro'], 1)
+        self.assertEqual(report['campos_principais']['cidade'], 1)
+        self.assertEqual(report['vinculos_cliente'], {'idpessoa': 1, 'idcliente': 1, 'idtitular': 1})
+        self.assertEqual(report['conteineres_cliente']['cliente'], 1)
+        self.assertEqual(report['conteineres_cliente']['dados_cliente'], 1)
+        self.assertEqual(report['residencia_em_contexto_cliente'], 0)
+        self.assertNotIn('PRIVATE', json.dumps(report))
+
+    def test_flat_buyer_qualified_fields_count_but_generic_root_stays_ambiguous(self):
+        record = {'endereco_cliente': 'PRIVATE_STREET', 'cliente_numero': '876',
+                  'cidade_cliente': 'PRIVATE_CITY', 'cliente_uf': 'ZZ', 'cep_cliente': 'PRIVATE_CEP',
+                  'cidade': 'PRIVATE_PROJECT_CITY'}
+        report = d.summarize([record])
+        self.assertEqual(report['logradouro_numero_cidade_uf_no_mesmo_endereco'], 1)
+        self.assertEqual(report['campos_cliente_qualificados_na_raiz']['logradouro'], 1)
+        self.assertEqual(report['campos_cliente_qualificados_na_raiz']['cep'], 1)
+        self.assertEqual(report['endereco_principal_sem_contexto_cliente'], 1)
+        # Separate explicit buyer namespaces must not be merged into an address.
+        mixed = {'logradouro_cliente': 'PRIVATE', 'numero_comprador': '1',
+                 'cidade_cliente': 'PRIVATE', 'uf_comprador': 'ZZ'}
+        self.assertEqual(d.summarize([mixed])['logradouro_numero_cidade_uf_no_mesmo_endereco'], 0)
+
+    def test_detail_uses_only_first_cvdw_numeric_reservation_id_and_never_prints_it(self):
+        secret_id = '765432198765'
+        op = SequenceOpener([{'dados': [{'idreserva': secret_id, 'cidade': 'PRIVATE_CITY'}]},
+                             {'reservas': []}, {'reserva': {'idreserva': secret_id,
+                              'cliente': {'endereco': self.address}, 'PRIVATE_KEY': 'PRIVATE_VALUE'}}])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(d.main(self.env, op), 0)
+        self.assertEqual(len(op.requests), 3)
+        self.assertTrue(op.requests[-1].full_url.endswith('/api/v1/comercial/reservas/' + secret_id))
+        self.assertIn('Detalhe Comercial Reserva:', out.getvalue())
+        self.assertNotIn(secret_id, out.getvalue())
+        self.assertNotIn('PRIVATE', out.getvalue())
+        self.assertNotIn('SECRET', out.getvalue())
+        self.assertIsNone(d.first_reservation_id([{'id': 12}, {'idreserva': 13}]))
+
+    def test_invalid_detail_id_rejected_before_network(self):
+        for invalid in ['0', -1, True, False, 1.2, '-1', '+1', ' 1', '1/../../clientes',
+                        'https://evil.example', '1?token=PRIVATE', None, '1' * 21]:
+            op = Opener({})
+            with self.assertRaises(ValueError):
+                d.fetch_reservation_detail(op, 'https://lcm.cvcrm.com.br', 'SECRET_EMAIL', 'SECRET_TOKEN', invalid)
+            self.assertEqual(op.requests, [])
+
+    def test_detail_rows_accept_single_and_wrapped_reservations_not_error_payloads(self):
+        item = {'idreserva': 12, 'cliente': {'endereco': self.address}}
+        for payload in [item, {'reserva': item}, {'dados': item}, {'data': [item]}]:
+            self.assertEqual(d.detail_rows(payload), [item])
+        with self.assertRaises(ValueError): d.detail_rows({'error': 'PRIVATE_BODY'})
+
+    def test_detail_http_error_does_not_print_reservation_url_or_error_body(self):
+        err = urllib.error.HTTPError('https://lcm.cvcrm.com.br/api/v1/comercial/reservas/87654321',
+                                     403, 'PRIVATE_REASON', {}, io.BytesIO(b'PRIVATE_BODY'))
+        op = SequenceOpener([{'dados': [{'idreserva': 87654321}]}, {'reservas': []}, err])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out): self.assertEqual(d.main(self.env, op), 0)
+        self.assertIn('Detalhe Comercial Reserva: consulta recusada ou indisponível; HTTP 403.', out.getvalue())
+        for forbidden in ['87654321', 'https://', 'PRIVATE', 'SECRET']:
+            self.assertNotIn(forbidden, out.getvalue())
 
 
 if __name__ == '__main__': unittest.main()
