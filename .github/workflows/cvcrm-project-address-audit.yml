@@ -1,10 +1,6 @@
 name: LCM - Validar endereços de empreendimentos para IBGE
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/cvcrm-project-address-audit.yml
   pull_request:
     paths:
       - scripts/cvcrm_project_address_audit.py
@@ -25,7 +21,7 @@ jobs:
       - name: Testar proteção de endereços e extração do esquema
         run: python -m unittest discover -s tests -p test_cvcrm_project_address_audit.py -v
   cvcrm-diagnostic:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch'
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
