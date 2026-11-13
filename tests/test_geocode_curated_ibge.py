@@ -25,9 +25,11 @@ class CuratedIBGEGeocodeTests(unittest.TestCase):
         output,counts,lookups=geo.analyze([a,b,c],lookup,sleep=lambda n:None)
         self.assertEqual(calls,["A"])
         self.assertEqual(lookups,1)
-        self.assertEqual(counts["candidate_exact_shared_address"],2)
+        self.assertEqual(counts["adjacent_distinct_site_requires_own_point"],2)
         self.assertEqual(counts["incomplete_address"],1)
         self.assertTrue(all(r["center"] is None or r["center"]["verified"] is False for r in output["records"]))
+        self.assertIsNone(output["records"][0]["center"])
+        self.assertIsNone(output["records"][1]["center"])
         self.assertNotIn("Rua X",str(output))
     def test_service_failure_not_fake_coordinates(self):
         p={"project":"P","road":"Rua X","number":"60","city":"Goiânia","state":"GO"}
