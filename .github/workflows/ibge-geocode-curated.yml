@@ -1,13 +1,6 @@
 name: LCM - Geocodificar enderecos confirmados pelo responsavel
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - config/ibge-project-addresses.json
-      - scripts/geocode_curated_ibge.py
-      - tests/test_geocode_curated_ibge.py
-      - .github/workflows/ibge-geocode-curated.yml
 permissions:
   contents: read
 concurrency:
