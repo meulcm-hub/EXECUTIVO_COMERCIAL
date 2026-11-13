@@ -382,10 +382,10 @@ async function opDrawMap(container,options){
  if(opValidCenter(options.context)){
   const c=options.context.center;
   L.marker([c.lat,c.lng]).bindPopup("Localização verificada: "+options.name).addTo(parcelLayer);
-  L.circle([c.lat,c.lng],{radius:options.radius*1000,color:"#a4fa63",weight:2,fillOpacity:.04,dashArray:"5 5"}).addTo(parcelLayer);
+  const radiusCircle=L.circle([c.lat,c.lng],{radius:options.radius*1000,color:"#a4fa63",weight:2,fillOpacity:.04,dashArray:"5 5"}).addTo(parcelLayer);
   bounds.push([c.lat,c.lng]);
- }
- if(bounds.length){map.fitBounds(bounds,{padding:[24,24],maxZoom:13});}
+  map.fitBounds(radiusCircle.getBounds(),{padding:[28,28],maxZoom:14});
+ }else if(bounds.length){map.fitBounds(bounds,{padding:[24,24],maxZoom:13});}
  const toggles=options.toggleContainer; 
  const controls=[
   ["Compradores por cidade",cityLayer,true],
