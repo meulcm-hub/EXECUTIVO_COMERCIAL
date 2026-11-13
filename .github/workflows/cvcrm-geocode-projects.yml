@@ -1,12 +1,6 @@
 name: LCM - Geocodificacao de empreendimentos CV CRM (revisao)
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - scripts/cvcrm_geocode_projects.py
-      - tests/test_cvcrm_geocode_projects.py
-      - .github/workflows/cvcrm-geocode-projects.yml
 permissions:
   contents: read
 concurrency:
