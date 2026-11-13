@@ -10,6 +10,7 @@ on:
       - 'scripts/publish_cv_audit.py'
       - 'tests/test_publish_cv_audit.py'
       - 'tests/test_marketing_cv_funnel.py'
+      - 'tests/test_cv_entry_classification.py'
       - '.github/workflows/marketing-cv-funnel.yml'
   workflow_dispatch:
 concurrency:
@@ -30,6 +31,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_marketing_cv_funnel.py'
           python -m unittest discover -s tests -p 'test_cv_audit_cohort.py'
+          python -m unittest discover -s tests -p 'test_cv_entry_classification.py'
           python -m unittest discover -s tests -p 'test_publish_cv_audit.py'
           node --test tests/test_annual_cv_query.cjs tests/test_lcm_date_range.cjs
       - name: Consolidar funil CV a partir de IDs somente em memória privada
@@ -49,8 +51,16 @@ jobs:
               raise SystemExit("Funil sem dados: publicação interrompida")
           data = json.loads(file.read_text(encoding="utf-8"))
           if not (data.get("schema_version") == 2 and data.get("validated") is True
+                  and data.get("classification_version") == 1
                   and isinstance(data.get("prospects"), list)):
               raise SystemExit("Funil inválido: publicação interrompida")
+          if not all(isinstance(p, dict) and "new_date" in p
+                     and isinstance(p.get("whatsapp_acquisition"), bool)
+                     and (p["new_date"] is None or
+                          isinstance(p["new_date"], str) and
+                          any(e.get("date") == p["new_date"] for e in p.get("entries", [])))
+                     for p in data["prospects"]):
+              raise SystemExit("Classificação das entradas inválida: publicação interrompida")
           print("Funil CV validado: " + str(len(data["prospects"])) + " grupos anônimos.")
           PY
       - name: Exportar somente as colunas públicas autorizadas da auditoria
