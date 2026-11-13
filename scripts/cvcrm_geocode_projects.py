@@ -111,7 +111,7 @@ def run(environ=None,fetch=None,lookup=None,sleep=None):
     environ=os.environ if environ is None else environ
     base,email,token=credentials(environ)
     agent=environ.get("LCM_GEOCODER_USER_AGENT","").strip()
-    if not agent or "@" not in agent or len(agent)<18:
+    if not agent or "https://github.com/meulcm-hub/EXECUTIVO_COMERCIAL" not in agent:
         raise ValueError("Identify application and contact in LCM_GEOCODER_USER_AGENT")
     opener=urllib.request.build_opener(NoRedirect())
     records=(fetch or (lambda:collect_projects(opener,base,email,token)))()
