@@ -102,3 +102,7 @@ body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-district{color:#5
 body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-sector{color:#a3bd75}
 body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-parcel{color:#f4d59b}
 body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-generate:disabled{opacity:.6;cursor:wait}
+
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-card-title{justify-content:flex-start!important;text-align:left!important}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-card-title h3{flex:0 1 auto!important;text-align:left!important;margin:0!important;line-height:1.25!important}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-location{background:#173847;border:1px solid #49697a;border-radius:8px;padding:10px 13px;color:#c7f0e2;font-size:11px;line-height:1.5;margin:0 0 13px}
