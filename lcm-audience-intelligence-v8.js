@@ -573,8 +573,8 @@ async function ibge(o){
    opParagraph("Razão descritiva LCM/domicílios: "+nf(100*count/homesMunicipal)+"%. Não representa participação de mercado, conversão nem demanda potencial."));
   compareBody.append(coverage);
  }
-  const dimensionOpts=[["Renda familiar","Renda familiar"],["Faixa etária","Faixa etária"],["Cidade","Origem geográfica"],["Bairro","Bairros"]];
-  let chosenDimension="Renda familiar";
+  const dimensionOpts=[["Escala regional","IBGE × LCM"],["Renda familiar","Renda familiar"],["Faixa etária","Faixa etária"],["Cidade","Origem geográfica"],["Bairro","Bairros"]];
+  let chosenDimension="Escala regional";
   const insightRows=[];
   const cityData=opRange(o,"Cidade");
   if(cityData.total)insightRows.push(opLine("Origem observada",cityData.rows[0].label+" representa "+nf(100*cityData.rows[0].count/cityData.total)+"% das respostas classificadas por cidade."));
@@ -587,6 +587,16 @@ async function ibge(o){
   insights.append(opElem("h4","","✧  Insights do Cruzamento"),...insightRows);
   function drawGraph(){
    graph.replaceChildren();
+   if(chosenDimension==="Escala regional"){
+    if(!municipal||!Number.isFinite(municipal.homes)||!Number.isFinite(municipal.v?.[93])){
+     graph.append(opParagraph("Aguardando consulta oficial do município no IBGE.","ci-op-empty"));
+     return;
+    }
+    graph.append(opLine("IBGE · Censo 2022",nf(municipal.v[93])+" habitantes e "+nf(municipal.homes)+" domicílios particulares permanentes ocupados no município inteiro."),
+      opLine("LCM · CV CRM",nf(count)+" registros disponíveis de compradores por cidade/bairro no filtro geográfico selecionado."),
+      opParagraph("Cruzamento de escala, não de perfil equivalente: os dados LCM não representam a totalidade dos compradores da região nem a mesma unidade estatística do IBGE.","ci-op-warning"));
+    return;
+   }
    const ds=opRange(o,chosenDimension);
    if(!ds.total){graph.append(opParagraph("Sem respostas classificadas para esta dimensão.","ci-op-empty"));return;}
    const grid=opElem("div","ci-op-comparison-bars");
