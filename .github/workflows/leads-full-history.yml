@@ -1,0 +1,63 @@
+name: LCM - Gestao de Leads - Base Completa CV CRM
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '35 8,14,20 * * *'
+  push:
+    branches: [main]
+    paths:
+      - scripts/leads_full_history.py
+      - tests/test_leads_full_history.py
+      - .github/workflows/leads-full-history.yml
+permissions:
+  contents: write
+concurrency:
+  group: lcm-all-leads-publication
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar paginação, unicidade e descarte de PII
+        run: python -m unittest discover -s tests -p 'test_leads_full_history.py' -v
+      - name: Coletar histórico completo sem filtrar origem, situação ou empreendimento
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/leads_full_history.py
+      - name: Validar integridade antes de publicar agregados
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('data/leads-all-summary.json')
+          x=json.loads(p.read_text(encoding='utf-8'))
+          assert x['validated'] and x['scope']=='all_accessible_leads'
+          assert sum(v['count'] for v in x['by_registration_project_origin_status'])==x['unique_leads']
+          assert x['unique_leads']>0 and x['pages_scanned']>0
+          for r in x['by_registration_project_origin_status']:
+              assert set(r)=={'date','project','origin','status','count'}
+          print('Base completa validada:',x['unique_leads'],'leads, primeiro cadastro:',x['earliest_cadastro'])
+          PY
+      - name: Publicar exclusivamente agregados (sem dados pessoais)
+        run: |
+          cp data/leads-all-summary.json "$RUNNER_TEMP/leads-all-summary.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$RUNNER_TEMP/leads-all-summary.json" data/leads-all-summary.json
+            git add data/leads-all-summary.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'data(leads): atualizar base histórica agregada integral CV CRM'
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 5
+          done
+          exit 1
