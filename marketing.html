@@ -208,7 +208,7 @@ input[type=date]{height:41px;border:1px solid #d8e3df;border-radius:8px;padding:
 <div class="funnel-step level-2"><span class="funnel-label">CLIQUES</span><strong class="funnel-value" id="fClicks">—</strong><span class="funnel-desc">Cliques totais registrados na Meta</span><span class="funnel-rate" id="fCTR">Cliques ÷ impressões: —</span></div>
 <div class="funnel-arrow" aria-hidden="true">↓</div>
 <div class="funnel-step level-3"><span class="funnel-label">RESULTADOS</span><strong class="funnel-value" id="fLeads">—</strong><span class="funnel-desc">Formulários e conversas de WhatsApp</span><div class="funnel-results"><span>Formulários: <b id="fFormBreakdown">—</b></span><span>Conversas WhatsApp: <b id="fWhatsApp">—</b></span></div><span class="funnel-rate" id="fConversion">Comparação de taxas: —</span></div>
-</div><p class="metric-note" id="caveat">Fonte: Meta Ads. Resultados = formulários + conversas WhatsApp. Essa soma não representa pessoas únicas; cliques totais não equivalem a cliques no link.</p>
+</div><p class="metric-note" id="caveat">Meta Ads: eventos de formulário e conversas de WhatsApp atribuídos às campanhas ativas; não equivalem a prospects únicos do CV CRM.</p><p class="metric-note" id="metaCvReconciliation" role="status" aria-live="polite"></p>
 </div>
 <div class="funnel-column funnel-cv"><h3>Funil comercial — CV CRM</h3><p class="funnel-intro">Acompanhe a evolução da mesma safra de prospects, inclusive após o período selecionado.</p>
 <div class="status" id="cvFunnel">
@@ -497,6 +497,17 @@ function render(){
   renderConversionMetrics(visible);
   renderCampaigns(visible);
   renderCvFunnel(visible);
+  const metaCvNote=$('metaCvReconciliation');
+  const metaResults=$('fLeads').textContent;
+  const crmProspects=$('cvFunnelProspect').textContent;
+  if(/^\\d[\\d.]*$/.test(metaResults) && /^\\d[\\d.]*$/.test(crmProspects)){
+    metaCvNote.textContent='Conferência de fontes · Meta Ads: '+metaResults+
+      ' eventos atribuídos (formulários + conversas) em campanhas ativas; CV CRM: '+
+      crmProspects+' prospects únicos na safra consultada. Os indicadores não precisam coincidir: '+
+      'podem existir duplicidades, outros canais, diferenças de atribuição e datas de entrada.';
+  }else{
+    metaCvNote.textContent='Conferência Meta × CV CRM disponível somente quando ambas as fontes têm cobertura validada para a seleção.';
+  }
   renderCvAudit(visible);
   const creativeKey=[choice,data.period.since,data.period.until,campaignSource?.generated_at_utc||''].join('|');
   if(creativeKey!==creativesSelection){
