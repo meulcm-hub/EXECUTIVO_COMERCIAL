@@ -7,3 +7,14 @@ body.lcm-app.lcm-leads-page .lcm-sidebar{background:linear-gradient(165deg,#102c
 body.lcm-app.lcm-leads-page h1,body.lcm-app.lcm-leads-page h2{color:#e7f3f6}
 @media(max-width:1200px){body.lcm-app.lcm-leads-page main{padding:22px}}
 @media(max-width:790px){body.lcm-app.lcm-leads-page{padding-left:0}body.lcm-app.lcm-leads-page main{padding:18px}}
+
+/* Funis de oportunidades: categorias distintas com lacunas de histórico explícitas. */
+.opportunity-line{display:grid;grid-template-columns:minmax(105px,140px) minmax(0,1fr) 56px;align-items:center;gap:10px;margin:7px 0;min-height:32px}
+.opportunity-name{color:#dbe9ed;font-size:11px;font-weight:700;line-height:1.2}
+.opportunity-slot{border-radius:7px;min-width:0;min-height:29px;background:#1b4150;position:relative;display:flex;align-items:center;overflow:hidden}
+.opportunity-bar{height:29px;background:linear-gradient(90deg,#ce851a,#ffb020);border-radius:6px;box-shadow:inset 0 0 0 1px #ffffff28}
+.opportunity-line strong{font-variant-numeric:tabular-nums;text-align:right;font-size:12px}
+.opportunity-missing{font-size:10px;font-weight:500;color:#a3b8bf;padding:6px 8px;white-space:normal}
+.opportunity-current .opportunity-slot{background:linear-gradient(90deg,#1b4150,#153547);border:1px dashed #4c6672}
+#opportunityCumulative>.hint,#opportunityCurrent>.hint{border-top:1px solid #315263;padding-top:12px;margin-top:17px;line-height:1.55}
+@media(max-width:500px){.opportunity-line{grid-template-columns:minmax(83px,110px) minmax(0,1fr) 35px;gap:5px}.opportunity-name{font-size:10px}.opportunity-missing{font-size:9px}}
