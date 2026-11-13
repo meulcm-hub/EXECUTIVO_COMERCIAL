@@ -39,7 +39,9 @@
       "city": "Senador Canedo",
       "state": "GO",
       "postcode": "75262-702",
-      "review": "mesmo endereço informado para Residencial Jatobá; verificar se é o mesmo terreno"
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Flamboyant/Jatobá",
+      "same_reference_address_adjacent_distinct_sites": true
     },
     {
       "project": "RESIDENCIAL FLORES DO CERRADO IPÊ",
@@ -50,7 +52,9 @@
       "city": "Goiânia",
       "state": "GO",
       "postcode": "74471-100",
-      "review": "sem número de porta; mesmo terreno informado para Jacarandá"
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Ipê/Jacarandá",
+      "same_reference_address_adjacent_distinct_sites": true
     },
     {
       "project": "RESIDENCIAL TERRA MATER",
@@ -81,7 +85,9 @@
       "city": "Senador Canedo",
       "state": "GO",
       "postcode": "75262-702",
-      "review": "mesmo endereço informado para Flamboyant; verificar se é o mesmo terreno"
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Flamboyant/Jatobá",
+      "same_reference_address_adjacent_distinct_sites": true
     },
     {
       "project": "RESIDENCIAL VILLAGE LAGOAS",
@@ -139,7 +145,9 @@
       "city": "Goiânia",
       "state": "GO",
       "postcode": "74471-100",
-      "review": "sem número de porta; mesmo terreno informado para Ipê"
+      "review": "Terrenos vizinhos distintos; endereço de referência compartilhado, requer coordenada própria de cada empreendimento",
+      "adjacency_group": "Ipê/Jacarandá",
+      "same_reference_address_adjacent_distinct_sites": true
     }
   ]
 }
