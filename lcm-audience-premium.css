@@ -51,3 +51,30 @@ body.lcm-app #audience.aud-premium .aud-premium-map{margin-top:20px}
 @media(max-width:1100px){body.lcm-app #audience.aud-premium .aud-premium-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){body.lcm-app #audience.aud-premium{padding:14px;border-radius:12px}body.lcm-app #audience.aud-premium .aud-premium-heading{align-items:start;flex-direction:column}body.lcm-app #audience.aud-premium .aud-premium-tabs{grid-template-columns:1fr 1fr}body.lcm-app #audience.aud-premium .aud-premium-tab{font-size:10px;padding:12px 6px;gap:4px}body.lcm-app #audience.aud-premium .aud-premium-export{width:100%}}
 @media print{body.lcm-app #audience.aud-premium{background:white!important;color:#132b32!important;box-shadow:none!important}body.lcm-app #audience.aud-premium .aud-premium-tabs,body.lcm-app #audience.aud-premium .aud-premium-export{display:none!important}body.lcm-app #audience.aud-premium .aud-panel,body.lcm-app #audience.aud-premium .kpi{break-inside:avoid}}
+
+/* v2 — a referência usa quatro cartões na primeira linha, mapa e rankings na seguinte. */
+body.lcm-app #audience.aud-premium-v2{background:linear-gradient(160deg,#081921,#091821 70%,#0b2028);padding:22px;max-width:none}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-stage{margin-top:18px}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-group[hidden]{display:none!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid{display:grid;gap:14px;align-items:stretch;margin:0 0 22px}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-demographic{grid-template-columns:repeat(4,minmax(0,1fr))}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-origin{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-others{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid>.aud-panel{width:auto!important;min-width:0!important;margin:0!important;padding:18px!important;height:100%;align-self:stretch}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid>.aud-panel .aud-panel-title{margin-bottom:14px}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-section-title{font-size:15px!important;margin:20px 0 12px!important;font-weight:800;letter-spacing:.01em}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0 0 22px!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis[hidden]{display:none!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis>.kpi{margin:0!important;min-width:0!important;border-radius:12px!important;padding:18px!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid .aud-bar-row{gap:8px}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid .aud-bar-label{font-size:11px;line-height:1.35}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid .aud-panel-title h2{font-size:14px!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-grid .aud-panel-title span{font-size:10px!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-map{grid-column:1/-1;width:100%;min-width:0;min-height:400px;margin:0 0 3px!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-empty{padding:38px 25px;background:#152d37;border:1px solid #31525c;border-radius:12px;color:#c3d6db;line-height:1.7;font-size:14px}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-original-heading{display:none!important}
+body.lcm-app #audience.aud-premium-v2 .aud-premium-tabs{position:relative}
+body.lcm-app #audience.aud-premium-v2 .aud-grid:empty,body.lcm-app #audience.aud-premium-v2 .aud-panels:empty{display:none!important}
+@media(max-width:1400px){body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-demographic{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:850px){body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-origin,body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-others{grid-template-columns:1fr}}
+@media(max-width:520px){body.lcm-app #audience.aud-premium-v2 .aud-premium-grid-demographic{grid-template-columns:1fr}body.lcm-app #audience.aud-premium-v2 .aud-premium-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}body.lcm-app #audience.aud-premium-v2 .aud-premium-grid>.aud-panel{padding:14px!important}}
