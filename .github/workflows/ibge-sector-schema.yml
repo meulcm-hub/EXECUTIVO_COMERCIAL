@@ -1,0 +1,26 @@
+name: LCM - Inspecionar esquema oficial de setores IBGE 2022
+on:
+  pull_request:
+    paths:
+      - scripts/ibge_inspect_official_sectors.py
+      - .github/workflows/ibge-sector-schema.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/ibge_inspect_official_sectors.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ibge-schema-oficial-2022
+          path: artifacts/ibge-sector-schema.json
+          retention-days: 5
