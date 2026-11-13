@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import sys
+from lcm_lead_display import display_name
 
 FIELDS = ("cliente", "empreendimento", "origem", "data_entrada", "data_venda",
           "situacao_lead", "situacao_precadastro", "situacao_reserva", "project")
@@ -55,6 +56,7 @@ def public_report(report):
         if not isinstance(dates,list) or not dates or any(not since<=iso_date(day)<=until for day in dates):
             raise ValueError("Entradas da auditoria inválidas")
         projected={key:row[key] for key in FIELDS}
+        projected["cliente"]=display_name(row["cliente"])
         projected["entry_dates"]=sorted(set(dates))
         selected.append(projected)
     return {
