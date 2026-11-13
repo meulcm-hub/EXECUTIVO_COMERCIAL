@@ -38,15 +38,24 @@ class DiagnosticProjectionTests(unittest.TestCase):
         self.assertEqual(result["pages_show_list"], "nao_informada")
         self.assertNotIn("secret", json.dumps(result))
 
-    def test_error_message_is_only_used_for_fixed_categories(self):
+    def test_error_message_is_redacted_before_diagnostic_output(self):
         raw = {"error": {"code": 200, "error_subcode": 5258005,
                          "message": "private-test-token https://example.test/?token=secret advanced access ads_read system user"}}
-        result = diagnostic.safe_error(raw, 400)
+        with patch.object(diagnostic, "TOKEN", "private-test-token"):
+            result = diagnostic.safe_error(raw, 400)
         self.assertEqual((result["code"], result["subcode"]), (200, 5258005))
         self.assertIn("nivel_de_acesso_do_aplicativo", result["categories"])
         self.assertEqual(result["permissions_mentioned"], ["ads_read"])
-        for forbidden in ("private-test-token", "example.test", "token=secret", "message"):
+        for forbidden in ("private-test-token", "example.test", "token=secret"):
             self.assertNotIn(forbidden, json.dumps(result))
+        self.assertIn("advanced access ads_read", result["message_safe"])
+
+    def test_redaction_masks_identifiers_and_long_credentials(self):
+        text = "Account 1234567890 unavailable " + "A" * 80 + " https://example.test/private"
+        result = diagnostic.safe_message(text)
+        self.assertNotIn("1234567890", result)
+        self.assertNotIn("A" * 80, result)
+        self.assertNotIn("https://", result)
 
     def test_http_errors_and_network_exceptions_never_expose_urls(self):
         body = io.BytesIO(json.dumps({"error": {"code": 190, "error_subcode": 463,
