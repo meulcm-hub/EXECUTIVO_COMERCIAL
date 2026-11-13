@@ -40,7 +40,7 @@ function makeOption(select,value,label){const x=document.createElement('option')
 function error(message){$('sourceState').textContent=message; $('scopeNote').textContent=message;}
 function valid(payload){return payload?.validated===true&&payload.schema_version===2&&payload.classification_version===1&&
  payload.cohort_mode==='prospect_date'&&dateValid(payload.period?.since)&&dateValid(payload.period?.until)&&
- Array.isArray(payload.prospects)&&payload.prospects.every(g=>typeof g.project==='string'&&Array.isArray(g.entries)&&
+ Array.isArray(payload.prospects)&&payload.prospects.every(g=>(g.project==null||typeof g.project==='string')&&Array.isArray(g.entries)&&
  g.entries.length>0&&typeof g.whatsapp_acquisition==='boolean'&&
  (g.new_date===null||dateValid(g.new_date))&&g.entries.every(e=>dateValid(e.date)&&Number.isInteger(e.stage)&&e.stage>=0&&e.stage<=4));}
 function filters(){return {since:$('since').value,until:$('until').value,project:$('project').value,origin:$('origin').value,stage:$('stage').value};}
