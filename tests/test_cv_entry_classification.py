@@ -78,13 +78,13 @@ class EntryClassificationTests(unittest.TestCase):
         self.assertEqual([e["date"] for e in group["entries"]],
                          ["2026-01-10", "2026-09-05", "2026-09-12"])
         self.assertEqual(report["classification_version"], 1)
-        self.assertEqual(len(report["prospects"]), 5)
+        self.assertEqual(len(report["prospects"]), 4)
 
     def test_old_registration_return_has_no_eligible_new_date(self):
         report = self.collect()
         group = next(g for g in report["prospects"] if g["entries"][0]["date"] == "2026-09-07")
         self.assertIsNone(group["new_date"])
-        self.assertTrue(group["whatsapp_acquisition"])
+        self.assertFalse(group["whatsapp_acquisition"])
 
     def test_same_client_in_other_project_is_return_only_there(self):
         report = self.collect()
@@ -110,9 +110,20 @@ class EntryClassificationTests(unittest.TestCase):
             new = [g for g in selected if g["new_date"] is not None and since <= g["new_date"] <= until]
             returned = [g for g in selected if g not in new]
             return len(new), len(returned), len(selected)
-        self.assertEqual(classify("2026-01-01", "2026-11-13"), (2, 3, 5))
+        self.assertEqual(classify("2026-01-01", "2026-11-13"), (1, 3, 4))
         self.assertEqual(classify("2026-09-01", "2026-09-30"), (0, 4, 4))
         self.assertEqual(classify("2026-01-01", "2026-01-31"), (1, 0, 1))
+
+    def test_strict_entry_sources_exclude_broad_channels(self):
+        self.assertTrue(funnel.channel({"origem":"FB","midia_original":"Formulário Meta"}))
+        self.assertTrue(funnel.channel({"origem":"Facebook"}))
+        self.assertTrue(funnel.channel({"origem":"GE","midia_original":"WhatsApp Facebook"}))
+        self.assertFalse(funnel.channel({"origem":"GE","midia_original":"Google"}))
+        self.assertFalse(funnel.channel({"origem":"BC","midia_original":"Facebook"}))
+        self.assertFalse(funnel.channel({"origem":"SC"}))
+        self.assertFalse(funnel.channel({"origem":"Google","midia_original":"WhatsApp Facebook"}))
+        self.assertTrue(funnel.conversion_channel({"origem_conversao":"FB"}))
+        self.assertFalse(funnel.conversion_channel({"origem_conversao":"Google","origem":"FB"}))
 
     def test_projection_preserves_stages_and_has_no_individual_identifiers(self):
         first, returned = dt.date(2026, 1, 10), dt.date(2026, 9, 5)
