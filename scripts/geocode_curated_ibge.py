@@ -29,7 +29,8 @@ def analyze(projects,geocoder,sleep=time.sleep):
     for p in projects:
         key=location_key(p)
         entry={"project":p["project"],"status":"pending_location_verification",
-          "input_source":"provided_by_user","center":None}
+          "input_source":"provided_by_user","center":None,
+          "adjacent_distinct_sites":bool(p.get("same_reference_address_adjacent_distinct_sites"))}
         if not qualified(p):
             entry["status"]="incomplete_address"
         else:
@@ -45,10 +46,15 @@ def analyze(projects,geocoder,sleep=time.sleep):
             elif len(found)==1:
                 geo=found[0]
                 if all(isinstance(geo.get(k), (int,float)) for k in ("lat","lng")):
-                    entry["status"]="candidate_exact_shared_address" if duplicate_groups[key]>1 else "candidate_exact"
-                    entry["center"]={"lat":geo["lat"],"lng":geo["lng"],
-                      "precision":"address_number","source":"OpenStreetMap Nominatim",
-                      "verified":False}
+                    if duplicate_groups[key]>1 or entry["adjacent_distinct_sites"]:
+                        entry["status"]="adjacent_distinct_site_requires_own_point"
+                        # Reusing a postal reference is not a distinct parcel center.
+                        entry["center"]=None
+                    else:
+                        entry["status"]="candidate_exact"
+                        entry["center"]={"lat":geo["lat"],"lng":geo["lng"],
+                          "precision":"address_number","source":"OpenStreetMap Nominatim",
+                          "verified":False}
                 else: entry["status"]="geocoder_invalid_response"
             elif len(found)>1:entry["status"]="ambiguous_candidates"
             else:entry["status"]="not_found_exact"
