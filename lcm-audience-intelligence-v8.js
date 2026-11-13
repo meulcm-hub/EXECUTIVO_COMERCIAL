@@ -461,21 +461,27 @@ async function ibge(o){
   compareBody.append(opParagraph("Selecione um empreendimento.","ci-op-empty"));
   return;
  }
- const addressTask=opLoad("addresses","config/ibge-project-addresses.json?v=v7");
+ const addressTask=opLoad("addresses","config/ibge-project-addresses.json?v=v8");
+ const readinessTask=opLoad("geo-readiness","data/ibge-geolocation-readiness.json?v=v8",true);
  const buyersTask=opLoad("buyers","data/buyer-locations.json?v=v7",true);
  const contextTask=opLoad("geodata","data/ibge-project-context.json?v=v7",true);
  const metaTask=opLoad("meta-feed","data/marketing-campaigns.json?v=v7",true);
  
- const [addrResult,buyerResult,contextResult,metaResult]=await Promise.allSettled([addressTask,buyersTask,contextTask,metaTask]);
+ const [addrResult,buyerResult,contextResult,metaResult,readinessResult]=await Promise.allSettled([addressTask,buyersTask,contextTask,metaTask,readinessTask]);
  if(ticket!==ibgeSession||currentTab!=="ibge")return;
  const addresses=addrResult.status==="fulfilled"?addrResult.value:null;
  const buyers=buyerResult.status==="fulfilled"?buyerResult.value:null;
  const contextData=contextResult.status==="fulfilled"?contextResult.value:null;
  
  const metaFeed=metaResult.status==="fulfilled"?metaResult.value:null;
+ const readiness=readinessResult.status==="fulfilled"?readinessResult.value:null;
  const site=addresses?.projects?.find(p=>norm(p.project)===norm(project.value));
  siteAddress.textContent=site?"Endereço de referência: "+opAddress(site)+(site.same_reference_address_adjacent_distinct_sites?" · Terreno adjacente distinto: centro geográfico próprio pendente.":""):"Endereço de referência indisponível para este empreendimento.";
  const context=contextData?.projects?.find(p=>norm(p.project)===norm(project.value));
+ const readinessForSite=readiness?.projects?.find(p=>norm(p.project)===norm(project.value));
+ const positionState=opValidCenter(context)?"Centro do terreno aprovado para cálculo por raio.":readinessForSite?.status==="exact_geocoder_candidate_unverified"?"Endereço geocodificado, mas o centro do terreno continua aguardando verificação independente.":"Centro geográfico individual do terreno não aprovado; os dados por raio ainda não podem ser publicados.";
+ const coordinateNote=opElem("p","ci-op-warning",positionState);
+ siteAddress.after(coordinateNote);
  const cityName=site?.city||"";
  const municipalPromise=site?ibgeMunicipality(site.city,site.state).then(async m=>({m,v:await ibgeMunicipalNumbers(m),homes:await opMunicipalHomes(m)})):Promise.reject(Error("Sem município"));
  let municipal=null;
@@ -485,6 +491,7 @@ async function ibge(o){
  for(const c of cities)cityF.select.add(new Option(c,c));
  cityF.select.value=cityName||"";
  let lastCity="";
+ let drawSequence=0;
  function refreshDistricts(){
   const value=cityF.select.value;
   if(lastCity===value)return;
@@ -497,6 +504,7 @@ async function ibge(o){
  refreshDistricts();
  function draw(){
   if(ticket!==ibgeSession||currentTab!=="ibge")return;
+  const thisDraw=++drawSequence;
   const radius=Number(radiusF.select.value),city=cityF.select.value,district=districtF.select.value;
   const r=context?.radii?.[radius];
   const validRegion=opValidCenter(context)&&opValidRadii(r);
@@ -565,7 +573,7 @@ async function ibge(o){
   const onMapError=()=>{mapNote.textContent="Mapa indisponível no navegador; dados do IBGE e compradores continuam em seus cartões.";};
   if(chosenFile){
     opLoad("sector-file-"+chosenFile,chosenFile+"?v=v8",true).then(fc=>{
-      if(currentTab!=="ibge"||ticket!==ibgeSession)return;
+      if(currentTab!=="ibge"||ticket!==ibgeSession||thisDraw!==drawSequence)return;
       mapLabels.replaceChildren();
       const valid=fc?.metadata?.source==="IBGE"&&fc?.metadata?.year===2022&&norm(fc?.metadata?.project)===norm(project.value)&&fc?.metadata?.radius_km===radius;
       opDrawMap(mapCanvas,{...mapOptions,region:valid?fc:null}).catch(onMapError);
