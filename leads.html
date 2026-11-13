@@ -12,6 +12,16 @@
 <label>Etapa validada da coorte<select id="stage"><option value="all">Todas as etapas</option><option value="0">Prospect</option><option value="1">Agendamento</option><option value="2">Visita</option><option value="3">Análise de crédito</option><option value="4">Venda concluída</option></select></label>
 <button id="reset" class="btn-secondary">Limpar filtros</button></section>
 <div class="method" id="scopeNote" role="status">Fonte em atualização.</div>
+<section class="panel" id="baseCompleta" aria-labelledby="fullTitle">
+<h2 id="fullTitle">Base completa do CV CRM</h2>
+<p class="muted" id="allSourceNote">Consultando fonte histórica integral, desde o primeiro cadastro disponível...</p>
+<div class="kpis" id="allKpis"></div>
+<div class="columns">
+<div><h2>Leads por empreendimento</h2><div id="allProjects"></div></div>
+<div><h2>Leads por origem</h2><div id="allOrigins"></div></div>
+</div>
+<p class="hint">Esta base é independente do recorte de Marketing. Inclui leads de todas as origens e situações, inclusive SEM EMPREENDIMENTO. As etapas detalhadas do funil só serão preenchidas com histórico de oportunidades validado.</p>
+</section>
 <section id="visao" aria-labelledby="kpiTitle"><h2 id="kpiTitle">Indicadores executivos</h2><div class="kpis" id="kpis"></div></section>
 <section class="columns" id="funil">
 <article class="panel"><h2>Funil de etapas de oportunidade acumulado</h2><p class="muted">16 etapas na sequência comercial LCM. Somente movimentações comprovadas podem gerar contagens.</p><div id="opportunityCumulative"></div></article>
@@ -24,5 +34,5 @@
 <section class="panel"><h2>Insights da operação</h2><div id="insights"></div></section>
 <section class="panel"><h2>Registros individuais e exportação</h2><div class="unavailable"><strong>Disponível apenas em ambiente autenticado</strong><p>A base agregada atual não contém nomes. Quando a carteira individual estiver disponível em área autenticada, a visão exibirá somente primeiro e segundo nome, sem coluna de telefone. A vinculação continuará pelo ID interno do lead; números de contato não serão publicados no GitHub Pages.</p></div><button id="export" class="btn-secondary">Exportar resumo agregado (CSV)</button></section>
 <footer>Fonte: CV CRM · Coortes por empreendimento e período. Resultados mostram somente campos efetivamente disponíveis; não substituem auditoria individual.</footer>
-</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=sem-empreendimento-20261113" defer></script>
+</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=historico-integral-v1" defer></script>
 </body></html>
