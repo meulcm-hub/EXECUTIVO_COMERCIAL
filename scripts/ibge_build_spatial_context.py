@@ -208,6 +208,22 @@ def compute(addresses,candidates,mode):
             unresolved.append({"project":site["project"],"reason":"adjacent_distinct_site_without_own_verified_center"})
             continue
         approved.append((site,c))
+    # Different adjacent sites may share a postal reference, never a geographic center.
+    conflicts=set()
+    for i,(a,ca) in enumerate(approved):
+        group=a.get("adjacency_group")
+        if not group:continue
+        for j,(b,cb) in enumerate(approved):
+            if j<=i or group!=b.get("adjacency_group"):continue
+            mean_lat=math.radians((ca["lat"]+cb["lat"])/2)
+            meters=math.hypot((ca["lat"]-cb["lat"])*111_195,
+                (ca["lng"]-cb["lng"])*111_195*math.cos(mean_lat))
+            if meters<5:conflicts.add(i);conflicts.add(j)
+    if conflicts:
+        for i in sorted(conflicts):
+            unresolved.append({"project":approved[i][0]["project"],
+                "reason":"adjacent_distinct_sites_share_same_center"})
+        approved=[p for i,p in enumerate(approved) if i not in conflicts]
     return approved,unresolved
 
 def main():
