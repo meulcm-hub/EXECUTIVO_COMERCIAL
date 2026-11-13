@@ -82,7 +82,33 @@ function kind(panel){
  return 'others';
 }
 const moved=new Set();
+function correctDisplayedPercentages(){
+ // A base anterior dividia todas as dimensões pelo total de faixas etárias.
+ // Uma dimensão com mais respostas podia ultrapassar 100%.
+ const selected=document.getElementById('audienceProject')?.value||'Todos os empreendimentos';
+ const obj=typeof AUD!=='undefined'?(AUD[selected]||AUD['Todos os empreendimentos']):null;
+ if(!obj)return;
+ for(const panel of root.querySelectorAll('.aud-panel')){
+  const title=panel.querySelector('.aud-panel-title h2')?.textContent||'';
+  if(title==='Sexo')continue;
+  const items=Array.isArray(obj[title])?obj[title].filter(x=>Number(x.count)>0):[];
+  const denominator=items.reduce((sum,x)=>sum+Number(x.count||0),0);
+  panel.querySelectorAll('.aud-bar-row').forEach((row,index)=>{
+   const target=row.querySelector('small');
+   if(!target)return;
+   target.textContent=denominator?(Number(items[index]?.count||0)/denominator*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':'—';
+  });
+  const subtitle=panel.querySelector('.aud-panel-title span');
+  if(subtitle)subtitle.textContent='Participação entre registros classificados nesta categoria';
+ }
+}
 function relocate(){
+ const pending=root.querySelector('#audienceCharts .aud-panel:not(.aud-premium-card)');
+ if(pending){
+  for(const section of Object.values(sections)){
+   for(const old of section.querySelectorAll('.aud-premium-card')){moved.delete(old);old.remove();}
+  }
+ }
  const panels=[...root.querySelectorAll('.aud-panel')];
  for(const panel of panels){
   if(moved.has(panel)||panel.closest('#lcmBuyerMap'))continue;
@@ -97,6 +123,7 @@ function relocate(){
   sections.origin.prepend(map);
   setTimeout(()=>map.lcmBuyerMap?.invalidateSize(),80);
  }
+ correctDisplayedPercentages();
  for(const [heading,container]of [[overviewHeader,sections.demographic],[originHeader,sections.origin],[othersHeader,sections.others]]){
   heading.hidden=!container.children.length;
  }
