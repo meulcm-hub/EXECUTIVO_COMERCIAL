@@ -1,0 +1,40 @@
+name: LCM - Validar endereços de empreendimentos para IBGE
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/cvcrm_project_address_audit.py
+      - tests/test_cvcrm_project_address_audit.py
+      - .github/workflows/cvcrm-project-address-audit.yml
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Testar proteção de endereços e extração do esquema
+        run: python -m unittest discover -s tests -p test_cvcrm_project_address_audit.py -v
+  cvcrm-diagnostic:
+    if: github.event_name == 'workflow_dispatch'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar cobertura de endereços sem registrar valores
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/cvcrm_project_address_audit.py
