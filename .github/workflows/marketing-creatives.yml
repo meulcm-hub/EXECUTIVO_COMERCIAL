@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/marketing_creatives.py'
+      - 'scripts/meta_ads_collector.py'
       - '.github/workflows/marketing-creatives.yml'
   workflow_dispatch:
 concurrency:
@@ -26,7 +27,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validar midias e metricas dos anuncios
-        run: python -m unittest discover -s tests -p 'test_marketing_creatives.py'
+        run: |
+          python -m unittest discover -s tests -p 'test_marketing_creatives.py'
+          python -m unittest discover -s tests -p 'test_meta_account_selection.py'
       - name: Consultar criativos e historico diario dos anuncios
         env:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
