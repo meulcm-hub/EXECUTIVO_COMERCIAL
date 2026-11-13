@@ -93,3 +93,12 @@ body .ci-op-plan-text{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 
  body:has(.ci-op-plan-overlay) .ci-op-plan-actions{display:none!important}
  body:has(.ci-op-plan-overlay) .ci-op-plan-text{font:10pt/1.5 Arial,sans-serif}
 }
+
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-scope{font-size:10px;line-height:1.55;color:#b7d1d6;margin:0 0 13px;padding:9px 12px;border:1px solid #3a596a;background:#0c2836;border-radius:8px}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-feed-status{color:#bce8c0;font-size:11px;line-height:1.55;border-left:3px solid #8fdd6b;padding:8px 11px;background:#1c403768;margin:10px 0 4px}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-map-legend{display:flex;flex-wrap:wrap;gap:8px 13px;color:#c8e0e8;font-size:10px}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-city{color:#a0ee77}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-district{color:#55c7f1}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-sector{color:#a3bd75}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-legend-parcel{color:#f4d59b}
+body.lcm-app #audience[data-intelligence-v4="1"] .ci-op-generate:disabled{opacity:.6;cursor:wait}
