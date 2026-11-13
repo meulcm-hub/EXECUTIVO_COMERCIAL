@@ -1,6 +1,12 @@
 name: LCM - Diagnostico formulario Facebook no CV
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/cvcrm_facebook_forms_diagnostic.py
+      - tests/test_cvcrm_facebook_forms_diagnostic.py
+      - .github/workflows/cvcrm-facebook-forms-diagnostic.yml
 permissions:
   contents: read
 jobs:
