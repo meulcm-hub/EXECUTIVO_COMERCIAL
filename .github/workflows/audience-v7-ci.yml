@@ -7,6 +7,7 @@ on:
       - lcm-audience-opportunity-v7.css
       - docs/POTENCIAL_REGIAO_IBGE_V7.md
       - .github/workflows/audience-v7-ci.yml
+      - tests/audience_v7_browser.cjs
   workflow_dispatch:
 permissions:
   contents: read
@@ -53,3 +54,20 @@ jobs:
               assert expected in js,expected
           print('Contract and guard checks: PASS')
           PY
+      - name: Instalar Playwright para teste visual automatizado
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verificar visual e interação em Chromium
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 > /tmp/lcm-http.log 2>&1 &
+          sleep 2
+          node tests/audience_v7_browser.cjs
+      - name: Guardar capturas de desktop e celular
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiencia-v7-capturas
+          path: artifacts/ibge-v7-*.png
+          retention-days: 7
+          if-no-files-found: ignore
