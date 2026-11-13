@@ -170,17 +170,21 @@ def subset_for_center(shp,center):
 
 def make_features(frame,center,counts,km):
     from shapely.geometry import mapping
-    from pyproj import CRS
+    from shapely.ops import transform
+    from pyproj import CRS, Transformer
     shares,intersections=sector_radius_frame(frame,center,km)
     crs=CRS.from_proj4(f"+proj=aeqd +lat_0={center['lat']} +lon_0={center['lng']} +datum=WGS84 +units=m +no_defs")
     areas_km2=frame.to_crs(crs).geometry.area/1000000
+    reproject=Transformer.from_crs(crs,"EPSG:4326",always_xy=True)
     records=[]
     for i,share in enumerate(shares):
         if share<=0:continue
         code=str(frame.iloc[i]["CD_SETOR"])
         if code not in counts:continue
         p,h=counts[code]
-        poly=frame.iloc[[i]].to_crs("EPSG:4326").geometry.iloc[0]
+        # Restrict the publicly displayed polygon to the actual radius intersection.
+        poly=transform(reproject.transform,intersections.iloc[i])
+        if poly.is_empty:continue
         sector_area=max(float(areas_km2.iloc[i]),0.0001)
         density=p/sector_area
         records.append({"type":"Feature","properties":{
