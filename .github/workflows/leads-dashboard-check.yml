@@ -5,6 +5,8 @@ on:
     paths:
       - leads.html
       - lcm-leads.js
+      - lcm-leads-stage-config.js
+      - tests/test_leads_stage_classification.cjs
       - lcm-leads.css
       - lcm-shell.js
       - tests/test_leads_dashboard_contract.py
@@ -32,6 +34,8 @@ jobs:
       - name: Verificar JavaScript
         run: |
           node --check lcm-leads.js
+          node --check lcm-leads-stage-config.js
+          node --test tests/test_leads_stage_classification.cjs
           node --check lcm-shell.js
       - name: Verificar contrato CV CRM e isolamento
         run: python -m unittest discover -s tests -p 'test_leads_dashboard_contract.py' -v
