@@ -1,0 +1,44 @@
+name: LCM - Precos CV CRM para potencial comercial
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 10 * * 1-5'
+  push:
+    branches: [main]
+    paths:
+      - scripts/cvcrm_price_summary.py
+      - tests/test_cvcrm_price_summary.py
+      - .github/workflows/cvcrm-price-summary.yml
+permissions:
+  contents: write
+concurrency:
+  group: lcm-cvcrm-price-summary
+  cancel-in-progress: false
+jobs:
+  approved-prices:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar cálculos sem acesso à API
+        run: python -m unittest discover -s tests -p test_cvcrm_price_summary.py -v
+      - name: Consultar somente preços aprovados e vigentes
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/cvcrm_price_summary.py
+      - name: Publicar somente resumo agregado sem unidades nem credenciais
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/cvcrm-approved-price-summary.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(cvcrm): atualizar faixa de preços aprovados por empreendimento'
+            git push
+          fi
