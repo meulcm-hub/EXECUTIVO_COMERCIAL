@@ -48,7 +48,7 @@ function field(label,options){
  const wrapper=text('label','ci-filter');wrapper.append(text('span','',label));
  const select=document.createElement('select');for(const [v,l]of options){const o=new Option(l,v);select.add(o);}wrapper.append(select);filters.append(wrapper);return select;
 }
-const projects=Object.keys(source).filter(k=>k!=='Todos os empreendimentos');
+const projects=Array.from(new Set([...Object.keys(source).filter(k=>k!=='Todos os empreendimentos'),'RESIDENCIAL TERRA SOLIS','RESIDENCIAL EXTREMA MEU LAR']));
 const project=field('Empreendimento',[['','Todos os empreendimentos'],...projects.map(x=>[x,x])]);
 const stage=field('Etapa',[['','Todas as etapas — sem vínculo demográfico']]);
 const origin=field('Origem',[['','Todas as origens — sem vínculo por etapa']]);
@@ -139,68 +139,136 @@ function geographic(o){
  const note=panel('Distância ao empreendimento','origin','Distâncias somente com geolocalização verificada da origem e endereço do empreendimento.');
  note.append(text('p','ci-no-data','Sem coordenadas verificadas dos empreendimentos nesta fonte. Nenhuma distância foi estimada.'));wrap.append(note);
 }
+// Demographic municipal context and site-level geospatial analysis are distinct layers.
+let ibgeMunicipalitiesPromise=null;
+const ibgeMunicipalCache=new Map();
+function ibgeUf(m){
+ return m?.microrregiao?.mesorregiao?.UF?.sigla||
+  m?.["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla||"";
+}
+async function ibgeMunicipality(city,uf){
+ if(!ibgeMunicipalitiesPromise){
+  ibgeMunicipalitiesPromise=fetch("https://servicodados.ibge.gov.br/api/v1/localidades/municipios",{cache:"force-cache"})
+   .then(r=>{if(!r.ok)throw Error("IBGE localidades indisponível");return r.json();})
+   .catch(e=>{ibgeMunicipalitiesPromise=null;throw e;});
+ }
+ const places=await ibgeMunicipalitiesPromise;
+ const matches=places.filter(m=>norm(m.nome)===norm(city)&&norm(ibgeUf(m))===norm(uf));
+ if(matches.length!==1)throw Error("Município/UF sem correspondência inequívoca no IBGE");
+ return matches[0];
+}
+async function ibgeMunicipalNumbers(m){
+ if(!ibgeMunicipalCache.has(m.id)){
+  const url="https://servicodados.ibge.gov.br/api/v3/agregados/4714/periodos/2022/variaveis/93%7C6318%7C614?localidades=N6%5B"+encodeURIComponent(m.id)+"%5D";
+  const job=fetch(url,{cache:"force-cache"}).then(r=>{if(!r.ok)throw Error("IBGE agregados indisponível");return r.json();})
+   .then(body=>{
+    if(!Array.isArray(body))throw Error("Resposta IBGE inesperada");
+    const values={};
+    for(const item of body){
+     const id=Number(item.id);
+     const raw=item.resultados?.[0]?.series?.[0]?.serie?.["2022"];
+     if([93,6318,614].includes(id)&&raw!=null&&String(raw).trim()!==""){
+      const n=Number(raw);
+      if(Number.isFinite(n)&&n>=0)values[id]=n;
+     }
+    }
+    if(!Number.isFinite(values[93]))throw Error("População sem valor oficial válido");
+    return values;
+   }).catch(e=>{ibgeMunicipalCache.delete(m.id);throw e;});
+  ibgeMunicipalCache.set(m.id,job);
+ }
+ return ibgeMunicipalCache.get(m.id);
+}
+function ibgeCard(label,value,subtitle){return metric(label,value,subtitle,"region");}
+function ibgeAddressLine(p){
+ const parts=[p.road,p.number,p.complement,p.district,p.city,p.state,p.postcode].filter(Boolean);
+ return parts.join(" · ");
+}
 async function ibge(o){
  const wrap=panels.ibge;wrap.replaceChildren();
- const top=panel('Potencial da região — entorno do empreendimento','region',
-  'Centro geográfico obtido do endereço do empreendimento cadastrado no CV CRM. Fontes censitárias de 2022.');
- const selected=project.value;
- if(!selected){
-  top.append(text('p','ci-no-data','Selecione um empreendimento para analisar seu entorno. Não utilizaremos o centro da cidade nem a cidade de origem dos compradores.'));
-  wrap.append(top);return;
- }
- const label=text('p','ci-ibge-status','Conferindo localização validada do empreendimento…');
- top.append(label);wrap.append(top);
  const session=++ibgeSession;
+ const selected=project.value;
+ const top=panel("Endereço do empreendimento","region","Referência física informada pela LCM em 13/11/2026; pode precisar de confirmação do ponto exato do terreno.");
+ wrap.append(top);
+ if(!selected){
+  top.append(text("p","ci-no-data","Selecione um empreendimento para visualizar seu endereço, indicadores do município e situação do estudo do entorno."));
+  return;
+ }
+ const addressStatus=text("p","ci-no-data","Consultando cadastro de endereços confirmados…");
+ top.append(addressStatus);
+ const municipality=panel("Censo 2022 — panorama municipal","region","Dados oficiais para o município inteiro; não representam a população próxima à obra.");
+ const numbers=text("div","ci-ibge-stats");
+ numbers.append(text("p","ci-no-data","Carregando dados do IBGE…"));
+ municipality.append(numbers);wrap.append(municipality);
+ const radius=panel("Estudo do entorno do empreendimento","origin","Raio geográfico de 1, 3, 5 ou 10 km a partir do centro do terreno validado.");
+ const status=text("p","ci-no-data","Verificando disponibilidade de setores censitários processados…");
+ const radiusLabel=text("label","ci-filter","Raio de análise");
+ const radiusSelect=document.createElement("select");
+ for(const km of [1,3,5,10])radiusSelect.add(new Option(km+" km",String(km)));
+ radiusSelect.value="3";radiusLabel.append(radiusSelect);
+ radius.append(radiusLabel,status);wrap.append(radius);
+ const sources=text("p","ci-data-note","Fonte de população, área e densidade municipal: IBGE, Censo Demográfico 2022, tabela SIDRA 4714. Para estudo por raio: malha e agregados de setores censitários de 2022. Números do município nunca são apresentados como números do raio.");
+ wrap.append(sources);
+ const official=text("a","ci-source-link","IBGE · Tabela 4714 e metadados");
+ official.href="https://sidra.ibge.gov.br/tabela/4714";official.target="_blank";official.rel="noopener noreferrer";municipality.append(official);
+ let address=null;
  try{
-  const response=await fetch('data/ibge-project-context.json?version=1',{cache:'no-store'});
-  if(!response.ok)throw Error('Nenhuma análise publicada');
-  const payload=await response.json();
-  if(currentTab!=='ibge'||session!==ibgeSession)return;
-  if(payload?.schema_version!==1||!Array.isArray(payload.projects))throw Error('Estrutura de dados não validada');
-  const entry=payload.projects.find(p=>norm(p.project)===norm(selected));
-  if(!entry){
-   label.textContent='O endereço deste empreendimento ainda não foi validado no CV CRM para análise por raio. Nenhum indicador aproximado foi publicado.';
-   return;
+  const response=await fetch("config/ibge-project-addresses.json?v=20261113-2",{cache:"no-store"});
+  if(!response.ok)throw Error("Cadastro de endereços indisponível");
+  const data=await response.json();
+  if(session!==ibgeSession||currentTab!=="ibge")return;
+  address=data.projects?.find(x=>norm(x.project)===norm(selected));
+  if(!address)throw Error("Empreendimento sem endereço confirmado nesta listagem");
+  addressStatus.replaceChildren();
+  addressStatus.append(text("strong","",ibgeAddressLine(address)||"Endereço ainda não informado"));
+  if(address.same_reference_address_adjacent_distinct_sites){
+   addressStatus.append(text("p","ci-data-note","Empreendimento em terreno distinto de seu vizinho, embora compartilhem o endereço de referência. O centro de cada terreno deverá ser validado separadamente."));
   }
-  const center=entry.center;
-  if(!center||center.source!=='CV CRM'||center.verified!==true||
-     center.precision!=='address_number'||
-     !Number.isFinite(center.lat)||!Number.isFinite(center.lng)||
-     center.lat< -34||center.lat>6||center.lng< -74||center.lng> -32){
-   label.textContent='Endereço cadastrado, mas sem coordenadas de precisão suficiente. Análise suspensa.';
-   return;
+  if(!address.road||!address.number){
+   addressStatus.append(text("p","ci-data-note","Faltam informações suficientes para determinar a porta ou o centro do terreno; um endereço de referência não é uma coordenada exata."));
   }
-  label.textContent='Localização confirmada do empreendimento · endereço do CV CRM · coordenadas validadas';
-  const selectLabel=text('label','ci-filter','Raio de estudo');
-  const radius=document.createElement('select');
-  for(const km of [1,3,5,10])radius.add(new Option(km+' km',String(km)));
-  radius.value='3';selectLabel.append(radius);top.append(selectLabel);
-  const display=text('div','ci-ibge-stats');top.append(display);
-  function draw(){
-   display.replaceChildren();
-   const chosen=entry.radii?.[radius.value];
-   if(!chosen||chosen.year!==2022||
-      chosen.method!=='sector_intersection_area_weighted'||
-      !Number.isFinite(chosen.population)||!Number.isFinite(chosen.households)||
-      chosen.population<0||chosen.households<0){
-    display.append(text('p','ci-no-data','Este raio ainda não possui cálculo espacial validado a partir dos setores censitários do Censo 2022.'));return;
-   }
-   for(const [title,value,unit]of [
-    ['População estimada',chosen.population,'pessoas · Censo 2022'],
-    ['Domicílios estimados',chosen.households,'domicílios · Censo 2022'],
-    ['Densidade estimada',Number.isFinite(chosen.populationDensity)?chosen.populationDensity:null,'hab./km² · Censo 2022']
-   ])display.append(metric(title,value===null?'—':nf(value),unit,'region'));
-   const warning=text('p','ci-data-note',
-    'Estimativas por ponderação de área de setores intersectados pelo círculo; a distribuição dos moradores dentro de cada setor pode não ser uniforme.');
-   display.append(warning);
-  }
-  radius.addEventListener('change',draw);draw();
-  const sourceLink=text('a','ci-source-link','Fonte oficial: IBGE — Censo Demográfico 2022');
-  sourceLink.href='https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html?edicao=41852&t=downloads';
-  sourceLink.target='_blank';sourceLink.rel='noopener noreferrer';top.append(sourceLink);
- }catch(_){
+ }catch(err){
+  if(session===ibgeSession)addressStatus.textContent="Endereço não disponível no cadastro integrado. "+err.message;
+  numbers.replaceChildren(text("p","ci-no-data","Sem município confirmado para consultar o Censo."));
+  status.textContent="Sem localização aprovada para calcular a população por raio.";
+  return;
+ }
+ async function drawRadius(){
+  status.textContent="Sem cálculo setorial aprovado para este raio. O endereço informado não equivale automaticamente ao centro geográfico validado.";
+  try{
+   const response=await fetch("data/ibge-project-context.json?v=2",{cache:"no-store"});
+   if(!response.ok)return;
+   const data=await response.json();
+   if(session!==ibgeSession||currentTab!=="ibge")return;
+   const item=data.projects?.find(p=>norm(p.project)===norm(selected));
+   const center=item?.center, chosen=item?.radii?.[radiusSelect.value];
+   if(!(center?.source==="CV CRM"&&center?.verified===true&&center?.precision==="address_number"&&
+        Number.isFinite(center.lat)&&Number.isFinite(center.lng))||!chosen)return;
+   if(chosen.year!==2022||chosen.method!=="sector_intersection_area_weighted"||
+      !Number.isFinite(chosen.population)||!Number.isFinite(chosen.households))return;
+   status.replaceChildren();
+   const cards=text("div","ci-ibge-stats");
+   cards.append(ibgeCard("População estimada",nf(chosen.population),"Censo 2022 · raio "+radiusSelect.value+" km"),
+     ibgeCard("Domicílios estimados",nf(chosen.households),"Censo 2022 · raio "+radiusSelect.value+" km"));
+   if(Number.isFinite(chosen.populationDensity))cards.append(ibgeCard("Densidade estimada",nf(chosen.populationDensity),"hab./km² · raio "+radiusSelect.value+" km"));
+   status.append(cards,text("p","ci-data-note","Estimativa de interseção espacial de setores censitários, sujeita à hipótese de distribuição uniforme da população dentro dos setores."));
+  }catch(_){}
+ }
+ radiusSelect.addEventListener("change",drawRadius);
+ drawRadius();
+ try{
+  const m=await ibgeMunicipality(address.city,address.state);
+  if(session!==ibgeSession||currentTab!=="ibge")return;
+  const v=await ibgeMunicipalNumbers(m);
+  if(session!==ibgeSession||currentTab!=="ibge")return;
+  numbers.replaceChildren(
+   ibgeCard("População do município",nf(v[93]),m.nome+" / "+ibgeUf(m)+" · Censo 2022"),
+   ibgeCard("Área municipal",Number.isFinite(v[6318])?nf(v[6318]):"—","km² · Censo 2022"),
+   ibgeCard("Densidade municipal",Number.isFinite(v[614])?nf(v[614]):"—","hab./km² · Censo 2022")
+  );
+ }catch(err){
   if(session===ibgeSession){
-   label.textContent='Análise do entorno ainda não publicada: aguardando leitura do endereço no CV CRM, validação das coordenadas e cruzamento espacial com os setores censitários de 2022.';
+   numbers.replaceChildren(text("p","ci-no-data","Não foi possível consultar o indicador municipal no IBGE agora. Verifique a disponibilidade da API oficial."));
   }
  }
 }
