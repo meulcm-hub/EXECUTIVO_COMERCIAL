@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-11-13",
+  "source": "LCM: auditoria CV CRM e endereços confirmados pelo responsável",
+  "description": "A localização de cada terreno ainda precisa de validação de campo ou confirmação de um mapa independente antes de uso estatístico por raio.",
+  "projects": [
+    {
+      "project": "RESIDENCIAL MONTTEBELO",
+      "status": "exact_geocoder_candidate_unverified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL TURQUESA PARQUE",
+      "status": "exact_geocoder_candidate_unverified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL TERRA SOLIS",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "Residencial FLAMBOYANT",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": true
+    },
+    {
+      "project": "RESIDENCIAL FLORES DO CERRADO IPÊ",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": true
+    },
+    {
+      "project": "RESIDENCIAL TERRA MATER",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL SANTA CATARINA",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL JATOBÁ",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": true
+    },
+    {
+      "project": "RESIDENCIAL VILLAGE LAGOAS",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "SPE ARRAIAL COSTA VERDE",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "SPE ARRAIAL COSTA VERDE CLUB",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL GREEN PLAZA",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL EXTREMA MEU LAR",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": false
+    },
+    {
+      "project": "RESIDENCIAL FLORES DO CERRADO JACARANDÁ",
+      "status": "site_center_not_verified",
+      "adjacent_distinct_site": true
+    }
+  ]
+}
