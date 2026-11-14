@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LCM | Gestão de Leads</title><link rel="stylesheet" href="lcm-dashboard.css?v=leads-v1"><link rel="stylesheet" href="lcm-leads.css?v=3">
+<title>LCM | Gestão de Leads</title><link rel="stylesheet" href="lcm-dashboard.css?v=leads-v1"><link rel="stylesheet" href="lcm-leads.css?v=multifiltros-1">
 </head><body class="lcm-leads-page" data-lcm-page="leads">
 <main id="leadApp">
 <header class="lead-head"><div><p class="eyebrow">LCM • INTELIGÊNCIA COMERCIAL</p><h1>Gestão de Leads</h1><p>Inteligência, produtividade e conversão comercial.</p></div><div class="source" id="sourceState">Carregando fonte CV CRM...</div></header>
@@ -8,7 +8,8 @@
 <section class="lead-filters" aria-label="Filtros globais">
 <label>Data inicial<input id="since" type="date"></label><label>Data final<input id="until" type="date"></label>
 <label>Empreendimento<select id="project"><option value="all">Todos os empreendimentos</option></select></label>
-<label>Origem<select id="origin"><option value="all">Todas as origens identificáveis</option><option value="whatsapp">Gestor / WhatsApp Facebook</option><option value="other">Outras entradas elegíveis</option></select></label>
+<div class="multi-filter" id="originFilter"><span class="filter-label">Origem</span><details id="originDetails"><summary id="originSummary">Todas as origens</summary><div class="multi-filter-options" id="originOptions"><p class="hint">Carregando origens do CV CRM...</p></div></details></div>
+<div class="multi-filter" id="visitMediaFilter"><span class="filter-label">Mídia de Visita</span><details id="visitMediaDetails"><summary id="visitMediaSummary">Todas as mídias</summary><div class="multi-filter-options" id="visitMediaOptions"><p class="hint">Carregando mídias de visita do CV CRM...</p></div></details></div>
 <label>Etapa validada da coorte<select id="stage"><option value="all">Todas as etapas</option><option value="0">Prospect</option><option value="1">Agendamento</option><option value="2">Visita</option><option value="3">Análise de crédito</option><option value="4">Venda concluída</option></select></label>
 <button id="reset" class="btn-secondary">Limpar filtros</button></section>
 <div class="method" id="scopeNote" role="status">Fonte em atualização.</div>
@@ -34,5 +35,5 @@
 <section class="panel"><h2>Insights da operação</h2><div id="insights"></div></section>
 <section class="panel"><h2>Registros individuais e exportação</h2><div class="unavailable"><strong>Disponível apenas em ambiente autenticado</strong><p>A base agregada atual não contém nomes. Quando a carteira individual estiver disponível em área autenticada, a visão exibirá somente primeiro e segundo nome, sem coluna de telefone. A vinculação continuará pelo ID interno do lead; números de contato não serão publicados no GitHub Pages.</p></div><button id="export" class="btn-secondary">Exportar resumo agregado (CSV)</button></section>
 <footer>Fonte: CV CRM · Coortes por empreendimento e período. Resultados mostram somente campos efetivamente disponíveis; não substituem auditoria individual.</footer>
-</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=historico-integral-v1" defer></script>
+</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=multifiltros-1" defer></script>
 </body></html>
