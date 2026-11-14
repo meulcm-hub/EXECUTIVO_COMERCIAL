@@ -18,3 +18,21 @@ body.lcm-app.lcm-leads-page h1,body.lcm-app.lcm-leads-page h2{color:#e7f3f6}
 .opportunity-current .opportunity-slot{background:linear-gradient(90deg,#1b4150,#153547);border:1px dashed #4c6672}
 #opportunityCumulative>.hint,#opportunityCurrent>.hint{border-top:1px solid #315263;padding-top:12px;margin-top:17px;line-height:1.55}
 @media(max-width:500px){.opportunity-line{grid-template-columns:minmax(83px,110px) minmax(0,1fr) 35px;gap:5px}.opportunity-name{font-size:10px}.opportunity-missing{font-size:9px}}
+
+/* Seleção múltipla exclusiva da Gestão de Leads: Origem e Mídia de Visita */
+body.lcm-leads-page .lead-filters{grid-template-columns:repeat(3,minmax(145px,1fr)) repeat(2,minmax(180px,1.2fr)) minmax(150px,1fr) auto}
+body.lcm-leads-page .multi-filter{display:flex;flex-direction:column;gap:6px;position:relative;min-width:0}
+body.lcm-leads-page .multi-filter .filter-label{font-size:11px;color:var(--muted);font-weight:700}
+body.lcm-leads-page .multi-filter details{position:relative}
+body.lcm-leads-page .multi-filter summary{list-style:none;min-height:42px;cursor:pointer;background:#183748;border:1px solid #3b6171;border-radius:9px;color:var(--text);padding:11px 30px 9px 12px;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.lcm-leads-page .multi-filter summary::-webkit-details-marker{display:none}
+body.lcm-leads-page .multi-filter summary:after{content:"▾";position:absolute;right:12px;top:10px;color:var(--lime)}
+body.lcm-leads-page .multi-filter summary:focus-visible{outline:2px solid var(--lime)}
+body.lcm-leads-page .multi-filter-options{position:absolute;z-index:30;top:calc(100% + 5px);left:0;right:0;min-width:220px;max-height:280px;overflow:auto;padding:6px;background:#102b3a;border:1px solid #457084;border-radius:10px;box-shadow:0 12px 32px #0008}
+body.lcm-leads-page .multi-check{display:flex;align-items:center;gap:9px;padding:9px 8px;cursor:pointer;color:#e7f3f6;font-size:12px;font-weight:500}
+body.lcm-leads-page .multi-check:hover{background:#264858;border-radius:6px}
+body.lcm-leads-page .multi-check input{min-height:auto;width:16px;height:16px;accent-color:var(--lime);flex-shrink:0}
+body.lcm-leads-page [hidden]{display:none!important}
+@media(max-width:1320px){body.lcm-leads-page .lead-filters{grid-template-columns:repeat(3,minmax(150px,1fr))}}
+@media(max-width:790px){body.lcm-leads-page .lead-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){body.lcm-leads-page .lead-filters{grid-template-columns:1fr}}
