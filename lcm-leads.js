@@ -279,7 +279,11 @@ function renderAllHistory(){
  const unavailable=mediaCounts.get('NÃO DISPONÍVEL NA COLETA ANTERIOR')||0;
  note.textContent='Base integral CV CRM · '+fmt(source.pages_scanned)+' páginas · '+
   fmt(source.unique_leads)+' IDs únicos totais · primeiro cadastro '+source.earliest_cadastro+
-  ' · referência '+source.as_of+'. Filtros de origem e mídia de visita aplicados somente a esta fonte integral.'+
+  ' · referência '+source.as_of+'. Filtros de origem e mídia do lead aplicados somente a esta fonte integral.'+
+  (source.schema_version===3&&Number.isInteger(source.commercial_matched)
+   ?' Enriquecimento da API comercial: '+fmt(source.commercial_matched)+' IDs vinculados de '+fmt(source.unique_leads)+' ('+
+    fmt(100*source.commercial_matched/source.unique_leads)+'%).'
+   :'')+
   (unavailable?' A mídia do lead ainda não está presente na coleta publicada.':'')+
   ' Um lead com várias mídias é contabilizado uma vez no total de leads.';
  const sorted=map=>[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15)
