@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 
 from cvcrm_project_address_audit import credentials, NoRedirect
-from lcm_lead_display import display_name
+from leads_commercial_dimensions import fetch_all as fetch_commercial_all
 
 API="/api/v1/cvdw/leads"
 OUT=Path("data/leads-all-summary.json")
@@ -124,7 +124,7 @@ def fetch_page(opener,base,email,token,page):
             time.sleep(min(45,2**attempt*3))
     raise RuntimeError("Requisição não concluída")
 
-def collect(fetch,as_of=None):
+def collect(fetch,as_of=None,commercial=None,commercial_meta=None):
     """No single page is silently accepted as complete if pagination says more."""
     as_of=as_of or CUTOFF
     leaders={}
@@ -152,9 +152,11 @@ def collect(fetch,as_of=None):
             if not day:
                 invalid_date+=1;continue
             old=leaders.get(key)
+            detail=(commercial or {}).get(key,{})
             snapshot={"date":day,"reference":ref(item),"project":project(item),
-                       "origin":origin(item),"origin_name":origin_name(item),
-                       "lead_media":media_original(item),
+                       "origin":origin(item),
+                       "origin_name":detail.get("origin_name") or origin_name(item),
+                       "lead_media":detail.get("lead_media") or media_original(item),
                        "visit_media":visit_media(item),"status":status(item)}
             if old is None or snapshot["reference"]>old["reference"]:
                 leaders[key]=snapshot
@@ -180,6 +182,8 @@ def collect(fetch,as_of=None):
       "earliest_cadastro":earliest,"latest_cadastro":latest,
       "unique_leads":len(leaders),"snapshots_scanned":scanned,
       "pages_scanned":pages_total,
+      "commercial_details":commercial_meta or {"commercial_total":0,"commercial_pages":0,"commercial_unique":0},
+      "commercial_matched":sum(1 for key in leaders if key in (commercial or {})),
       "by_registration_project_origin_status":cells}
     assert sum(x["count"] for x in cells)==len(leaders)
     return result
@@ -187,7 +191,11 @@ def collect(fetch,as_of=None):
 def main():
     base,email,token=credentials(os.environ)
     opener=urllib.request.build_opener(NoRedirect())
-    result=collect(lambda page:fetch_page(opener,base,email,token,page))
+    # Na API comercial, origem e mídia são campos distintos do cadastro.
+    # Coleta integral via limit/offset e cruzamento somente em memória por idlead.
+    commercial,commercial_meta=fetch_commercial_all(base,email,token)
+    result=collect(lambda page:fetch_page(opener,base,email,token,page),
+                   commercial=commercial,commercial_meta=commercial_meta)
     OUT.parent.mkdir(parents=True,exist_ok=True)
     temp=OUT.with_suffix(".json.tmp")
     temp.write_text(json.dumps(result,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
@@ -195,7 +203,8 @@ def main():
     print("CV CRM integral: páginas",result["pages_scanned"],
           "snapshots",result["snapshots_scanned"],
           "leads únicos",result["unique_leads"],
-          "primeiro cadastro",result["earliest_cadastro"])
+          "primeiro cadastro",result["earliest_cadastro"],
+          "leads comerciais vinculados",result["commercial_matched"])
     print("Nenhum ID, nome, telefone ou CPF publicado.")
 if __name__=="__main__":
     try:main()
