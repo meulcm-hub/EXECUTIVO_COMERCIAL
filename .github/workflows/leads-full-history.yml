@@ -38,11 +38,11 @@ jobs:
           from pathlib import Path
           p=Path('data/leads-all-summary.json')
           x=json.loads(p.read_text(encoding='utf-8'))
-          assert x['schema_version']==2 and x['validated'] and x['scope']=='all_accessible_leads'
+          assert x['schema_version']==3 and x['validated'] and x['scope']=='all_accessible_leads'
           assert sum(v['count'] for v in x['by_registration_project_origin_status'])==x['unique_leads']
           assert x['unique_leads']>0 and x['pages_scanned']>0
           for r in x['by_registration_project_origin_status']:
-              assert set(r)=={'date','project','origin','visit_media','status','count'}
+              assert set(r)=={'date','project','origin','origin_name','lead_media','visit_media','status','count'}
           print('Base completa validada:',x['unique_leads'],'leads, primeiro cadastro:',x['earliest_cadastro'])
           PY
       - name: Publicar exclusivamente agregados (sem dados pessoais)
