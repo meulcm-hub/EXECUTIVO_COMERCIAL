@@ -245,7 +245,8 @@ function filteredFullCells(){
   r.date>=f.since&&r.date<=f.until&&
   (f.project==='all'||projectKey(r.project)===f.project)&&
   (!f.origins.size||f.origins.has(r.origin||'NÃO INFORMADA'))&&
-  (!f.visitMedia.size||f.visitMedia.has(r.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR'))&&
+  (!f.visitMedia.size||(Array.isArray(r.lead_medias)?r.lead_medias:
+   [r.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR']).some(m=>f.visitMedia.has(m)))&&
   (f.stage==='all'||(f.stage==='FORA DO FUNIL'
    ?window.LcmLeadStages.classify(r.status)===null
    :window.LcmLeadStages.classify(r.status)===f.stage)));
@@ -267,8 +268,9 @@ function renderAllHistory(){
   projectCounts.set(project,(projectCounts.get(project)||0)+row.count);
   const origin=originLabel(row.origin||'NÃO INFORMADA');
   originCounts.set(origin,(originCounts.get(origin)||0)+row.count);
-  const media=row.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR';
-  mediaCounts.set(media,(mediaCounts.get(media)||0)+row.count);
+  const medias=Array.isArray(row.lead_medias)?row.lead_medias:
+   [row.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR'];
+  for(const media of new Set(medias))mediaCounts.set(media,(mediaCounts.get(media)||0)+row.count);
  }
  putKpi(host,'Leads únicos filtrados',fmt(count),'Cadastro original; todas as origens');
  putKpi(host,'Empreendimentos filtrados',fmt(projectCounts.size),'Inclui SEM EMPREENDIMENTO');
@@ -278,7 +280,8 @@ function renderAllHistory(){
  note.textContent='Base integral CV CRM · '+fmt(source.pages_scanned)+' páginas · '+
   fmt(source.unique_leads)+' IDs únicos totais · primeiro cadastro '+source.earliest_cadastro+
   ' · referência '+source.as_of+'. Filtros de origem e mídia de visita aplicados somente a esta fonte integral.'+
-  (unavailable?' A mídia do lead ainda não está presente na coleta publicada.':'');
+  (unavailable?' A mídia do lead ainda não está presente na coleta publicada.':'')+
+  ' Um lead com várias mídias é contabilizado uma vez no total de leads.';
  const sorted=map=>[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15)
   .map(([label,value])=>({label,value}));
  bars($('allProjects'),sorted(projectCounts));bars($('allOrigins'),sorted(originCounts));
@@ -292,7 +295,8 @@ async function loadAllHistory(){
     data.scope!=='all_accessible_leads'||!Array.isArray(data.by_registration_project_origin_status)||
     data.by_registration_project_origin_status.some(r=>typeof r.origin!=='string'||
       (data.schema_version>=2&&typeof r.visit_media!=='string')||
-      (data.schema_version===3&&(typeof r.origin_name!=='string'||typeof r.lead_media!=='string')))||
+      (data.schema_version===3&&(typeof r.origin_name!=='string'||
+       typeof r.lead_media!=='string'||!Array.isArray(r.lead_medias))))||
     data.by_registration_project_origin_status.reduce((n,r)=>n+Number(r.count||0),0)!==data.unique_leads)
     throw new Error('Resumo integral sem validação');
   // Compatibilidade com os 78.644 leads já publicados no contrato v1:
@@ -302,6 +306,7 @@ async function loadAllHistory(){
    by_registration_project_origin_status:data.by_registration_project_origin_status.map(r=>({
     ...r,origin_name:r.origin_name||originName(r.origin),
     lead_media:'NÃO DISPONÍVEL NA COLETA ANTERIOR',
+    lead_medias:['NÃO DISPONÍVEL NA COLETA ANTERIOR'],
     visit_media:r.visit_media||'NÃO DISPONÍVEL NA API'
    }))
   }:data;
@@ -336,7 +341,9 @@ async function loadAllHistory(){
   }else{
    $('visitMediaDetails').style.pointerEvents='';
    $('visitMediaSummary').removeAttribute('aria-disabled');
-   const realMedia=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.lead_media||'NÃO INFORMADA'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+   const realMedia=[...new Set(state.allHistory.by_registration_project_origin_status.flatMap(r=>
+    Array.isArray(r.lead_medias)?r.lead_medias:[r.lead_media||'NÃO INFORMADA']))]
+    .sort((a,b)=>a.localeCompare(b,'pt-BR'));
    multiOptions('visitMedia',realMedia);
   }
   $('since').min=data.earliest_cadastro;$('until').min=data.earliest_cadastro;
@@ -403,7 +410,7 @@ function csv(){
   const cells=filteredFullCells(),summary=new Map();
   for(const r of cells){
    const key=JSON.stringify([projectTitle(projectKey(r.project)),originLabel(r.origin||'NÃO INFORMADA'),
-    r.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR',r.status||'NÃO INFORMADA']);
+    (r.lead_medias||[r.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR']).join(' | '),r.status||'NÃO INFORMADA']);
    summary.set(key,(summary.get(key)||0)+r.count);
   }
   const rows=[['Empreendimento','Origem','Mídia de Visita','Situação Atual','Leads Únicos']];
