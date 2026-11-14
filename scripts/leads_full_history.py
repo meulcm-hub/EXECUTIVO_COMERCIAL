@@ -50,7 +50,22 @@ def project(row):
     return "SEM EMPREENDIMENTO"
 
 def origin(row):
-    for k in ("origem_original","origem","origem_nome","origem_cadastro"):
+    # Manter o código como chave estável, pois nome e código podem coexistir.
+    for k in ("origem_original","origem","origem_cadastro"):
+        v=text_value(row.get(k))
+        if v:return v
+    return "ND"
+
+def origin_name(row):
+    # A API CVDW documenta origem_nome como a descrição oficial da origem.
+    for k in ("origem_nome","origem_original_nome"):
+        v=text_value(row.get(k))
+        if v:return v
+    return ""
+
+def media_original(row):
+    # Fonte real de mídia do LEAD, não da visita: nunca inventar uma mídia.
+    for k in ("midia_original","midia_nome","midia","midia_ultimo"):
         v=text_value(row.get(k))
         if v:return v
     return "NÃO INFORMADA"
@@ -138,7 +153,9 @@ def collect(fetch,as_of=None):
                 invalid_date+=1;continue
             old=leaders.get(key)
             snapshot={"date":day,"reference":ref(item),"project":project(item),
-                       "origin":origin(item),"visit_media":visit_media(item),"status":status(item)}
+                       "origin":origin(item),"origin_name":origin_name(item),
+                       "lead_media":media_original(item),
+                       "visit_media":visit_media(item),"status":status(item)}
             if old is None or snapshot["reference"]>old["reference"]:
                 leaders[key]=snapshot
             elif snapshot["reference"]==old["reference"] and snapshot!=old:
@@ -152,10 +169,12 @@ def collect(fetch,as_of=None):
     earliest=min(x["date"] for x in leaders.values())
     latest=max(x["date"] for x in leaders.values())
     for item in leaders.values():
-        cube[(item["date"],item["project"],item["origin"],item["visit_media"],item["status"])]+=1
-    cells=[{"date":d,"project":p,"origin":o,"visit_media":m,"status":s,"count":n}
-           for (d,p,o,m,s),n in sorted(cube.items())]
-    result={"schema_version":2,"validated":True,
+        cube[(item["date"],item["project"],item["origin"],item["origin_name"],
+              item["lead_media"],item["visit_media"],item["status"])]+=1
+    cells=[{"date":d,"project":p,"origin":o,"origin_name":on,
+            "lead_media":lm,"visit_media":m,"status":st,"count":n}
+           for (d,p,o,on,lm,m,st),n in sorted(cube.items())]
+    result={"schema_version":3,"validated":True,
       "source":"CV CRM CVDW leads /api/v1/cvdw/leads (todos os canais)",
       "scope":"all_accessible_leads","as_of":as_of.isoformat(),
       "earliest_cadastro":earliest,"latest_cadastro":latest,
