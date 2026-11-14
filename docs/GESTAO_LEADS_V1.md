@@ -76,3 +76,13 @@ A primeira execução integral pode ser longa e depende da disponibilidade da AP
 Workflow: `.github/workflows/leads-full-history.yml`. Executa três vezes por dia e por despacho manual e alteração do coletor. Testes em `tests/test_leads_full_history.py`.
 
 A base histórica completa não substitui o histórico de movimentações e não permite inferir etapa, SLA ou venda a partir de situação textual isolada; por enquanto a página mantém o funil de Marketing em seção identificada como fonte parcial. Dados individuais deverão ser consultados em ambiente com acesso controlado. Mesmo dois nomes são dados pessoais e não devem ser publicados em Pages sem proteção.
+
+## Filtros múltiplos da Gestão de Leads — 14/11/2026
+
+- **Origem**: todas as origens distintas retornadas pela fonte integral CV CRM, sem lista fixa de Marketing; é permitido marcar várias ao mesmo tempo.
+- **Mídia de Visita**: somente campos explicitamente relacionados a visita (`midia_visita`, `midia_visita_nome`, `midia_da_visita`, `midiaVisita`, `midia_visita_original`). Não substituir por `midia_original` ou `midia_ultimo`, que representam outros conceitos.
+- Campo explicitamente vazio: `NÃO INFORMADA`. Campo não exposto pela API: `NÃO DISPONÍVEL NA API`.
+- Sem opções marcadas = todas. Com opções selecionadas, vale **OU dentro de cada filtro** e **E entre origem, mídia de visita, empreendimento e período**. O botão Limpar redefine tudo.
+- O arquivo agregado passou para `schema_version=2` com a dimensão `visit_media`. Até nova coleta integral bem-sucedida, o filtro não inventa opções nem exibe resultados falsos.
+- Quando os filtros de origem/mídia estão ativos, os painéis da coorte parcial de Marketing são ocultados, pois não possuem essas dimensões e não podem ser recalculados com fidelidade. Marketing permanece inalterado.
+- A mídia de visita exige confirmação do campo real na resposta da API. O coletor não afirma cobertura sem evidência; caso não exista, o valor `NÃO DISPONÍVEL NA API` explicita a limitação.
