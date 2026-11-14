@@ -157,6 +157,7 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None):
                        "origin":origin(item),
                        "origin_name":detail.get("origin_name") or origin_name(item),
                        "lead_media":detail.get("lead_media") or media_original(item),
+                       "lead_medias":detail.get("lead_medias") or [detail.get("lead_media") or media_original(item)],
                        "visit_media":visit_media(item),"status":status(item)}
             if old is None or snapshot["reference"]>old["reference"]:
                 leaders[key]=snapshot
@@ -172,10 +173,10 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None):
     latest=max(x["date"] for x in leaders.values())
     for item in leaders.values():
         cube[(item["date"],item["project"],item["origin"],item["origin_name"],
-              item["lead_media"],item["visit_media"],item["status"])]+=1
+              item["lead_media"],tuple(item["lead_medias"]),item["visit_media"],item["status"])]+=1
     cells=[{"date":d,"project":p,"origin":o,"origin_name":on,
-            "lead_media":lm,"visit_media":m,"status":st,"count":n}
-           for (d,p,o,on,lm,m,st),n in sorted(cube.items())]
+            "lead_media":lm,"lead_medias":list(lms),"visit_media":m,"status":st,"count":n}
+           for (d,p,o,on,lm,lms,m,st),n in sorted(cube.items())]
     result={"schema_version":3,"validated":True,
       "source":"CV CRM CVDW leads /api/v1/cvdw/leads (todos os canais)",
       "scope":"all_accessible_leads","as_of":as_of.isoformat(),
