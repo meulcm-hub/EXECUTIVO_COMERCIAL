@@ -49,7 +49,8 @@ const iso=d=>d.toISOString().slice(0,10);
 const parse=s=>new Date(s+'T12:00:00Z');
 const days=(a,b)=>Math.round((parse(b)-parse(a))/86400000)+1;
 const state={source:null,allHistory:null,groups:[],group:'month',filterStage:'all',
- selectedOrigins:new Set(),selectedVisitMedia:new Set()};
+ selectedOrigins:new Set(),selectedVisitMedia:new Set(),originLabels:new Map()};
+function originLabel(code){return state.originLabels.get(code)||originName(code);}
 function txt(tag,text,cl){const node=document.createElement(tag);node.textContent=text;if(cl)node.className=cl;return node;}
 function clear(id){const node=$(id);node.replaceChildren();return node;}
 function makeOption(select,value,label){const x=document.createElement('option');x.value=value;x.textContent=label;select.append(x);}
@@ -70,7 +71,7 @@ function multiOptions(kind,values){
  for(const value of values){
   const item=txt('label','','multi-check');const check=document.createElement('input');
   check.type='checkbox';check.value=value;check.checked=selected.has(value);
-  const span=txt('span',isOrigin?originName(value):value);item.append(check,span);container.append(item);
+  const span=txt('span',isOrigin?originLabel(value):value);item.append(check,span);container.append(item);
   check.addEventListener('change',()=>{
    if(check.checked)selected.add(value);else selected.delete(value);
    multiLabel(kind);render();
@@ -264,7 +265,7 @@ function renderAllHistory(){
  for(const row of cells){
   const project=projectTitle(projectKey(row.project));
   projectCounts.set(project,(projectCounts.get(project)||0)+row.count);
-  const origin=originName(row.origin_name||row.origin||'NÃO INFORMADA');
+  const origin=originLabel(row.origin||'NÃO INFORMADA');
   originCounts.set(origin,(originCounts.get(origin)||0)+row.count);
   const media=row.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR';
   mediaCounts.set(media,(mediaCounts.get(media)||0)+row.count);
@@ -317,7 +318,13 @@ async function loadAllHistory(){
   for(const group of window.LcmLeadStages.groups)makeOption(stageSelect,group,group);
   makeOption(stageSelect,'FORA DO FUNIL','Fora do funil / Descartado');
   stageSelect.value='all';
-  const origins=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.origin||'NÃO INFORMADA'))].sort((a,b)=>originName(a).localeCompare(originName(b),'pt-BR'));
+  state.originLabels.clear();
+  for(const r of state.allHistory.by_registration_project_origin_status){
+   const code=r.origin||'NÃO INFORMADA';
+   const official=(data.schema_version===3?String(r.origin_name||'').trim():'');
+   if(official&&!state.originLabels.has(code))state.originLabels.set(code,official);
+  }
+  const origins=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.origin||'NÃO INFORMADA'))].sort((a,b)=>originLabel(a).localeCompare(originLabel(b),'pt-BR'));
   const media=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.visit_media||'NÃO DISPONÍVEL NA API'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   multiOptions('origin',origins);
   if(data.schema_version<3){
@@ -395,7 +402,7 @@ function csv(){
  if(state.allHistory?.validated){
   const cells=filteredFullCells(),summary=new Map();
   for(const r of cells){
-   const key=JSON.stringify([projectTitle(projectKey(r.project)),originName(r.origin_name||r.origin||'NÃO INFORMADA'),
+   const key=JSON.stringify([projectTitle(projectKey(r.project)),originLabel(r.origin||'NÃO INFORMADA'),
     r.lead_media||'NÃO DISPONÍVEL NA COLETA ANTERIOR',r.status||'NÃO INFORMADA']);
    summary.set(key,(summary.get(key)||0)+r.count);
   }
