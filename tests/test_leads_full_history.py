@@ -37,8 +37,11 @@ class LeadsAllHistoryTests(unittest.TestCase):
         lookup={x["origin"]:x["visit_media"] for x in result["by_registration_project_origin_status"]}
         self.assertEqual(lookup["Facebook"],"Indicação corretor")
         self.assertEqual(lookup["Google"],"NÃO DISPONÍVEL NA API")
-        self.assertNotIn("WhatsApp Facebook",str(result))
-        self.assertNotIn("Google Search",str(result))
+        medias={x["origin"]:x["lead_media"] for x in result["by_registration_project_origin_status"]}
+        self.assertEqual(medias["Facebook"],"WhatsApp Facebook")
+        self.assertEqual(medias["Google"],"Google Search")
+        self.assertNotIn("WhatsApp Facebook",str(lookup))
+        self.assertNotIn("Google Search",str(lookup))
     def test_origin_name_and_lead_media_use_cv_fields(self):
         lead=row(1,"2024-08-03",origin="FB")
         lead["origem_nome"]="Facebook"
