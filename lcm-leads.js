@@ -173,9 +173,9 @@ function drawFullOpportunityFunnels(cells){
   current.append(line);
  }
  const total=cells.reduce((n,r)=>n+r.count,0);
- current.append(txt('p','Situação atual do CV CRM para leads cadastrados nas datas selecionadas, sem filtro de origem. '+
+ current.append(txt('p','Situação atual do CV CRM para leads cadastrados nas datas selecionadas, independentemente da origem. '+
  'Contagem: '+fmt(total)+' IDs únicos na seleção. '+
- (unknown?fmt(unknown)+' leads com situação não mapeada nos seis grupos; não incluídos nas barras.':'Todos os registros foram classificados nos seis grupos.'),'hint'));
+ (unknown?fmt(unknown)+' leads em outras situações (ex.: DESCARTADO), fora dos seis grupos; mantidos no total da base e não incluídos nas barras.':'Todos os registros foram classificados nos seis grupos.'),'hint'));
 }
 function bars(node,items){node.replaceChildren();const max=Math.max(1,...items.map(x=>x.value));for(const item of items){
  const r=txt('div','','baritem');r.append(txt('span',item.label));const track=txt('div','','bar-track');
@@ -297,7 +297,14 @@ async function loadAllHistory(){
   if(data.schema_version===1){
    multiOptions('visitMedia',[]);
    $('visitMediaSummary').textContent='Não disponível na API';
-  }else multiOptions('visitMedia',media);
+   $('visitMediaDetails').open=false;
+   $('visitMediaDetails').style.pointerEvents='none';
+   $('visitMediaSummary').setAttribute('aria-disabled','true');
+  }else{
+   $('visitMediaDetails').style.pointerEvents='';
+   $('visitMediaSummary').removeAttribute('aria-disabled');
+   multiOptions('visitMedia',media);
+  }
   $('since').min=data.earliest_cadastro;$('until').min=data.earliest_cadastro;
   $('since').max=data.as_of;$('until').max=data.as_of;
   // Fonte integral validada: iniciar no primeiro cadastro efetivo do CV CRM.
