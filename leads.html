@@ -9,7 +9,7 @@
 <label>Data inicial<input id="since" type="date"></label><label>Data final<input id="until" type="date"></label>
 <label>Empreendimento<select id="project"><option value="all">Todos os empreendimentos</option></select></label>
 <div class="multi-filter" id="originFilter"><span class="filter-label">Origem</span><details id="originDetails"><summary id="originSummary">Todas as origens</summary><div class="multi-filter-options" id="originOptions"><p class="hint">Carregando origens do CV CRM...</p></div></details></div>
-<div class="multi-filter" id="visitMediaFilter"><span class="filter-label">Mídia de Visita</span><details id="visitMediaDetails"><summary id="visitMediaSummary">Todas as mídias</summary><div class="multi-filter-options" id="visitMediaOptions"><p class="hint">Carregando mídias de visita do CV CRM...</p></div></details></div>
+<div class="multi-filter" id="visitMediaFilter"><span class="filter-label">Mídia do Lead (CV CRM)</span><details id="visitMediaDetails"><summary id="visitMediaSummary">Todas as mídias</summary><div class="multi-filter-options" id="visitMediaOptions"><p class="hint">Carregando mídias de visita do CV CRM...</p></div></details></div>
 <label><span id="stageLabel">Etapa validada da coorte</span><select id="stage"><option value="all">Todas as etapas</option><option value="0">Prospect</option><option value="1">Agendamento</option><option value="2">Visita</option><option value="3">Análise de crédito</option><option value="4">Venda concluída</option></select></label>
 <button id="reset" class="btn-secondary">Limpar filtros</button></section>
 <div class="method" id="scopeNote" role="status">Fonte em atualização.</div>
@@ -21,7 +21,7 @@
 <div><h2>Leads por empreendimento</h2><div id="allProjects"></div></div>
 <div><h2>Leads por origem</h2><div id="allOrigins"></div></div>
 </div>
-<p class="hint">Esta base é independente do recorte de Marketing. Inclui leads de todas as origens e situações, inclusive SEM EMPREENDIMENTO. As etapas detalhadas do funil só serão preenchidas com histórico de oportunidades validado.</p>
+<p class="hint">A mídia do lead corresponde ao cadastro/origem no CV CRM e não comprova uma visita realizada. Esta base é independente do recorte de Marketing. Inclui leads de todas as origens e situações, inclusive SEM EMPREENDIMENTO. As etapas detalhadas do funil só serão preenchidas com histórico de oportunidades validado.</p>
 </section>
 <section id="visao" aria-labelledby="kpiTitle"><h2 id="kpiTitle">Indicadores executivos</h2><div class="kpis" id="kpis"></div></section>
 <section class="columns" id="funil">
@@ -35,5 +35,5 @@
 <section class="panel"><h2>Insights da operação</h2><div id="insights"></div></section>
 <section class="panel"><h2>Registros individuais e exportação</h2><div class="unavailable"><strong>Disponível apenas em ambiente autenticado</strong><p>A base agregada atual não contém nomes. Quando a carteira individual estiver disponível em área autenticada, a visão exibirá somente primeiro e segundo nome, sem coluna de telefone. A vinculação continuará pelo ID interno do lead; números de contato não serão publicados no GitHub Pages.</p></div><button id="export" class="btn-secondary">Exportar resumo agregado (CSV)</button></section>
 <footer>Fonte: CV CRM · Coortes por empreendimento e período. Resultados mostram somente campos efetivamente disponíveis; não substituem auditoria individual.</footer>
-</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=base-completa-funil-2018-v4" defer></script>
+</main><script src="lcm-shell.js?v=leads-v1" defer></script><script src="lcm-leads-stage-config.js?v=1" defer></script><script src="lcm-leads.js?v=origens-nomes-midias-v1" defer></script>
 </body></html>
