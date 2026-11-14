@@ -8,6 +8,7 @@ on:
       - lcm-leads-stage-config.js
       - tests/test_leads_stage_classification.cjs
       - tests/test_leads_render_fallback.cjs
+      - tests/test_leads_integral_v1.cjs
       - lcm-leads.css
       - lcm-shell.js
       - tests/test_leads_dashboard_contract.py
@@ -38,6 +39,7 @@ jobs:
           node --check lcm-leads-stage-config.js
           node --test tests/test_leads_stage_classification.cjs
           node --test tests/test_leads_render_fallback.cjs
+          node --test tests/test_leads_integral_v1.cjs
           node --check lcm-shell.js
       - name: Verificar contrato CV CRM e isolamento
         run: python -m unittest discover -s tests -p 'test_leads_dashboard_contract.py' -v
