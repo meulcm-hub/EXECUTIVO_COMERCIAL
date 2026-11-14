@@ -167,7 +167,7 @@ function drawFullOpportunityFunnels(cells){
   line.append(txt('span',group,'opportunity-name'));
   const slot=txt('div','','opportunity-slot');
   const bar=txt('div','','opportunity-bar');
-  bar.style.width=fmt(100*amount/max)+'%';
+  bar.style.width=(100*amount/max).toFixed(2)+'%';
   slot.append(bar);
   line.append(slot,txt('strong',fmt(amount)));
   current.append(line);
@@ -230,7 +230,10 @@ function filteredFullCells(){
   r.date>=f.since&&r.date<=f.until&&
   (f.project==='all'||projectKey(r.project)===f.project)&&
   (!f.origins.size||f.origins.has(r.origin||'NÃO INFORMADA'))&&
-  (!f.visitMedia.size||f.visitMedia.has(r.visit_media||'NÃO DISPONÍVEL NA API')));
+  (!f.visitMedia.size||f.visitMedia.has(r.visit_media||'NÃO DISPONÍVEL NA API'))&&
+  (f.stage==='all'||(f.stage==='FORA DO FUNIL'
+   ?window.LcmLeadStages.classify(r.status)===null
+   :window.LcmLeadStages.classify(r.status)===f.stage)));
 }
 function renderAllHistory(){
  const host=$('allKpis'),note=$('allSourceNote');
@@ -291,6 +294,11 @@ async function loadAllHistory(){
   makeOption(projectSelect,'all','Todos os empreendimentos');
   for(const key of keys)makeOption(projectSelect,key,projectTitle(key));
   projectSelect.value=keys.includes(selected)?selected:'all';
+  const stageSelect=$('stage');
+  stageSelect.replaceChildren();makeOption(stageSelect,'all','Todas as etapas');
+  for(const group of window.LcmLeadStages.groups)makeOption(stageSelect,group,group);
+  makeOption(stageSelect,'FORA DO FUNIL','Fora do funil / Descartado');
+  stageSelect.value='all';
   const origins=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.origin||'NÃO INFORMADA'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const media=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.visit_media||'NÃO DISPONÍVEL NA API'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   multiOptions('origin',origins);
@@ -363,16 +371,36 @@ function render(){
 }
 
 function csv(){
- if(!state.source)return;
- const f=filters(),rows=selected(f),byProject=projectKeys().map(id=>{
- const name=projectTitle(id);
- const c=counts(rows.filter(r=>r.project===id));return [name,c.total,c.new,c.returns,c.whatsapp,...c.stages];});
- const output=[['Empreendimento','Prospects','Novos','Retornos','WhatsApp FB',...steps],...byProject]
-   .map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n');
- const url=URL.createObjectURL(new Blob(['\ufeff'+output],{type:'text/csv;charset=utf-8'}));
- const a=document.createElement('a');a.href=url;a.download='LCM_Gestao_Leads_Agregados.csv';a.click();
- setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const f=filters();
+ let output;
+ if(state.allHistory?.validated){
+  const cells=filteredFullCells(),summary=new Map();
+  for(const r of cells){
+   const key=JSON.stringify([projectTitle(projectKey(r.project)),r.origin||'NÃO INFORMADA',
+    r.visit_media||'NÃO DISPONÍVEL NA API',r.status||'NÃO INFORMADA']);
+   summary.set(key,(summary.get(key)||0)+r.count);
+  }
+  const rows=[['Empreendimento','Origem','Mídia de Visita','Situação Atual','Leads Únicos']];
+  for(const [key,qty]of summary){rows.push([...JSON.parse(key),qty]);}
+  output=rows;
+ }else{
+  if(!state.source)return;
+  const overlap={...f,since:f.since<state.source.period.since?state.source.period.since:f.since,
+   until:f.until>state.source.period.until?state.source.period.until:f.until};
+  if(overlap.since>overlap.until){$('scopeNote').textContent='Sem dados para exportar nesta fonte parcial.';return;}
+  const rows=selected(overlap),byProject=projectKeys().map(id=>{
+   const name=projectTitle(id);
+   const c=counts(rows.filter(r=>r.project===id));return [name,c.total,c.new,c.returns,c.whatsapp,...c.stages];
+  });
+  output=[['Empreendimento','Prospects','Novos','Retornos','WhatsApp FB',...steps],...byProject];
+ }
+ const result=output.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob(['\ufeff'+result],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;
+ a.download=state.allHistory?.validated?'LCM_Leads_Integral_Agregado.csv':'LCM_Leads_Coorte_Parcial.csv';
+ a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+
 async function init(){
  try{
   const response=await fetch('data/cv-funnel.json?v=gestao-leads-v1',{cache:'no-store'});
