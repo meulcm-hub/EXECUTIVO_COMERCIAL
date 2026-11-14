@@ -33,12 +33,23 @@ class LeadsAllHistoryTests(unittest.TestCase):
         without_visit=row(2,"2021-05-13",origin="Google")
         without_visit["midia_original"]="Google Search"
         result=m.collect(lambda page:([with_visit,without_visit],1,{}))
-        self.assertEqual(result["schema_version"],2)
+        self.assertEqual(result["schema_version"],3)
         lookup={x["origin"]:x["visit_media"] for x in result["by_registration_project_origin_status"]}
         self.assertEqual(lookup["Facebook"],"Indicação corretor")
         self.assertEqual(lookup["Google"],"NÃO DISPONÍVEL NA API")
         self.assertNotIn("WhatsApp Facebook",str(result))
         self.assertNotIn("Google Search",str(result))
+    def test_origin_name_and_lead_media_use_cv_fields(self):
+        lead=row(1,"2024-08-03",origin="FB")
+        lead["origem_nome"]="Facebook"
+        lead["midia_original"]="Whatsapp Facebook"
+        lead["midia_ultimo"]="Outra mídia"
+        result=m.collect(lambda page:([lead],1,{}))
+        record=result["by_registration_project_origin_status"][0]
+        self.assertEqual(record["origin"],"FB")
+        self.assertEqual(record["origin_name"],"Facebook")
+        self.assertEqual(record["lead_media"],"Whatsapp Facebook")
+        self.assertEqual(record["visit_media"],"NÃO DISPONÍVEL NA API")
     def test_empty_visit_media_uses_nao_informada(self):
         self.assertEqual(m.visit_media({"midia_visita":""}),"NÃO INFORMADA")
         self.assertEqual(m.visit_media({"midia_original":"Instagram"}),"NÃO DISPONÍVEL NA API")
