@@ -295,6 +295,7 @@ async function loadAllHistory(){
   for(const key of keys)makeOption(projectSelect,key,projectTitle(key));
   projectSelect.value=keys.includes(selected)?selected:'all';
   const stageSelect=$('stage');
+  $('stageLabel').textContent='Situação atual / Etapa';
   stageSelect.replaceChildren();makeOption(stageSelect,'all','Todas as etapas');
   for(const group of window.LcmLeadStages.groups)makeOption(stageSelect,group,group);
   makeOption(stageSelect,'FORA DO FUNIL','Fora do funil / Descartado');
