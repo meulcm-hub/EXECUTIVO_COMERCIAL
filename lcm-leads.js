@@ -20,7 +20,8 @@ const projects={
  'sem empreendimento':'SEM EMPREENDIMENTO'};
 const NO_PROJECT='sem empreendimento';
 function projectKey(raw){
- const x=String(raw??'').trim().replace(/\s+/g,' ').toLowerCase();
+ let x=String(raw??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase();
+ if(x==='residencial florres do cerrado ipe')x='residencial flores do cerrado ipe';
  if(!x||['null','undefined','não informado','nao informado','não identificado','nao identificado','sem vinculo','sem vínculo','sem empreendimento','-','--'].includes(x))return NO_PROJECT;
  return x;
 }
@@ -269,26 +270,40 @@ async function loadAllHistory(){
   const response=await fetch('data/leads-all-summary.json?v=full-history-v1',{cache:'no-store'});
   if(!response.ok)throw new Error('Ainda não publicado');
   const data=await response.json();
-  if(data?.schema_version!==2||data.validated!==true||
+  if(![1,2].includes(data?.schema_version)||data.validated!==true||
     data.scope!=='all_accessible_leads'||!Array.isArray(data.by_registration_project_origin_status)||
-    data.by_registration_project_origin_status.some(r=>typeof r.origin!=='string'||typeof r.visit_media!=='string')||
+    data.by_registration_project_origin_status.some(r=>typeof r.origin!=='string'||
+      (data.schema_version===2&&typeof r.visit_media!=='string'))||
     data.by_registration_project_origin_status.reduce((n,r)=>n+Number(r.count||0),0)!==data.unique_leads)
     throw new Error('Resumo integral sem validação');
-  state.allHistory=data;
-  const projectSelect=$('project'),selected=projectSelect.value,existing=new Set([...projectSelect.options].map(o=>o.value));
-  for(const row of data.by_registration_project_origin_status){
-   const key=projectKey(row.project);
-   if(!existing.has(key)){makeOption(projectSelect,key,projectTitle(key));existing.add(key);}
-  }
-  projectSelect.value=existing.has(selected)?selected:'all';
-  const origins=[...new Set(data.by_registration_project_origin_status.map(r=>r.origin||'NÃO INFORMADA'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  const media=[...new Set(data.by_registration_project_origin_status.map(r=>r.visit_media||'NÃO DISPONÍVEL NA API'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  multiOptions('origin',origins);multiOptions('visitMedia',media);
+  // Compatibilidade com os 78.644 leads já publicados no contrato v1:
+  // campo de mídia de visita ainda não existe, portanto permanece desconhecido.
+  state.allHistory=data.schema_version===1?{
+   ...data,
+   by_registration_project_origin_status:data.by_registration_project_origin_status.map(r=>({
+    ...r,visit_media:'NÃO DISPONÍVEL NA API'
+   }))
+  }:data;
+  const projectSelect=$('project'),selected=projectSelect.value;
+  const keys=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>projectKey(r.project)))]
+   .sort((a,b)=>projectTitle(a).localeCompare(projectTitle(b),'pt-BR'));
+  projectSelect.replaceChildren();
+  makeOption(projectSelect,'all','Todos os empreendimentos');
+  for(const key of keys)makeOption(projectSelect,key,projectTitle(key));
+  projectSelect.value=keys.includes(selected)?selected:'all';
+  const origins=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.origin||'NÃO INFORMADA'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const media=[...new Set(state.allHistory.by_registration_project_origin_status.map(r=>r.visit_media||'NÃO DISPONÍVEL NA API'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  multiOptions('origin',origins);
+  if(data.schema_version===1){
+   multiOptions('visitMedia',[]);
+   $('visitMediaSummary').textContent='Não disponível na API';
+  }else multiOptions('visitMedia',media);
   $('since').min=data.earliest_cadastro;$('until').min=data.earliest_cadastro;
   $('since').max=data.as_of;$('until').max=data.as_of;
   // Fonte integral validada: iniciar no primeiro cadastro efetivo do CV CRM.
   $('since').value=data.earliest_cadastro;
   $('until').value=data.as_of;
+  $('sourceState').textContent='CV CRM · base integral '+data.as_of;
   render();
  }catch(e){
   state.allHistory=null;
@@ -361,7 +376,7 @@ async function init(){
   $('since').value=payload.period.since;$('until').value=payload.period.until;
   for(const id of ['since','until']){$(id).min='1900-01-01';$(id).max=payload.as_of;}
   for(const key of projectKeys())makeOption($('project'),key,projectTitle(key));
-  $('sourceState').textContent='CV CRM · atualizado em '+payload.as_of;
+  $('sourceState').textContent='CV CRM · coorte parcial '+payload.as_of;
   for(const id of ['since','until','project','stage'])$(id).addEventListener('change',render);
   $('reset').addEventListener('click',()=>{
    $('since').value=state.allHistory?.earliest_cadastro||payload.period.since;
