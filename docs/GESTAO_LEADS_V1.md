@@ -108,3 +108,15 @@ No CV CRM, os códigos de origem devem ser apresentados ao gestor com sua descri
 Coletor `scripts/leads_full_history.py` passou a gerar **schema_version=3**, com `origin` (código para chave de filtro), `origin_name` (descrição oficial quando disponível), `lead_media` (prioridade `midia_original`, depois `midia_nome`, `midia`, `midia_ultimo`) e `visit_media` preservado separadamente. **Mídia original do lead não é prova de visita**; por isso a interface apresenta **Mídia do Lead (CV CRM)**.
 
 Antes da primeira coleta v3, a interface mostra os nomes de origem pelo mapeamento oficial, mas o filtro de mídia permanece aguardando recaptura e não inventa opções. A coleta v3 atualiza o mesmo resumo agregado, não publica nomes de clientes ou telefones, e permanece sujeita às credenciais CV CRM e à conclusão do workflow.
+
+## Correção após exemplo do GET comercial — 14/11/2026
+
+A resposta exemplificada pelo usuário é de `GET /api/v1/comercial/leads`, distinta de `GET /api/v1/cvdw/leads` usada para varredura histórica. A primeira usa `limit` e `offset`, retorna `total` e lista `leads` e oferece `origem` com o nome, `midia_principal` e `midias` em lista.
+
+Criado `scripts/leads_commercial_dimensions.py` que percorre as páginas comerciais autorizadas pelo mesmo par email/token, captura somente ID, origem e mídias em memória e cruza por `idlead` com a base integral CVDW. Nenhum nome, e-mail, telefone, documento ou detalhe pessoal é exportado. O collector produz `schema_version=3`, incluindo `origin_name`, `lead_media`, `lead_medias`, `commercial_details` e `commercial_matched`.
+
+Quando existem várias mídias, o filtro oferece todas, aplica OR dentro do campo e conta cada lead apenas uma vez. A mídia principal é usada como rótulo preferido; as demais permanecem selecionáveis. A mídia de visita efetiva permanece distinta. Na página o filtro se chama **Mídia do Lead (CV CRM)**.
+
+A API comercial informa que entrega somente leads acessíveis ao usuário autenticado. Portanto, o total comercial poderá diferir do total CVDW. A publicação mantém todos os leads CVDW e registra quantitativamente quantos IDs foram enriquecidos. Registros sem correspondência mantêm apenas dimensões comprovadas no CVDW ou rótulo não informado; não são descartados.
+
+**Situação da coleta ao editar o código**: o arquivo publicado já havia sido atualizado para `schema_version=2`, com 78.644 leads, mas ainda sem `origin_name` nem `lead_media`; a execução v3 não foi confirmada. Até aparecer v3, o filtro de mídia deve indicar que aguarda nova coleta, e as origens usam descrições disponíveis como fallback. Não afirmar preenchimento completo antes de validar `commercial_matched`.
