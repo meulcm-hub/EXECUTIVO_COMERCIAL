@@ -22,9 +22,12 @@ class CommercialLeadTests(unittest.TestCase):
         self.assertEqual(offsets,[0,2])
         self.assertEqual(meta["commercial_total"],3)
         self.assertEqual(meta["commercial_unique"],3)
-        self.assertEqual(result["1"],{"origin_name":"Facebook","lead_media":"Facebook Ads"})
-        self.assertEqual(result["2"],{"origin_name":"Painel Gestor","lead_media":"WhatsApp Facebook / Feirão"})
+        self.assertEqual(result["1"],{"origin_name":"Facebook","lead_media":"Facebook Ads",
+          "lead_medias":["Facebook Ads"]})
+        self.assertEqual(result["2"],{"origin_name":"Painel Gestor","lead_media":"WhatsApp Facebook",
+          "lead_medias":["WhatsApp Facebook","Feirão"]})
         self.assertEqual(result["3"]["lead_media"],"NÃO INFORMADA")
+        self.assertEqual(result["3"]["lead_medias"],["NÃO INFORMADA"])
         self.assertNotIn("Maria das Neves",str(result))
         self.assertNotIn("79999999999",str(result))
 
@@ -41,7 +44,8 @@ class CommercialLeadTests(unittest.TestCase):
         other={"idlead":2,"data_cad":"2019-02-01","empreendimento":None,
           "origem":"GE","situacao":"Descartado","referencia_data":"2026-11-14 10:00:00"}
         report=full.collect(lambda page:([row,other],1,{}),dt.date(2026,11,14),
-          commercial={"1":{"origin_name":"Facebook","lead_media":"Facebook Ads"}},
+          commercial={"1":{"origin_name":"Facebook","lead_media":"Facebook Ads",
+                  "lead_medias":["Facebook Ads","WhatsApp Facebook"]}},
           commercial_meta={"commercial_total":1,"commercial_pages":1,"commercial_unique":1})
         self.assertEqual(report["unique_leads"],2)
         self.assertEqual(report["commercial_matched"],1)
@@ -49,6 +53,7 @@ class CommercialLeadTests(unittest.TestCase):
         facebook=next(x for x in cells if x["origin"]=="FB")
         self.assertEqual(facebook["origin_name"],"Facebook")
         self.assertEqual(facebook["lead_media"],"Facebook Ads")
+        self.assertEqual(facebook["lead_medias"],["Facebook Ads","WhatsApp Facebook"])
         self.assertTrue(any(x["project"]=="SEM EMPREENDIMENTO" for x in cells))
         self.assertNotIn("idlead",str(cells))
 
