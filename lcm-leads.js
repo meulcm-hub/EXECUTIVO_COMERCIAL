@@ -145,6 +145,37 @@ function drawOpportunityFunnels(rows,c){
  }
  current.append(txt('p','O arquivo atual contém o estágio máximo de uma coorte, não a situação atual da oportunidade. Contagens e percentuais deste painel dependem de leitura de situações e IDs únicos das oportunidades, para todas as origens.','hint'));
 }
+function drawFullOpportunityFunnels(cells){
+ const config=window.LcmLeadStages;
+ if(!config)return;
+ const cumulative=clear('opportunityCumulative');
+ const empty=txt('p','O histórico completo de passagens por CAD/C e CAD/A ainda não foi extraído do CV CRM. Não é possível reconstruí-lo pela situação atual.','unavailable');
+ cumulative.append(empty);
+ const current=clear('opportunityCurrent');
+ const counts=new Map(config.groups.map(group=>[group,0]));
+ let unknown=0;
+ for(const cell of cells){
+  const group=config.classify(cell.status);
+  if(group)counts.set(group,counts.get(group)+cell.count);
+  else unknown+=cell.count;
+ }
+ const max=Math.max(1,...counts.values());
+ for(const group of config.groups){
+  const amount=counts.get(group);
+  const line=txt('div','','opportunity-line opportunity-current');
+  line.append(txt('span',group,'opportunity-name'));
+  const slot=txt('div','','opportunity-slot');
+  const bar=txt('div','','opportunity-bar');
+  bar.style.width=fmt(100*amount/max)+'%';
+  slot.append(bar);
+  line.append(slot,txt('strong',fmt(amount)));
+  current.append(line);
+ }
+ const total=cells.reduce((n,r)=>n+r.count,0);
+ current.append(txt('p','Situação atual do CV CRM para leads cadastrados nas datas selecionadas, sem filtro de origem. '+
+ 'Contagem: '+fmt(total)+' IDs únicos na seleção. '+
+ (unknown?fmt(unknown)+' leads com situação não mapeada nos seis grupos; não incluídos nas barras.':'Todos os registros foram classificados nos seis grupos.'),'hint'));
+}
 function bars(node,items){node.replaceChildren();const max=Math.max(1,...items.map(x=>x.value));for(const item of items){
  const r=txt('div','','baritem');r.append(txt('span',item.label));const track=txt('div','','bar-track');
  const fill=txt('div','','bar-fill');fill.style.width=Math.max(0,item.value/max*100)+'%';track.append(fill);
@@ -255,7 +286,9 @@ async function loadAllHistory(){
   multiOptions('origin',origins);multiOptions('visitMedia',media);
   $('since').min=data.earliest_cadastro;$('until').min=data.earliest_cadastro;
   $('since').max=data.as_of;$('until').max=data.as_of;
-  // Manter período selecionado, disponibilizando todo o histórico anterior.
+  // Fonte integral validada: iniciar no primeiro cadastro efetivo do CV CRM.
+  $('since').value=data.earliest_cadastro;
+  $('until').value=data.as_of;
   render();
  }catch(e){
   state.allHistory=null;
@@ -268,28 +301,41 @@ async function loadAllHistory(){
 function render(){
  if(!state.source)return;
  const requested=filters();
- renderAllHistory();
- const partialOnly=Boolean(state.allHistory)&&selectedOnlyFromFull();
- for(const id of ['visao','funil','origens','evolucao']){
-  const element=$(id);if(element)element.hidden=partialOnly;
- }
- if(partialOnly){
-  $('scopeNote').textContent='A seleção de origem e/ou mídia de visita está aplicada aos indicadores da base integral acima. Os gráficos antigos, que não contêm essas dimensões, foram ocultados para evitar contagem incorreta.';
+ if(!dateValid(requested.since)||!dateValid(requested.until)||requested.since>requested.until){
+  $('scopeNote').textContent='Corrija as datas do período: início não pode ser posterior ao fim.';
   return;
  }
- if(!dateValid(requested.since)||!dateValid(requested.until)||requested.since>requested.until){
-  $('scopeNote').textContent='Selecione uma data inicial anterior ou igual à data final.';
+ renderAllHistory();
+ const full=state.allHistory?.validated===true;
+ const ids=['visao','funil','origens','evolucao'];
+ if(full){
+  for(const id of ids){const el=$(id);if(el)el.hidden=id!=='funil';}
+  const cells=filteredFullCells();
+  drawFullOpportunityFunnels(cells);
+  const count=cells.reduce((n,r)=>n+r.count,0);
+  $('scopeNote').textContent='Visão de oportunidades da base integral: '+fmt(count)+' leads cadastrados entre '+
+   requested.since+' e '+requested.until+'. A situação corresponde ao último snapshot disponível, não ao estado histórico da época.';
   return;
  }
  const since=state.source.period.since,until=state.source.period.until;
+ const knownProject=requested.project==='all'||state.source.prospects.some(g=>projectKey(g.project)===requested.project);
+ const hasOverlap=requested.since<=until&&requested.until>=since;
+ if(!knownProject||!hasOverlap){
+  for(const id of ids){const el=$(id);if(el)el.hidden=true;}
+  $('scopeNote').textContent=!knownProject
+   ?'Sem dados disponíveis para '+projectTitle(requested.project)+' na fonte parcial do funil. Isso NÃO significa zero leads. A contagem depende da coleta integral do CV CRM.'
+   :'Nenhum dado disponível na coorte parcial para o período '+requested.since+' a '+requested.until+
+    '. Isso NÃO significa zero leads: a coleta integral histórica ainda não foi validada.';
+  return;
+ }
+ for(const id of ids){const el=$(id);if(el)el.hidden=false;}
  const overlap={...requested,since:requested.since<since?since:requested.since,
    until:requested.until>until?until:requested.until};
- const isSubset=requested.since>=since&&requested.until<=until;
- const rows=overlap.since<=overlap.until?selected(overlap):[];
- const c=counts(rows);state.groups=rows;
- $('scopeNote').textContent=isSubset
-  ?'Indicadores históricos do funil CV CRM · '+fmt(c.total)+' grupos de lead/empreendimento · '+overlap.since+' a '+overlap.until+'. Fonte parcial de Marketing: não representa todos os leads.'
-  :'Visão parcial restaurada: os gráficos abaixo mostram somente a cobertura histórica disponível ('+since+' a '+until+'). A seleção '+requested.since+' a '+requested.until+' inclui datas sem cobertura neste funil; esses registros não foram contabilizados aqui. Os totais integrais são exibidos separadamente acima quando a coleta estiver validada.';
+ const rows=selected(overlap),c=counts(rows);state.groups=rows;
+ $('scopeNote').textContent='Fonte PARCIAL de Marketing: '+fmt(c.total)+' grupos de lead/empreendimento, '+
+  'cobertura '+overlap.since+' a '+overlap.until+'. '+
+  (requested.since<since||requested.until>until?'O intervalo escolhido ultrapassa a cobertura; números anteriores a 2026 NÃO foram contabilizados. ':'')+
+  'Para todas as origens, empreendimentos e datas, falta concluir a base integral do CV CRM.';
  drawKpis(overlap,rows,c);drawOpportunityFunnels(rows,c);drawOrigins(rows,c);
  drawTrend(rows);drawProjects(rows);insights(rows,c);
 }
@@ -313,12 +359,13 @@ async function init(){
   if(!valid(payload))throw new Error('fonte CV CRM sem contrato validado');
   state.source=payload;
   $('since').value=payload.period.since;$('until').value=payload.period.until;
-  for(const id of ['since','until']){$(id).min=payload.period.since;$(id).max=payload.period.until;}
+  for(const id of ['since','until']){$(id).min='1900-01-01';$(id).max=payload.as_of;}
   for(const key of projectKeys())makeOption($('project'),key,projectTitle(key));
   $('sourceState').textContent='CV CRM · atualizado em '+payload.as_of;
   for(const id of ['since','until','project','stage'])$(id).addEventListener('change',render);
   $('reset').addEventListener('click',()=>{
-   $('since').value=payload.period.since;$('until').value=payload.period.until;
+   $('since').value=state.allHistory?.earliest_cadastro||payload.period.since;
+   $('until').value=state.allHistory?.as_of||payload.period.until;
    $('project').value='all';$('stage').value='all';state.selectedOrigins.clear();state.selectedVisitMedia.clear();
    for(const kind of ['origin','visitMedia']){
     const container=$(kind==='origin'?'originOptions':'visitMediaOptions');
