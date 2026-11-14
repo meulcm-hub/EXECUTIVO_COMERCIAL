@@ -33,7 +33,8 @@ const dateValid=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
 const iso=d=>d.toISOString().slice(0,10);
 const parse=s=>new Date(s+'T12:00:00Z');
 const days=(a,b)=>Math.round((parse(b)-parse(a))/86400000)+1;
-const state={source:null,allHistory:null,groups:[],group:'month',filterStage:'all'};
+const state={source:null,allHistory:null,groups:[],group:'month',filterStage:'all',
+ selectedOrigins:new Set(),selectedVisitMedia:new Set()};
 function txt(tag,text,cl){const node=document.createElement(tag);node.textContent=text;if(cl)node.className=cl;return node;}
 function clear(id){const node=$(id);node.replaceChildren();return node;}
 function makeOption(select,value,label){const x=document.createElement('option');x.value=value;x.textContent=label;select.append(x);}
@@ -43,14 +44,37 @@ function valid(payload){return payload?.validated===true&&payload.schema_version
  Array.isArray(payload.prospects)&&payload.prospects.every(g=>(g.project==null||typeof g.project==='string')&&Array.isArray(g.entries)&&
  g.entries.length>0&&typeof g.whatsapp_acquisition==='boolean'&&
  (g.new_date===null||dateValid(g.new_date))&&g.entries.every(e=>dateValid(e.date)&&Number.isInteger(e.stage)&&e.stage>=0&&e.stage<=4));}
-function filters(){return {since:$('since').value,until:$('until').value,project:$('project').value,origin:$('origin').value,stage:$('stage').value};}
+function filters(){return {since:$('since').value,until:$('until').value,project:$('project').value,
+ origins:state.selectedOrigins,visitMedia:state.selectedVisitMedia,stage:$('stage').value};}
+function multiOptions(kind,values){
+ const isOrigin=kind==='origin',selected=isOrigin?state.selectedOrigins:state.selectedVisitMedia;
+ const container=$(isOrigin?'originOptions':'visitMediaOptions');
+ const label=$(isOrigin?'originSummary':'visitMediaSummary');
+ container.replaceChildren();
+ if(!values.length){container.append(txt('p','Sem opções disponíveis na coleta.','hint'));label.textContent=isOrigin?'Origens indisponíveis':'Mídias indisponíveis';return;}
+ for(const value of values){
+  const item=txt('label','','multi-check');const check=document.createElement('input');
+  check.type='checkbox';check.value=value;check.checked=selected.has(value);
+  const span=txt('span',value);item.append(check,span);container.append(item);
+  check.addEventListener('change',()=>{
+   if(check.checked)selected.add(value);else selected.delete(value);
+   multiLabel(kind);render();
+  });
+ }
+ multiLabel(kind);
+}
+function multiLabel(kind){
+ const selected=kind==='origin'?state.selectedOrigins:state.selectedVisitMedia;
+ const el=$(kind==='origin'?'originSummary':'visitMediaSummary');
+ el.textContent=selected.size?selected.size+' selecionada(s)':'Todas as '+(kind==='origin'?'origens':'mídias');
+}
+function selectedOnlyFromFull(){return state.selectedOrigins.size>0||state.selectedVisitMedia.size>0;}
+
 function selected(f){
  if(!dateValid(f.since)||!dateValid(f.until)||f.since>f.until)return [];
  return state.source.prospects.flatMap((g,index)=>{
   const project=projectKey(g.project);
   if(f.project!=='all'&&project!==f.project)return [];
-  if(f.origin==='whatsapp'&&!g.whatsapp_acquisition)return [];
-  if(f.origin==='other'&&g.whatsapp_acquisition)return [];
   const entries=g.entries.filter(e=>e.date>=f.since&&e.date<=f.until).sort((a,b)=>a.date.localeCompare(b.date));
   if(!entries.length)return [];
   const first=entries[0];
@@ -167,39 +191,45 @@ function insights(rows,c){
  host.append(txt('p','Sem dados de SDR, horários de primeira resposta ou últimos contatos: ranking de produtividade e alertas de SLA indisponíveis.'));
  host.append(txt('p','As contagens representam registros únicos por empreendimento na fonte anonimizada. Não comprovam unicidade de uma pessoa em empreendimentos distintos.'));
 }
+function filteredFullCells(){
+ const source=state.allHistory;if(!source||!source.validated)return [];
+ const f=filters();
+ return source.by_registration_project_origin_status.filter(r=>
+  r.date>=f.since&&r.date<=f.until&&
+  (f.project==='all'||projectKey(r.project)===f.project)&&
+  (!f.origins.size||f.origins.has(r.origin||'NÃO INFORMADA'))&&
+  (!f.visitMedia.size||f.visitMedia.has(r.visit_media||'NÃO DISPONÍVEL NA API')));
+}
 function renderAllHistory(){
  const host=$('allKpis'),note=$('allSourceNote');
  if(!host||!note)return;
  host.replaceChildren();
  const source=state.allHistory;
  if(!source||!source.validated){
-  note.textContent='A primeira coleta histórica completa ainda não foi publicada ou não passou na validação. Os indicadores abaixo não serão substituídos pelos dados parciais do Marketing.';
+  note.textContent='A base integral com origem e mídia de visita ainda não está validada. A coleta será necessária para listar todas as opções reais. Não serão usados canais inventados.';
   clear('allProjects');clear('allOrigins');return;
  }
- const f=filters();
- // Sem dimensões que não foram efetivamente coletadas neste relatório.
- const cells=source.by_registration_project_origin_status.filter(r=>
-  r.date>=f.since&&r.date<=f.until&&
-  (f.project==='all'||projectKey(r.project)===f.project)&&
-  (f.origin==='all'||(f.origin==='whatsapp'
-   ?(/whatsapp/i.test(r.origin)&&/facebook/i.test(r.origin))
-   :!(/whatsapp/i.test(r.origin)&&/facebook/i.test(r.origin)))));
+ const cells=filteredFullCells();
  const count=cells.reduce((sum,r)=>sum+r.count,0);
- const projectCounts=new Map(),originCounts=new Map();
+ const projectCounts=new Map(),originCounts=new Map(),mediaCounts=new Map();
  for(const row of cells){
   const project=projectTitle(projectKey(row.project));
   projectCounts.set(project,(projectCounts.get(project)||0)+row.count);
   const origin=row.origin||'NÃO INFORMADA';
   originCounts.set(origin,(originCounts.get(origin)||0)+row.count);
+  const media=row.visit_media||'NÃO DISPONÍVEL NA API';
+  mediaCounts.set(media,(mediaCounts.get(media)||0)+row.count);
  }
- putKpi(host,'Leads únicos no período',fmt(count),'Base CV CRM completa; cadastro original');
- putKpi(host,'Todos os leads identificados',fmt(source.unique_leads),'Todas as datas e origens acessíveis');
- putKpi(host,'Primeiro cadastro CV',source.earliest_cadastro,'Primeira data confirmada pela API');
- putKpi(host,'Sem empreendimento',fmt(projectCounts.get('SEM EMPREENDIMENTO')||0),'Não excluídos da base');
- note.textContent='Coleta integral CV CRM · '+fmt(source.pages_scanned)+' páginas verificadas · '+
-  fmt(source.snapshots_scanned)+' snapshots processados · referência '+source.as_of+
-  '. Período e empreendimento filtram estes indicadores. A etapa detalhada requer outra fonte; não filtra estes totais.';
- const sorted=(map)=>[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15)
+ putKpi(host,'Leads únicos filtrados',fmt(count),'Cadastro original; todas as origens');
+ putKpi(host,'Empreendimentos filtrados',fmt(projectCounts.size),'Inclui SEM EMPREENDIMENTO');
+ putKpi(host,'Origens no recorte',fmt(originCounts.size),'Seleção múltipla aplicada');
+ putKpi(host,'Sem empreendimento',fmt(projectCounts.get('SEM EMPREENDIMENTO')||0),'Dentro dos filtros selecionados');
+ const unavailable=mediaCounts.get('NÃO DISPONÍVEL NA API')||0;
+ note.textContent='Base integral CV CRM · '+fmt(source.pages_scanned)+' páginas · '+
+  fmt(source.unique_leads)+' IDs únicos totais · primeiro cadastro '+source.earliest_cadastro+
+  ' · referência '+source.as_of+'. Filtros de origem e mídia de visita aplicados somente a esta fonte integral.'+
+  (unavailable?' Mídia de visita não exposta pela API em '+fmt(unavailable)+' leads deste recorte.':'');
+ const sorted=map=>[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,15)
   .map(([label,value])=>({label,value}));
  bars($('allProjects'),sorted(projectCounts));bars($('allOrigins'),sorted(originCounts));
 }
@@ -208,8 +238,9 @@ async function loadAllHistory(){
   const response=await fetch('data/leads-all-summary.json?v=full-history-v1',{cache:'no-store'});
   if(!response.ok)throw new Error('Ainda não publicado');
   const data=await response.json();
-  if(data?.schema_version!==1||data.validated!==true||
+  if(data?.schema_version!==2||data.validated!==true||
     data.scope!=='all_accessible_leads'||!Array.isArray(data.by_registration_project_origin_status)||
+    data.by_registration_project_origin_status.some(r=>typeof r.origin!=='string'||typeof r.visit_media!=='string')||
     data.by_registration_project_origin_status.reduce((n,r)=>n+Number(r.count||0),0)!==data.unique_leads)
     throw new Error('Resumo integral sem validação');
   state.allHistory=data;
@@ -219,16 +250,27 @@ async function loadAllHistory(){
    if(!existing.has(key)){makeOption(projectSelect,key,projectTitle(key));existing.add(key);}
   }
   projectSelect.value=existing.has(selected)?selected:'all';
+  const origins=[...new Set(data.by_registration_project_origin_status.map(r=>r.origin||'NÃO INFORMADA'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const media=[...new Set(data.by_registration_project_origin_status.map(r=>r.visit_media||'NÃO DISPONÍVEL NA API'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  multiOptions('origin',origins);multiOptions('visitMedia',media);
   $('since').min=data.earliest_cadastro;$('until').min=data.earliest_cadastro;
   $('since').max=data.as_of;$('until').max=data.as_of;
   // Manter período selecionado, disponibilizando todo o histórico anterior.
-  renderAllHistory();
+  render();
  }catch(e){state.allHistory=null;renderAllHistory();}
 }
 function render(){
  if(!state.source)return;
  const f=filters();
  renderAllHistory();
+ const partialOnly=selectedOnlyFromFull()||f.since<state.source.period.since||f.until>state.source.period.until;
+ for(const id of ['visao','funil','origens','evolucao']){
+  const element=$(id);if(element)element.hidden=partialOnly;
+ }
+ if(partialOnly){
+  $('scopeNote').textContent='Filtros e/ou período cobertos apenas pela base integral. A coorte de Marketing foi ocultada para não misturar populações ou ignorar origem e mídia de visita.';
+  return;
+ }
  if(!dateValid(f.since)||!dateValid(f.until)||f.since>f.until||f.since<state.source.period.since||f.until>state.source.period.until){
   $('scopeNote').textContent='Período inválido ou fora da cobertura CV CRM: '+state.source.period.since+' a '+state.source.period.until;
   return;
@@ -259,10 +301,16 @@ async function init(){
   for(const id of ['since','until']){$(id).min=payload.period.since;$(id).max=payload.period.until;}
   for(const key of projectKeys())makeOption($('project'),key,projectTitle(key));
   $('sourceState').textContent='CV CRM · atualizado em '+payload.as_of;
-  for(const id of ['since','until','project','origin','stage'])$(id).addEventListener('change',render);
+  for(const id of ['since','until','project','stage'])$(id).addEventListener('change',render);
   $('reset').addEventListener('click',()=>{
    $('since').value=payload.period.since;$('until').value=payload.period.until;
-   $('project').value='all';$('origin').value='all';$('stage').value='all';render();
+   $('project').value='all';$('stage').value='all';state.selectedOrigins.clear();state.selectedVisitMedia.clear();
+   for(const kind of ['origin','visitMedia']){
+    const container=$(kind==='origin'?'originOptions':'visitMediaOptions');
+    container.querySelectorAll('input[type=checkbox]').forEach(el=>{el.checked=false;});
+    multiLabel(kind);
+   }
+   render();
   });
   document.querySelectorAll('[data-group]').forEach(button=>{
    button.addEventListener('click',()=>{
