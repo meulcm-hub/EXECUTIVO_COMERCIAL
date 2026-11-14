@@ -26,6 +26,22 @@ class LeadsAllHistoryTests(unittest.TestCase):
         self.assertNotIn("Maria Carolina",str(out))
         self.assertNotIn("31999999999",str(out))
         self.assertNotIn('"idlead"',str(out))
+    def test_midia_visita_is_independent_and_can_be_missing(self):
+        with_visit=row(1,"2021-05-12",origin="Facebook")
+        with_visit["midia_visita"]="Indicação corretor"
+        with_visit["midia_original"]="WhatsApp Facebook"
+        without_visit=row(2,"2021-05-13",origin="Google")
+        without_visit["midia_original"]="Google Search"
+        result=m.collect(lambda page:([with_visit,without_visit],1,{}))
+        self.assertEqual(result["schema_version"],2)
+        lookup={x["origin"]:x["visit_media"] for x in result["by_registration_project_origin_status"]}
+        self.assertEqual(lookup["Facebook"],"Indicação corretor")
+        self.assertEqual(lookup["Google"],"NÃO DISPONÍVEL NA API")
+        self.assertNotIn("WhatsApp Facebook",str(result))
+        self.assertNotIn("Google Search",str(result))
+    def test_empty_visit_media_uses_nao_informada(self):
+        self.assertEqual(m.visit_media({"midia_visita":""}),"NÃO INFORMADA")
+        self.assertEqual(m.visit_media({"midia_original":"Instagram"}),"NÃO DISPONÍVEL NA API")
     def test_missing_id_or_original_date_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError,"IDs/datas"):
             m.collect(lambda page:([row(1,"2026-01-01"),{"idlead":2,"referencia_data":"2026-11-01"}],1,{}))
