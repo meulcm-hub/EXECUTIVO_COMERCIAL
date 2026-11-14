@@ -30,6 +30,16 @@ test('filtros reais de origem e situação com descartados fora das seis etapas'
  assert.equal(run({stage:'FORA DO FUNIL'}).reduce((n,r)=>n+r.count,0),5);
  assert.equal(run({stage:'PROSPECÇÃO'}).reduce((n,r)=>n+r.count,0),3);
 });
+test('seleção de várias mídias não duplica o mesmo lead',()=>{
+ const one={...rows[0],lead_media:'Facebook Ads',lead_medias:['Facebook Ads','WhatsApp Facebook']};
+ const list=[one,rows[1]];
+ const selected=fn({allHistory:{validated:true,by_registration_project_origin_status:list}},
+  ()=>({since:'2018-11-27',until:'2026-11-14',project:'all',stage:'all',
+       origins:new Set(),visitMedia:new Set(['Facebook Ads','WhatsApp Facebook'])}),
+  context,'sem empreendimento')();
+ assert.equal(selected.length,1);
+ assert.equal(selected[0].count,3);
+});
 test('frontend suporta schema v1 histórico e trata mídia ausente como não disponível',()=>{
  assert.match(js,/!\[1,2,3\]\.includes\(data\?\.schema_version\)/);
  assert.match(js,/lead_media:'NÃO DISPONÍVEL NA COLETA ANTERIOR'/);
