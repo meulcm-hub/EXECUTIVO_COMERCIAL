@@ -49,7 +49,8 @@ jobs:
           assert x['commercial_details']['commercial_unique']>0
           assert x['commercial_matched']>0
           for r in x['by_registration_project_origin_status']:
-              assert set(r)=={'date','project','origin','origin_name','lead_media','visit_media','status','count'}
+              assert set(r)=={'date','project','origin','origin_name','lead_media','lead_medias','visit_media','status','count'}
+              assert isinstance(r['lead_medias'],list) and len(r['lead_medias'])>0
           print('Base completa validada:',x['unique_leads'],'leads, primeiro cadastro:',x['earliest_cadastro'])
           PY
       - name: Publicar exclusivamente agregados (sem dados pessoais)
