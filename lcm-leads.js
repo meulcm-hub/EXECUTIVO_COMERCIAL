@@ -51,7 +51,7 @@ function multiOptions(kind,values){
  const container=$(isOrigin?'originOptions':'visitMediaOptions');
  const label=$(isOrigin?'originSummary':'visitMediaSummary');
  container.replaceChildren();
- if(!values.length){container.append(txt('p','Sem opções disponíveis na coleta.','hint'));label.textContent=isOrigin?'Origens indisponíveis':'Mídias indisponíveis';return;}
+ if(!values.length){container.append(txt('p','A coleta integral ainda não está disponível. Os indicadores históricos continuam visíveis abaixo.','hint'));label.textContent=isOrigin?'Origens aguardando API':'Mídias aguardando API';return;}
  for(const value of values){
   const item=txt('label','','multi-check');const check=document.createElement('input');
   check.type='checkbox';check.value=value;check.checked=selected.has(value);
@@ -257,28 +257,43 @@ async function loadAllHistory(){
   $('since').max=data.as_of;$('until').max=data.as_of;
   // Manter período selecionado, disponibilizando todo o histórico anterior.
   render();
- }catch(e){state.allHistory=null;renderAllHistory();}
+ }catch(e){
+  state.allHistory=null;
+  state.selectedOrigins.clear();state.selectedVisitMedia.clear();
+  multiOptions('origin',[]);multiOptions('visitMedia',[]);
+  $('originDetails').open=false;$('visitMediaDetails').open=false;
+  render();
+ }
 }
 function render(){
  if(!state.source)return;
- const f=filters();
+ const requested=filters();
  renderAllHistory();
- const partialOnly=selectedOnlyFromFull()||f.since<state.source.period.since||f.until>state.source.period.until;
+ const partialOnly=Boolean(state.allHistory)&&selectedOnlyFromFull();
  for(const id of ['visao','funil','origens','evolucao']){
   const element=$(id);if(element)element.hidden=partialOnly;
  }
  if(partialOnly){
-  $('scopeNote').textContent='Filtros e/ou período cobertos apenas pela base integral. A coorte de Marketing foi ocultada para não misturar populações ou ignorar origem e mídia de visita.';
+  $('scopeNote').textContent='A seleção de origem e/ou mídia de visita está aplicada aos indicadores da base integral acima. Os gráficos antigos, que não contêm essas dimensões, foram ocultados para evitar contagem incorreta.';
   return;
  }
- if(!dateValid(f.since)||!dateValid(f.until)||f.since>f.until||f.since<state.source.period.since||f.until>state.source.period.until){
-  $('scopeNote').textContent='Período inválido ou fora da cobertura CV CRM: '+state.source.period.since+' a '+state.source.period.until;
+ if(!dateValid(requested.since)||!dateValid(requested.until)||requested.since>requested.until){
+  $('scopeNote').textContent='Selecione uma data inicial anterior ou igual à data final.';
   return;
  }
- const rows=selected(f),c=counts(rows);state.groups=rows;
- $('scopeNote').textContent='Fonte CV CRM validada até '+state.source.as_of+' · '+fmt(c.total)+' grupos de lead/empreendimento na seleção. Período de entrada: '+f.since+' a '+f.until+'. Atenção: esta base reflete a coorte histórica de captação do funil (escopo anterior Facebook/Google), não os 100% dos leads do CV CRM. Não contém interações, SDRs nem identificação pessoal.';
- drawKpis(f,rows,c);drawOpportunityFunnels(rows,c);drawOrigins(rows,c);drawTrend(rows);drawProjects(rows);insights(rows,c);
+ const since=state.source.period.since,until=state.source.period.until;
+ const overlap={...requested,since:requested.since<since?since:requested.since,
+   until:requested.until>until?until:requested.until};
+ const isSubset=requested.since>=since&&requested.until<=until;
+ const rows=overlap.since<=overlap.until?selected(overlap):[];
+ const c=counts(rows);state.groups=rows;
+ $('scopeNote').textContent=isSubset
+  ?'Indicadores históricos do funil CV CRM · '+fmt(c.total)+' grupos de lead/empreendimento · '+overlap.since+' a '+overlap.until+'. Fonte parcial de Marketing: não representa todos os leads.'
+  :'Visão parcial restaurada: os gráficos abaixo mostram somente a cobertura histórica disponível ('+since+' a '+until+'). A seleção '+requested.since+' a '+requested.until+' inclui datas sem cobertura neste funil; esses registros não foram contabilizados aqui. Os totais integrais são exibidos separadamente acima quando a coleta estiver validada.';
+ drawKpis(overlap,rows,c);drawOpportunityFunnels(rows,c);drawOrigins(rows,c);
+ drawTrend(rows);drawProjects(rows);insights(rows,c);
 }
+
 function csv(){
  if(!state.source)return;
  const f=filters(),rows=selected(f),byProject=projectKeys().map(id=>{
