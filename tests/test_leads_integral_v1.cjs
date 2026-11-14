@@ -31,8 +31,8 @@ test('filtros reais de origem e situação com descartados fora das seis etapas'
  assert.equal(run({stage:'PROSPECÇÃO'}).reduce((n,r)=>n+r.count,0),3);
 });
 test('frontend suporta schema v1 histórico e trata mídia ausente como não disponível',()=>{
- assert.match(js,/!\[1,2\]\.includes\(data\?\.schema_version\)/);
- assert.match(js,/visit_media:'NÃO DISPONÍVEL NA API'/);
+ assert.match(js,/!\[1,2,3\]\.includes\(data\?\.schema_version\)/);
+ assert.match(js,/lead_media:'NÃO DISPONÍVEL NA COLETA ANTERIOR'/);
  assert.match(js,/\$\('since'\)\.value=data\.earliest_cadastro/);
- assert.equal(run({visitMedia:new Set(['NÃO DISPONÍVEL NA API'])}).length,3);
+ assert.equal(run({visitMedia:new Set(['NÃO DISPONÍVEL NA API'])}).length,0);
 });
