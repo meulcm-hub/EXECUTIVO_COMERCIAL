@@ -24,17 +24,23 @@ def extract(value):
             if value.get(k):return extract(value[k])
     return ""
 
-def media(row):
-    # midia_principal e midias são explicitamente retornados pelo GET comercial.
+def medias(row):
+    """Todas as mídias vinculadas ao lead; duplicidades removidas."""
+    values=[]
     for k in ("midia_principal","midia_original","midia_ultimo"):
         v=extract(row.get(k))
-        if v:return v
-    medias=row.get("midias")
-    if isinstance(medias,list):
-        names=[extract(m) for m in medias]
-        names=[x for x in names if x]
-        if names:return " / ".join(dict.fromkeys(names))
-    return "NÃO INFORMADA"
+        if v:values.append(v)
+    media_list=row.get("midias")
+    if isinstance(media_list,list):
+        values.extend(extract(m) for m in media_list)
+    unique=list(dict.fromkeys(v for v in values if v))
+    return unique or ["NÃO INFORMADA"]
+
+def media(row):
+    """Mídia principal preferida para o rótulo; mídias adicionais ficam disponíveis."""
+    main=extract(row.get("midia_principal"))
+    return main or medias(row)[0]
+
 
 def origin(row):
     # API comercial apresenta origem por nome (ex.: Facebook).
@@ -88,13 +94,15 @@ def collect(fetch):
             if isinstance(raw,bool) or not str(raw or "").isdigit():
                 raise RuntimeError("Lead comercial sem ID confiável")
             key=str(raw)
-            value={"origin_name":origin(row),"lead_media":media(row)}
+            value={"origin_name":origin(row),"lead_media":media(row),"lead_medias":medias(row)}
             if key in ids and ids[key]!=value:
                 raise RuntimeError("IDs repetidos conflitantes no endpoint comercial")
             ids[key]=value
         pages+=1
         offset+=len(rows)
         if offset>=total:break
+    if len(ids)!=(total_expected or 0):
+        raise RuntimeError("Paginação comercial incompleta ou IDs duplicados")
     return ids,{"commercial_total":total_expected or 0,
                 "commercial_pages":pages,
                 "commercial_unique":len(ids)}
