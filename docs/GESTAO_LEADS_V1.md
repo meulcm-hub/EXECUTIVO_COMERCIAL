@@ -86,3 +86,17 @@ A base histórica completa não substitui o histórico de movimentações e não
 - O arquivo agregado passou para `schema_version=2` com a dimensão `visit_media`. Até nova coleta integral bem-sucedida, o filtro não inventa opções nem exibe resultados falsos.
 - Quando os filtros de origem/mídia estão ativos, os painéis da coorte parcial de Marketing são ocultados, pois não possuem essas dimensões e não podem ser recalculados com fidelidade. Marketing permanece inalterado.
 - A mídia de visita exige confirmação do campo real na resposta da API. O coletor não afirma cobertura sem evidência; caso não exista, o valor `NÃO DISPONÍVEL NA API` explicita a limitação.
+
+## Correção da base integral e do funil — 14/11/2026
+
+A coleta **já estava concluída**, mas `data/leads-all-summary.json` foi publicada com `schema_version=1` e a tela anterior só aceitava `schema_version=2`. Isso impedia carregamento das 78.644 entradas únicas já presentes no GitHub e causava zeros em empreendimentos fora da coorte parcial.
+
+Auditoria da fonte integral no GitHub: **78.644 IDs únicos**, **158 páginas**, primeiro cadastro **27/11/2018**, referência **14/11/2026**. Entre eles: Green Plaza **3.883**, Village Lagoas **15.834**, Jacarandá **3.885**, sem empreendimento **140**, entre 15 categorias de projeto e 31 códigos distintos de origem.
+
+A Gestão de Leads aceita tanto v1 quanto v2, sem inventar `visit_media`: no contrato v1 aparece como **NÃO DISPONÍVEL NA API** e o filtro correspondente fica desabilitado. A partir do resumo integral, o seletor de empreendimentos apresenta somente categorias efetivamente encontradas, tratando acentos e a grafia `FLORRES` do Ipê.
+
+A data inicial agora é obtida diretamente de `earliest_cadastro`, sem limitar o funil a 2026. O funil de **situação atual** (6 grupos definidos pela LCM) considera os leads cadastrados dentro do intervalo escolhido; as situações correspondem ao último snapshot do CV, e NÃO à situação que cada lead possuía naquela data. Na base integral atual, **66.947** leads estão em `DESCARTADO`: são preservados nos totais e classificados como **fora do funil**, não contados artificialmente em Prospecção/Atendimento. A visualização acumulada detalhada (CAD/C e CAD/A) ainda exige eventos históricos explícitos; o resumo por situação não permite inferir passagens.
+
+A exportação agora usa as células agregadas da fonte integral quando disponível, sem nomes, telefones nem IDs individuais. Teste de regressão `tests/test_leads_integral_v1.cjs`.
+
+**Cobertura:** o total de 78.644 é o que a API `/api/v1/cvdw/leads` retornou com as credenciais e paginação disponíveis em 14/11/2026. Não significa garantia de acesso a registros ocultos/inativos fora da permissão da conta nem de integralidade de eventos de oportunidade.
