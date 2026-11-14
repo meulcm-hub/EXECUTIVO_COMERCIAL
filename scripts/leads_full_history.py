@@ -55,6 +55,13 @@ def origin(row):
         if v:return v
     return "NÃO INFORMADA"
 
+def visit_media(row):
+    """Somente campo explicitamente relacionado à visita; não usar mídia de cadastro."""
+    for k in ("midia_visita","midia_visita_nome","midia_da_visita","midiaVisita","midia_visita_original"):
+        if k in row:
+            return text_value(row.get(k)) or "NÃO INFORMADA"
+    return "NÃO DISPONÍVEL NA API"
+
 def status(row):
     for k in ("situacao","situacao_lead","status"):
         v=text_value(row.get(k))
@@ -131,7 +138,7 @@ def collect(fetch,as_of=None):
                 invalid_date+=1;continue
             old=leaders.get(key)
             snapshot={"date":day,"reference":ref(item),"project":project(item),
-                       "origin":origin(item),"status":status(item)}
+                       "origin":origin(item),"visit_media":visit_media(item),"status":status(item)}
             if old is None or snapshot["reference"]>old["reference"]:
                 leaders[key]=snapshot
             elif snapshot["reference"]==old["reference"] and snapshot!=old:
@@ -145,10 +152,10 @@ def collect(fetch,as_of=None):
     earliest=min(x["date"] for x in leaders.values())
     latest=max(x["date"] for x in leaders.values())
     for item in leaders.values():
-        cube[(item["date"],item["project"],item["origin"],item["status"])]+=1
-    cells=[{"date":d,"project":p,"origin":o,"status":s,"count":n}
-           for (d,p,o,s),n in sorted(cube.items())]
-    result={"schema_version":1,"validated":True,
+        cube[(item["date"],item["project"],item["origin"],item["visit_media"],item["status"])]+=1
+    cells=[{"date":d,"project":p,"origin":o,"visit_media":m,"status":s,"count":n}
+           for (d,p,o,m,s),n in sorted(cube.items())]
+    result={"schema_version":2,"validated":True,
       "source":"CV CRM CVDW leads /api/v1/cvdw/leads (todos os canais)",
       "scope":"all_accessible_leads","as_of":as_of.isoformat(),
       "earliest_cadastro":earliest,"latest_cadastro":latest,
