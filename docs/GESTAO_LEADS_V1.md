@@ -100,3 +100,11 @@ A data inicial agora é obtida diretamente de `earliest_cadastro`, sem limitar o
 A exportação agora usa as células agregadas da fonte integral quando disponível, sem nomes, telefones nem IDs individuais. Teste de regressão `tests/test_leads_integral_v1.cjs`.
 
 **Cobertura:** o total de 78.644 é o que a API `/api/v1/cvdw/leads` retornou com as credenciais e paginação disponíveis em 14/11/2026. Não significa garantia de acesso a registros ocultos/inativos fora da permissão da conta nem de integralidade de eventos de oportunidade.
+
+## Origens por nome e mídia do lead — 14/11/2026
+
+No CV CRM, os códigos de origem devem ser apresentados ao gestor com sua descrição. A base CVDW documenta `origem_nome`, `midia_original` e `midia_ultimo`; a taxonomia oficial de origens (por exemplo, `FB` = Facebook, `GE` = Painel Gestor, `CO` = Painel Corretor) é usada apenas como fallback para o JSON v1 previamente publicado. Siglas não catalogadas continuam explicitamente não identificadas e nunca recebem nomes inferidos.
+
+Coletor `scripts/leads_full_history.py` passou a gerar **schema_version=3**, com `origin` (código para chave de filtro), `origin_name` (descrição oficial quando disponível), `lead_media` (prioridade `midia_original`, depois `midia_nome`, `midia`, `midia_ultimo`) e `visit_media` preservado separadamente. **Mídia original do lead não é prova de visita**; por isso a interface apresenta **Mídia do Lead (CV CRM)**.
+
+Antes da primeira coleta v3, a interface mostra os nomes de origem pelo mapeamento oficial, mas o filtro de mídia permanece aguardando recaptura e não inventa opções. A coleta v3 atualiza o mesmo resumo agregado, não publica nomes de clientes ou telefones, e permanece sujeita às credenciais CV CRM e à conclusão do workflow.
