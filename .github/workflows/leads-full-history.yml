@@ -7,7 +7,9 @@ on:
     branches: [main]
     paths:
       - scripts/leads_full_history.py
+      - scripts/leads_commercial_dimensions.py
       - tests/test_leads_full_history.py
+      - tests/test_leads_commercial_dimensions.py
       - .github/workflows/leads-full-history.yml
 permissions:
   contents: write
@@ -24,7 +26,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verificar paginação, unicidade e descarte de PII
-        run: python -m unittest discover -s tests -p 'test_leads_full_history.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_leads_full_history.py' -v
+          python -m unittest discover -s tests -p 'test_leads_commercial_dimensions.py' -v
       - name: Coletar histórico completo sem filtrar origem, situação ou empreendimento
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
@@ -41,6 +45,9 @@ jobs:
           assert x['schema_version']==3 and x['validated'] and x['scope']=='all_accessible_leads'
           assert sum(v['count'] for v in x['by_registration_project_origin_status'])==x['unique_leads']
           assert x['unique_leads']>0 and x['pages_scanned']>0
+          assert x['commercial_details']['commercial_total']>0
+          assert x['commercial_details']['commercial_unique']>0
+          assert x['commercial_matched']>0
           for r in x['by_registration_project_origin_status']:
               assert set(r)=={'date','project','origin','origin_name','lead_media','visit_media','status','count'}
           print('Base completa validada:',x['unique_leads'],'leads, primeiro cadastro:',x['earliest_cadastro'])
