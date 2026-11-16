@@ -1,3 +1,4 @@
+# Atualização solicitada em 2026-11-16: executar coletor existente sem mudar regras de negócio.
 name: LCM - Gestao de Leads - Base Completa CV CRM
 on:
   workflow_dispatch:
