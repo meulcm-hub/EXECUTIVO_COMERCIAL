@@ -1,0 +1,60 @@
+name: LCM - Validar fontes operacionais CV CRM
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/cv-operations-validation.yml]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Consultar amostras sem publicar registros de clientes
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error,re
+          base=os.environ['CVCRM_DOMINIO'].strip().rstrip('/')
+          u=urllib.parse.urlsplit(base)
+          assert u.scheme=='https' and u.hostname=='lcm.cvcrm.com.br' and not u.username and not u.password and u.path in ('','/') and not u.query and not u.fragment
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args): return None
+          opener=urllib.request.build_opener(NoRedirect())
+          routes=['/api/v1/cvdw/leads/interacoes','/api/v1/cvdw/leads/tarefas','/api/v1/cvdw/leads/visitas','/api/v1/cvdw/leads/historico/situacoes','/api/v1/comercial/leads/interacoes','/api/v1/comercial/leads/tarefas']
+          failed=False
+          for path in routes:
+              params={'pagina':1,'registros_por_pagina':30} if not path.endswith('/comercial/leads/tarefas') else {'offset':0,'limit':30}
+              req=urllib.request.Request(base+path+'?'+urllib.parse.urlencode(params),headers={'email':os.environ['CVCRM_EMAIL'].strip(),'token':os.environ['CVCRM_TOKEN'].strip(),'Accept':'application/json'})
+              result={'route':path}
+              try:
+                  with opener.open(req,timeout=60) as response:
+                      result['http']=response.status
+                      payload=json.load(response) if response.status!=204 else {}
+                  def keys(v):return sorted(k for k in v if isinstance(k,str) and re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,70}',k))
+                  result['envelope_fields']=keys(payload) if isinstance(payload,dict) else []
+                  records=[]
+                  if isinstance(payload,list):records=payload
+                  elif isinstance(payload,dict):
+                      for key in ('dados','data','interacoes','tarefas','visitas','conteudo'):
+                          value=payload.get(key)
+                          if isinstance(value,list):records=value;break
+                          if isinstance(value,dict):records=[v for v in value.values() if isinstance(v,dict)];break
+                      if not records:records=[v for k,v in payload.items() if str(k).isdigit() and isinstance(v,dict)]
+                      for key in ('total_de_registros','total_de_paginas','total','pagina','registros'):
+                          if isinstance(payload.get(key),int):result[key]=payload[key]
+                  result['sample_count']=len(records)
+                  result['record_fields']=sorted(set(k for r in records if isinstance(r,dict) for k in keys(r)))
+                  result['nested_fields']={k:sorted(set(n for r in records if isinstance(r,dict) and isinstance(r.get(k),dict) for n in keys(r[k]))) for k in result['record_fields'] if any(isinstance(r,dict) and isinstance(r.get(k),dict) for r in records)}
+                  # Only finite documented codes. Never print text, dates, IDs or URLs.
+                  allowed={'tipo':set('ALE SWVT'.replace(' ','')),'tipo_tarefa':set('ALE SWVT'.replace(' ','')),'situacao':{'P','A','C','CA'},'ativo':{'S','N'}}
+                  result['documented_codes']={k:sorted(set(r[k] for r in records if isinstance(r,dict) and isinstance(r.get(k),str) and r[k] in values)) for k,values in allowed.items() if any(isinstance(r,dict) and k in r for r in records)}
+              except urllib.error.HTTPError as exc:result['http']=exc.code;failed=True
+              except Exception:result['error']='Falha de transporte ou formato; detalhes omitidos';failed=True
+              print(json.dumps(result,ensure_ascii=False),flush=True)
+          if failed:raise SystemExit('Uma ou mais fontes exigem análise; nenhuma base foi alterada.')
+          PY
