@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-17T13:41:27.072861+00:00",
+  "generated_at_utc": "2026-11-17T18:24:48.293697+00:00",
   "period": {
     "since": "2026-10-19",
     "until": "2026-11-17"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3300.83",
-      "impressions": 336249,
-      "clicks": 3224
+      "spend": "3346.15",
+      "impressions": 339146,
+      "clicks": 3259
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4176.50",
-      "impressions": 523052,
-      "clicks": 3343
+      "spend": "4213.19",
+      "impressions": 527312,
+      "clicks": 3366
     },
     {
       "account_id": "272429171879216",
@@ -68,9 +68,9 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "3006.81",
-      "impressions": 274249,
-      "clicks": 1939
+      "spend": "3039.89",
+      "impressions": 276453,
+      "clicks": 1965
     }
   ],
   "cv_by_project_normalized": {
@@ -93,13 +93,13 @@
       "outra_ou_nao_informada": 97
     },
     "residencial jatoba": {
-      "leads_period": 105,
+      "leads_period": 106,
       "meta_declarada": 94,
       "meta_whatsapp_cv": 14,
       "meta_busca_compartilhada_cv": 29,
       "meta_outros_cv": 51,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 10
+      "outra_ou_nao_informada": 11
     },
     "residencial flores do cerrado jacaranda": {
       "leads_period": 508,
@@ -120,11 +120,11 @@
       "outra_ou_nao_informada": 35
     },
     "spe arraial costa verde club": {
-      "leads_period": 49,
-      "meta_declarada": 49,
+      "leads_period": 50,
+      "meta_declarada": 50,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 48,
+      "meta_outros_cv": 49,
       "google_declarada": 0,
       "outra_ou_nao_informada": 0
     }
