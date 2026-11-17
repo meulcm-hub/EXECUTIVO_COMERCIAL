@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-17T13:25:06.065624+00:00",
+  "generated_at_utc": "2026-11-17T13:41:04.484883+00:00",
   "period": {
     "since": "2026-11-11",
     "until": "2026-11-17"
@@ -28,16 +28,16 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "887.12",
-      "impressions": 74846,
-      "clicks": 874
+      "spend": "889.08",
+      "impressions": 74972,
+      "clicks": 875
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "914.49",
-      "impressions": 114926,
+      "spend": "916.47",
+      "impressions": 115102,
       "clicks": 730
     },
     {
@@ -68,9 +68,9 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "823.66",
-      "impressions": 60058,
-      "clicks": 490
+      "spend": "825.77",
+      "impressions": 60163,
+      "clicks": 494
     }
   ],
   "cv_by_project_normalized": {
