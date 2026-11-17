@@ -724,6 +724,64 @@ def marketing_privado(_user: str = Depends(check_dashboard_login)):
                         headers={"Cache-Control": "no-store"})
 
 
+# Carteira operacional: dados privados apenas em memória e sob autenticação.
+_LEADS_LOCK = __import__("threading").Lock()
+_LEADS_POOL = ThreadPoolExecutor(max_workers=1)
+_LEADS_FUTURE = None
+_LEADS_SNAPSHOT = None
+_LEADS_TRY = 0.0
+_LEADS_ERROR = False
+
+
+def _collect_leads_operations():
+    from leads_operations import collect
+    _base, email, token = api_config()
+    rows = collect(lambda offset: cvcrm_get(
+        "/api/v1/comercial/leads", email, token,
+        {"limit": 200, "offset": offset}, timeout=60),
+        pause=lambda: time.sleep(0.35))
+    return {"validated": True, "leads": rows,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "capabilities": {"read": True, "move": False,
+                             "contacts": False, "full_history": False}}
+
+
+@app.get("/api/leads/carteira")
+def leads_carteira(_user: str = Depends(check_dashboard_login)):
+    global _LEADS_FUTURE, _LEADS_SNAPSHOT, _LEADS_TRY, _LEADS_ERROR
+    # Validar configuração antes de abrir trabalho em segundo plano.
+    api_config()
+    with _LEADS_LOCK:
+        now = time.time()
+        if _LEADS_FUTURE is not None and _LEADS_FUTURE.done():
+            try:
+                _LEADS_SNAPSHOT = (now, _LEADS_FUTURE.result())
+                _LEADS_ERROR = False
+            except Exception:
+                _LEADS_ERROR = True
+            _LEADS_FUTURE = None
+        expired = _LEADS_SNAPSHOT is None or now - _LEADS_SNAPSHOT[0] > 1800
+        if expired and _LEADS_FUTURE is None and now - _LEADS_TRY > 300:
+            _LEADS_TRY = now
+            _LEADS_FUTURE = _LEADS_POOL.submit(_collect_leads_operations)
+        headers = {"Cache-Control": "private, no-store", "Vary": "Authorization"}
+        if _LEADS_SNAPSHOT is not None:
+            # Nunca apresentar uma fotografia antiga como sincronização atual.
+            payload = dict(_LEADS_SNAPSHOT[1], stale=expired, refreshing=_LEADS_FUTURE is not None)
+            return JSONResponse(payload, headers=headers)
+        if _LEADS_ERROR and _LEADS_FUTURE is None:
+            return JSONResponse({"status": "indisponivel", "message":
+                "Carteira não concluída. Os dados parciais não foram publicados."},
+                status_code=503, headers=headers)
+        return JSONResponse({"status": "sincronizando"}, status_code=202, headers=headers)
+
+
+@app.get("/leads_privado.html")
+def leads_private_page(_user: str = Depends(check_dashboard_login)):
+    return FileResponse(ROOT / "leads.html", media_type="text/html",
+                        headers={"Cache-Control": "private, no-store", "Vary": "Authorization"})
+
+
 @app.get("/{path:path}")
 def static_files(path: str):
     candidate = (ROOT / path).resolve()

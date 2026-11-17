@@ -2,7 +2,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const js=fs.readFileSync('lcm-leads.js','utf8');
+const js=fs.readFileSync('lcm-leads-audit.js','utf8');
 const stages=fs.readFileSync('lcm-leads-stage-config.js','utf8');
 const context={};vm.runInNewContext(stages,context);
 const part=(a,b)=>{const start=js.indexOf(a);const end=js.indexOf(b,start);assert(start>=0&&end>start);return js.slice(start,end);};
@@ -12,7 +12,7 @@ const fn=new Function('state','filters','window','NO_PROJECT',
  ';return filteredFullCells;');
 const rows=[
  {date:'2018-11-27',project:'RESIDENCIAL GREEN PLAZA',origin:'FB',visit_media:'NÃO DISPONÍVEL NA API',status:'PROSPECÇÃO',count:3},
- {date:'2019-02-12',project:'RESIDENCIAL FLORRES DO CERRADO IPÊ',origin:'GE',visit_media:'NÃO DISPONÍVEL NA API',status:'ATENDIMENTO',count:4},
+ {date:'2019-02-12',project:'RESIDENCIAL FLORRES DO CERRADO IPÊ',origin:'GE',visit_media:'NÃO DISPONÍVEL NA API',status:'CONTATO',count:4},
  {date:'2026-01-04',project:'RESIDENCIAL GREEN PLAZA',origin:'FB',visit_media:'NÃO DISPONÍVEL NA API',status:'DESCARTADO',count:5}
 ];
 function run(opts={}){

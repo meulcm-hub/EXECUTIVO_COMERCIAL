@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const code=fs.readFileSync('lcm-leads.js','utf8');
+const code=fs.readFileSync('lcm-leads-audit.js','utf8');
 const renderSource=code.slice(code.indexOf('function render(){'),code.indexOf('\nfunction csv(){'));
 test('período antes da coorte não oculta gráficos se base integral falhou',()=>{
  const state={source:{period:{since:'2026-01-01',until:'2026-11-14'}},allHistory:null,groups:[]};
@@ -17,5 +17,5 @@ test('período antes da coorte não oculta gráficos se base integral falhou',()
  assert.equal(elements.funil.hidden,false);
  assert.deepEqual(drawn,['kpi','funil']);
  assert.equal(selected[0].since,'2026-01-01');
- assert.match(message.textContent,/Visão parcial restaurada/);
+ assert.match(message.textContent,/Fonte PARCIAL de Marketing/);
 });
