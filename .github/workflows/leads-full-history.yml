@@ -11,6 +11,8 @@ on:
       - scripts/leads_full_history.py
       - scripts/leads_commercial_dimensions.py
       - scripts/leads_public_projection.py
+      - scripts/leads_operational_history.py
+      - tests/test_leads_operational_history.py
       - tests/test_leads_public_projection.py
       - tests/test_leads_full_history.py
       - tests/test_leads_commercial_dimensions.py
@@ -23,7 +25,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,6 +36,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_leads_full_history.py' -v
           python -m unittest discover -s tests -p 'test_leads_commercial_dimensions.py' -v
           python -m unittest discover -s tests -p 'test_leads_public_projection.py' -v
+          python -m unittest discover -s tests -p 'test_leads_operational_history.py' -v
       - name: Coletar histórico completo sem filtrar origem, situação ou empreendimento
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
@@ -59,14 +62,28 @@ jobs:
           import sys
           sys.path.insert(0,'scripts')
           from leads_public_projection import validate
+          from leads_operational_history import validate_event
           roster=json.loads(Path('data/leads-roster.json').read_text(encoding='utf-8'))
           assert validate(roster) and roster['total']==x['unique_leads']
+          assert roster['schema_version']==2
+          history=Path('data/leads-history')/roster['history_generation']
+          counts={}
+          for file in history.glob('*.json'):
+              shard=json.loads(file.read_text())
+              assert shard['generation']==roster['history_generation']
+              for key,events in shard['leads'].items():
+                  assert key.startswith(file.stem)
+                  for event in events:validate_event(event)
+                  counts[key]=len(events)
+          assert len(counts)==roster['total']
+          assert all(counts[r['history_key']]==r['history_count'] for r in roster['leads'])
           print('Base completa validada:',x['unique_leads'],'leads, primeiro cadastro:',x['earliest_cadastro'])
           PY
       - name: Publicar agregados e carteira com nomes reduzidos autorizada
         run: |
           cp data/leads-all-summary.json "$RUNNER_TEMP/leads-all-summary.json"
           cp data/leads-roster.json "$RUNNER_TEMP/leads-roster.json"
+          cp -r data/leads-history "$RUNNER_TEMP/leads-history"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in 1 2 3; do
@@ -74,7 +91,9 @@ jobs:
             git reset --hard origin/main
             cp "$RUNNER_TEMP/leads-all-summary.json" data/leads-all-summary.json
             cp "$RUNNER_TEMP/leads-roster.json" data/leads-roster.json
-            git add data/leads-all-summary.json data/leads-roster.json
+            rm -rf data/leads-history
+            cp -r "$RUNNER_TEMP/leads-history" data/leads-history
+            git add data/leads-all-summary.json data/leads-roster.json data/leads-history
             if git diff --cached --quiet; then exit 0; fi
             git commit -m 'data(leads): atualizar base integral e carteira com nomes reduzidos'
             if git push origin HEAD:main; then exit 0; fi

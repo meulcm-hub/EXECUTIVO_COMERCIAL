@@ -15,3 +15,5 @@ body.lcm-app.lcm-leads-page{--bg:#07111f;--muted:#8da3b7;margin:0;background:var
 .lcm-leads-page .lcm-sidebar *{box-sizing:border-box}
 .lcm-leads-page .lcm-topbar .lcm-menu-toggle{background:transparent}
 @media(max-width:600px){.lcm-leads-page .lead-statusbar{justify-content:space-between;margin:0 0 18px}}
+
+.history-event{padding:14px 0;border-bottom:1px solid #244153}.history-event strong{font-size:.85rem}.history-event p{margin:6px 0}

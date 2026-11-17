@@ -90,3 +90,29 @@ paginação e exportação. Até a primeira coleta completa, informa carteira em
 atualização. O botão Atualizar carteira recarrega a última publicação; não inicia
 chamadas ao CV CRM pelo navegador e não altera etapas. A carteira é atualizada na
 mesma agenda já existente do histórico completo, sem nova infraestrutura.
+
+
+## Histórico operacional por cliente
+
+O coletor integral consulta as quatro fontes CVDW de interações, tarefas,
+visitas e histórico de situações, com paginação de 500 registros e limite de
+referência fixado no início da coleta. A coleta falha se os totais mudarem,
+se uma página se repetir ou se a vinculação não puder ser comprovada.
+
+Os IDs são usados somente em memória para relacionar os registros. A carteira
+pública v2 usa uma chave HMAC opaca para consultar arquivos particionados de
+histórico. Nenhum ID do CV, texto livre, áudio, telefone, CPF ou e-mail entra
+nesses arquivos. Clientes com nomes iguais mantêm históricos separados.
+
+A ficha exibe todos os eventos ativos disponíveis, em ordem decrescente,
+com carregamento sob demanda e paginação visual de 50 registros. Uma mudança
+de etapa não comprova atendimento. Último registro de contato considera a
+data de cadastro de interações dos tipos de contato; não comprova atendimento
+ou resposta. Próxima ação usa a tarefa pendente/em andamento com menor prazo,
+incluindo atrasadas; tarefas concluídas e canceladas não entram. Ausência de
+prazo ou situação reconhecida não cria agendamento. Indicadores de SLA seguem
+indisponíveis até existirem regras e dados suficientes.
+
+A publicação valida a correspondência entre a quantidade de eventos por lead
+e seus arquivos históricos. A carteira anterior permanece no site até a
+coleta integral e todas as verificações terminarem.

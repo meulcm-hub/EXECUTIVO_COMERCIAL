@@ -124,7 +124,7 @@ def fetch_page(opener,base,email,token,page):
             time.sleep(min(45,2**attempt*3))
     raise RuntimeError("Requisição não concluída")
 
-def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster=False):
+def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster=False,operations=None,operations_meta=None,history_secret=None):
     """No single page is silently accepted as complete if pagination says more."""
     as_of=as_of or CUTOFF
     leaders={}
@@ -193,6 +193,23 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster
                 "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
                 "total":len(leaders),"leads":[public_project(item,(commercial or {}).get(key,{}))
                     for key,item in sorted(leaders.items(),key=lambda kv:(kv[1]['date'],kv[0]),reverse=True)]}
+        if operations is not None:
+            import uuid
+            from leads_operational_history import opaque, summary, validate_event
+            if not history_secret:raise RuntimeError('Chave de vínculo histórico ausente')
+            generation=uuid.uuid4().hex
+            roster['schema_version']=2
+            roster['history_generation']=generation
+            roster['history_sources']=operations_meta
+            shards={}
+            ordered=sorted(leaders.items(),key=lambda kv:(kv[1]['date'],kv[0]),reverse=True)
+            for row,(lead,_) in zip(roster['leads'],ordered):
+                key=opaque(history_secret,'lead',lead)
+                events=operations.get(lead,[])
+                for e in events:validate_event(e)
+                row.update(summary(events));row['history_key']=key
+                shards.setdefault(key[:2],{})[key]=events
+            result['_history_shards']={prefix:{'schema_version':1,'generation':generation,'leads':items} for prefix,items in shards.items()}
         validate(roster)
         result['_public_roster']=roster
     return result
@@ -203,9 +220,20 @@ def main():
     # Na API comercial, origem e mídia são campos distintos do cadastro.
     # Coleta integral via limit/offset e cruzamento somente em memória por idlead.
     commercial,commercial_meta=fetch_commercial_all(base,email,token,public_names=True)
+    from leads_operational_history import fetch_all as fetch_operations
+    operations,operations_meta=fetch_operations(base,email,token)
     result=collect(lambda page:fetch_page(opener,base,email,token,page),
-                   commercial=commercial,commercial_meta=commercial_meta,include_roster=True)
+                   commercial=commercial,commercial_meta=commercial_meta,include_roster=True,
+                   operations=operations,operations_meta=operations_meta,history_secret=token)
     roster=result.pop('_public_roster')
+    shards=result.pop('_history_shards')
+    import shutil
+    history_root=OUT.parent/'leads-history'
+    if history_root.exists():shutil.rmtree(history_root)
+    history_dir=history_root/roster['history_generation']
+    history_dir.mkdir(parents=True)
+    for prefix,payload in shards.items():
+        (history_dir/(prefix+'.json')).write_text(json.dumps(payload,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     OUT.parent.mkdir(parents=True,exist_ok=True)
     roster_out=OUT.with_name('leads-roster.json')
     roster_temp=roster_out.with_suffix('.json.tmp')

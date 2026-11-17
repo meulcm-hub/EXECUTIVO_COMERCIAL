@@ -1,6 +1,7 @@
 """Projeção pública autorizada: dois nomes e dimensões comerciais; nunca contatos."""
 import re
 
+OPERATION_FIELDS={'last_contact','last_interaction','next_action','next_action_at','appointment','history_count','history_key'}
 FIELDS={'name','date','project','origin','origin_name','lead_media','status','owner'}
 
 def safe_text(value):
@@ -27,17 +28,26 @@ def project(snapshot,detail):
             'owner':short_name(detail.get('public_owner')) if detail.get('public_owner') else None}
 
 def validate(payload):
-    if payload.get('schema_version')!=1 or payload.get('validated') is not True or payload.get('scope')!='all_accessible_leads':
+    if payload.get('schema_version') not in (1,2) or payload.get('validated') is not True or payload.get('scope')!='all_accessible_leads':
         raise ValueError('Contrato público da carteira inválido')
     rows=payload.get('leads')
     if not isinstance(rows,list) or not rows or len(rows)!=payload.get('total'):
         raise ValueError('Carteira pública incompleta')
+    version=payload['schema_version']
+    if version==2 and not re.fullmatch(r'[a-f0-9]{32}',str(payload.get('history_generation',''))):raise ValueError('Versão histórica inválida')
     for r in rows:
-        if set(r)!=FIELDS:raise ValueError('Campo não permitido na carteira pública')
+        if set(r)!=(FIELDS|OPERATION_FIELDS if version==2 else FIELDS):raise ValueError('Campo não permitido na carteira pública')
         if len(r['name'].split())>2 or (r['owner'] and len(r['owner'].split())>2):
             raise ValueError('Nome completo recusado')
         for field,value in r.items():
-            if field=='date':
+            if field=='history_count':
+                if not isinstance(value,int) or isinstance(value,bool) or value<0:raise ValueError('Contagem histórica inválida')
+            elif field=='history_key':
+                if not re.fullmatch(r'[a-f0-9]{64}',str(value)):raise ValueError('Vínculo histórico inválido')
+            elif field in ('last_contact','last_interaction','next_action_at','appointment'):
+                from leads_operational_history import timestamp
+                if value is not None and timestamp(value)!=value:raise ValueError('Data operacional inválida')
+            elif field=='date':
                 if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',str(value)):raise ValueError('Data inválida')
             elif value is not None and (not isinstance(value,str) or safe_text(value)!=value):
                 raise ValueError('Conteúdo público não sanitizado')
