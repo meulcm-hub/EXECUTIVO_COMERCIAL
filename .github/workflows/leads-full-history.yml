@@ -12,6 +12,8 @@ on:
       - scripts/leads_commercial_dimensions.py
       - scripts/leads_public_projection.py
       - scripts/leads_operational_history.py
+      - scripts/cvcrm_read_pacing.py
+      - tests/test_cvcrm_read_pacing.py
       - tests/test_leads_operational_history.py
       - tests/test_leads_public_projection.py
       - tests/test_leads_full_history.py
@@ -62,6 +64,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_leads_commercial_dimensions.py' -v
           python -m unittest discover -s tests -p 'test_leads_public_projection.py' -v
           python -m unittest discover -s tests -p 'test_leads_operational_history.py' -v
+          python -m unittest discover -s tests -p 'test_cvcrm_read_pacing.py' -v
       - name: Coletar histórico completo sem filtrar origem, situação ou empreendimento
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}

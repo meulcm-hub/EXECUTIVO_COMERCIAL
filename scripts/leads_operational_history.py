@@ -1,5 +1,4 @@
 """Histórico estruturado público; IDs e textos livres ficam somente em memória."""
-import concurrent.futures
 import datetime as dt
 import hashlib
 import hmac
@@ -10,6 +9,7 @@ import urllib.parse
 import urllib.request
 from leads_public_projection import safe_text
 from cvcrm_project_address_audit import NoRedirect
+from cvcrm_read_pacing import PACER, retry_after
 
 ROUTES={'interaction':'interacoes','task':'tarefas','visit':'visitas','stage':'historico/situacoes'}
 TYPES={'A':'Anotação','L':'Ligação','E':'E-mail','S':'SMS','W':'WhatsApp','V':'Visita','T':'Tarefa'}
@@ -32,7 +32,8 @@ def request(base,email,token,path,page,end_reference=None):
     if end_reference:params['ate_data_referencia']=end_reference
     url=base+path+'?'+urllib.parse.urlencode(params)
     req=urllib.request.Request(url,headers={'email':email,'token':token,'Accept':'application/json'})
-    for attempt in range(5):
+    for attempt in range(12):
+        PACER.wait()
         try:
             with opener.open(req,timeout=90) as response:
                 if response.status==204:return {'dados':[],'total_de_paginas':0,'total_de_registros':0}
@@ -40,11 +41,17 @@ def request(base,email,token,path,page,end_reference=None):
                 if len(raw)>16_000_000:raise RuntimeError('Página operacional excedeu limite')
                 return json.loads(raw)
         except urllib.error.HTTPError as error:
-            if error.code not in (429,500,502,503,504) or attempt==4:
+            if error.code==429 and attempt<11:
+                delay=retry_after(error.headers)
+                print('CV CRM: limite CVDW atingido; pausa de',round(delay),'segundos antes de repetir a mesma página.',flush=True)
+                PACER.cooldown(delay)
+                continue
+            if error.code not in (500,502,503,504) or attempt>=5:
                 raise RuntimeError('Fonte operacional '+path+': HTTP '+str(error.code)) from None
         except (TimeoutError,urllib.error.URLError,ValueError):
-            if attempt==4:raise RuntimeError('Fonte operacional indisponível: '+path) from None
+            if attempt>=5:raise RuntimeError('Fonte operacional indisponível: '+path) from None
         time.sleep(min(60,3*2**attempt))
+    raise RuntimeError('Fonte operacional não concluída: '+path)
 
 def collect_source(kind,fetch):
     latest={};signatures=set();expected=None;pages=None;scanned=0
@@ -109,11 +116,12 @@ def fetch_all(base,email,token,*,end_reference=None):
     from zoneinfo import ZoneInfo
     end_reference=end_reference or dt.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%Y-%m-%d %H:%M:%S')
     sources={};metadata={}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        futures={pool.submit(collect_source,kind,lambda page,p='/api/v1/cvdw/leads/'+route:request(base,email,token,p,page,end_reference)):kind for kind,route in ROUTES.items()}
-        for future in concurrent.futures.as_completed(futures):
-            kind=futures[future];sources[kind],metadata[kind]=future.result()
-            print('Fonte histórica validada:',kind,metadata[kind],flush=True)
+    # A cota CVDW é compartilhada entre rotas; não paralelizar as fontes.
+    for kind,route in ROUTES.items():
+        path='/api/v1/cvdw/leads/'+route
+        print('Iniciando fonte histórica:',kind,flush=True)
+        sources[kind],metadata[kind]=collect_source(kind,lambda page,p=path:request(base,email,token,p,page,end_reference))
+        print('Fonte histórica validada:',kind,metadata[kind],flush=True)
     return assemble(sources,token),metadata
 
 def summary(events):

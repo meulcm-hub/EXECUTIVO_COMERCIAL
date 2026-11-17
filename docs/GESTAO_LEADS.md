@@ -136,3 +136,21 @@ consulta comercial não são preenchidas com números de outra fonte.
 Totais, paginação, IDs, datas e vínculo da carteira com os históricos
 continuam validados antes da publicação. A consulta inicial comprova os
 campos CVDW e o total antes de iniciar a leitura dos históricos.
+
+
+### Limite de consultas CVDW e recuperação de HTTP 429
+
+A documentação oficial limita CVDW/Bulk a 20 requisições por minuto e
+orienta evitar paralelismo; ao atingir a cota, o bloqueio dura um minuto.
+As quatro fontes históricas são lidas sequencialmente. Base e históricos
+compartilham a mesma fila local com espaçamento mínimo de 4,2 segundos entre
+inícios de requisições (no máximo 15 por minuto, antes de outras integrações).
+
+HTTP 429 pausa a fila por pelo menos 65 segundos, respeitando Retry-After
+numérico ou HTTP-date se maior, e repete a mesma página. Os testes cobrem
+janelas móveis de um minuto, espera global, cabeçalhos de retentativa,
+consulta sequencial e falhas de autenticação sem repetição. Integrações
+externas que usem a mesma cota ainda podem provocar bloqueios; a publicação
+continua condicionada à coleta completa e à validação de integridade.
+
+Fonte: https://desenvolvedor.cvcrm.com.br/docs/getting-started

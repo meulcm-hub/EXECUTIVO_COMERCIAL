@@ -18,6 +18,7 @@ import urllib.request
 from pathlib import Path
 
 from cvcrm_project_address_audit import credentials, NoRedirect
+from cvcrm_read_pacing import PACER, retry_after
 
 API="/api/v1/cvdw/leads"
 OUT=Path("data/leads-all-summary.json")
@@ -101,7 +102,8 @@ def fetch_page(opener,base,email,token,page,end_reference=None):
     if end_reference:params["ate_data_referencia"]=end_reference
     qs=urllib.parse.urlencode(params)
     req=urllib.request.Request(base+API+"?"+qs,headers={"email":email,"token":token,"Accept":"application/json"})
-    for attempt in range(5):
+    for attempt in range(12):
+        PACER.wait()
         try:
             with opener.open(req,timeout=60) as resp:
                 if resp.status!=200 or "json" not in resp.headers.get("Content-Type","").casefold():
@@ -117,11 +119,16 @@ def fetch_page(opener,base,email,token,page,end_reference=None):
             if not 1<=pages<=MAX_PAGES:raise RuntimeError("Quantidade de páginas fora do limite de segurança")
             return payload["dados"],pages,payload
         except urllib.error.HTTPError as err:
-            if err.code not in (429,500,502,503,504) or attempt==4:
+            if err.code==429 and attempt<11:
+                delay=retry_after(err.headers)
+                print('CV CRM: limite CVDW atingido na base; pausa de',round(delay),'segundos.',flush=True)
+                PACER.cooldown(delay)
+                continue
+            if err.code not in (500,502,503,504) or attempt>=5:
                 raise RuntimeError("API leads HTTP "+str(err.code)) from None
             time.sleep(min(45,2**attempt*3))
         except (TimeoutError,urllib.error.URLError):
-            if attempt==4:raise RuntimeError("CV CRM sem resposta após tentativas") from None
+            if attempt>=5:raise RuntimeError("CV CRM sem resposta após tentativas") from None
             time.sleep(min(45,2**attempt*3))
     raise RuntimeError("Requisição não concluída")
 
