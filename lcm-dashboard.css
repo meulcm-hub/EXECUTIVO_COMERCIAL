@@ -1,27 +1,9 @@
+@import url("lcm-shell.css?v=nav-unificada-20261117");
 /* Identidade LCM compartilhada; estilos limitados ao novo shell. */
 :root{--lcm-sidebar:232px;--lcm-ink:#193c4b;--lcm-muted:#72838a;--lcm-green:#67ae42;--lcm-border:#e3ebe7}
 body.lcm-app{margin:0;padding-left:var(--lcm-sidebar);background:#f3f7f5;color:var(--lcm-ink);font-family:Inter,"Segoe UI",Arial,sans-serif}
 body.lcm-app *{box-sizing:border-box}
 body.lcm-app main{max-width:1600px;padding:26px 30px 40px;margin:0 auto}
-.lcm-sidebar{position:fixed;inset:0 auto 0 0;width:var(--lcm-sidebar);z-index:100;background:linear-gradient(165deg,#153e4c,#10313d);color:white;display:flex;flex-direction:column;padding:30px 16px 20px}
-.lcm-brand{display:flex;gap:10px;align-items:center;text-decoration:none;color:white;padding:0 13px 32px}
-.lcm-brand b{font-size:36px;line-height:1;letter-spacing:-2px}
-.lcm-brand small{display:block;font-size:10px;letter-spacing:.04em;color:#b9cbd0;margin-top:8px}
-.lcm-brand-mark{display:flex;align-items:end;gap:4px;height:37px}
-.lcm-brand-mark i{display:block;width:7px;background:#83bd59;transform:skewY(-25deg)}
-.lcm-brand-mark i:nth-child(1){height:17px}.lcm-brand-mark i:nth-child(2){height:27px}.lcm-brand-mark i:nth-child(3){height:37px}
-.lcm-sidebar .lcm-nav{background:none;border:0;box-shadow:none;border-radius:0;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
-.lcm-nav a{display:flex;align-items:center;gap:12px;border-radius:9px;padding:13px 12px;color:#d2e1e4;text-decoration:none;font-size:13px;font-weight:550;min-height:46px}
-.lcm-nav a:hover{background:#ffffff10;color:white}.lcm-nav a[aria-current=page]{background:#d9edce;color:#254b39;font-weight:750}
-.lcm-nav svg,.lcm-topbar svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-.lcm-sidebar-label{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#90aeb8;padding:14px 12px 10px}
-.lcm-sidebar-bottom{margin-top:auto;border-top:1px solid #ffffff24;padding:18px 12px 0;font-size:11px;line-height:1.7;color:#abc2ca}
-.lcm-sidebar-bottom b{display:block;color:#e4ecef;font-size:12px}
-.lcm-topbar{height:62px;background:#ffffffd9;border-bottom:1px solid var(--lcm-border);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 30px}
-.lcm-topbar span{font-size:11px;color:var(--lcm-muted)}.lcm-topbar strong{color:var(--lcm-ink);font-size:12px}
-.lcm-menu-toggle{display:none;align-items:center;justify-content:center;border:1px solid var(--lcm-border);border-radius:7px;background:white;color:var(--lcm-ink);padding:8px;cursor:pointer}
-.lcm-mobile-close{display:none}
-.lcm-scrim{position:fixed;inset:0;z-index:99;background:#102e4270;border:0;border-radius:0}
 .lcm-app :focus-visible{outline:3px solid #64a8b8;outline-offset:3px}
 .lcm-app .site-header{background:transparent;box-shadow:none;border:0;padding:27px 30px 0;color:var(--lcm-ink)}
 .lcm-app .brand-logo{display:none}.lcm-app .site-header h1{color:var(--lcm-ink);font-size:27px;letter-spacing:-.5px}
@@ -82,12 +64,8 @@ body.lcm-app main{max-width:1600px;padding:26px 30px 40px;margin:0 auto}
 @media print{body.lcm-app{padding:0!important}.lcm-sidebar,.lcm-topbar,.lcm-scrim,.lcm-overview-filters{display:none!important}.lcm-app main{padding:0!important}.lcm-app .site-header{padding:0!important}.lcm-overview-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.lcm-overview-grid{grid-template-columns:1.2fr 1fr}.lcm-page-intro h1{font-size:22px}.lcm-metric{padding:10px}.lcm-metric strong{font-size:19px}.lcm-metric-icon{display:none}body.print-view-overview #overview{display:block!important}.lcm-overview-grid>.panel{break-inside:avoid}.lcm-overview-link{display:none}}
 
 [hidden]{display:none!important}
-.lcm-theme-toggle{margin-left:auto;display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #dfe8e2;border-radius:9px;background:#f4f8f1;color:#4f823b;cursor:pointer;min-height:36px}
-.lcm-theme-toggle svg{width:18px;height:18px}.lcm-theme-toggle span{font-size:11px;color:inherit}
 html[data-theme=dark]{color-scheme:dark}
 html[data-theme=dark] body.lcm-app{--lcm-ink:#e1ebf0;--lcm-muted:#9bafbd;--lcm-border:#2b3a46;--bg:#101923;--ink:#e1ebf0;--muted:#9bafbd;--line:#2b3a46;--navy:#c4d7e4;--dark:#e1ebf0;background:#101923;color:#e1ebf0}
-html[data-theme=dark] .lcm-topbar{background:#17222e}
-html[data-theme=dark] .lcm-sidebar{background:linear-gradient(160deg,#102b36,#0c202c)}
 html[data-theme=dark] .lcm-app .panel,html[data-theme=dark] .lcm-app .kpi,html[data-theme=dark] .lcm-app .card,html[data-theme=dark] .lcm-app .toolbar,html[data-theme=dark] .lcm-app .filters,html[data-theme=dark] .lcm-metric,html[data-theme=dark] .lcm-overview-filters{background:#182531;border-color:#2b3a46;box-shadow:none}
 html[data-theme=dark] .lcm-app input,html[data-theme=dark] .lcm-app select{background:#111e2a;color:#d8e4ec;border-color:#374955}
 html[data-theme=dark] .lcm-app th{background:#213442;color:#d5e6ee;border-color:#354857}
@@ -99,7 +77,7 @@ html[data-theme=dark] .lcm-app .bar,html[data-theme=dark] .lcm-app .track,html[d
 html[data-theme=dark] .lcm-app .empty{color:#a5b7c1;border-color:#3a4c57}
 html[data-theme=dark] .lcm-app .sub,html[data-theme=dark] .lcm-app .note,html[data-theme=dark] .lcm-app .audit-note,html[data-theme=dark] .lcm-app .metric-note,html[data-theme=dark] .lcm-app .summaryline,html[data-theme=dark] .lcm-app .site-header p,html[data-theme=dark] .lcm-overview-grid .panel p,html[data-theme=dark] .lcm-overview-status,html[data-theme=dark] .lcm-overview-footnote,html[data-theme=dark] .lcm-ratio-grid small,html[data-theme=dark] .lcm-metric small{color:#a0b4c1}
 html[data-theme=dark] .lcm-app .panel h2,html[data-theme=dark] .lcm-app .panel h3,html[data-theme=dark] .lcm-app .kpi strong,html[data-theme=dark] .lcm-app .barvalue{color:#e1ebf0}
-html[data-theme=dark] .lcm-app .button.alt,html[data-theme=dark] .lcm-theme-toggle{background:#284333;border-color:#3f5a42;color:#badea1}
+html[data-theme=dark] .lcm-app .button.alt{background:#284333;border-color:#3f5a42;color:#badea1}
 html[data-theme=dark] .lcm-sync,html[data-theme=dark] .lcm-app .pill{background:#253d30;border-color:#3b563c;color:#b8d8a5}
 html[data-theme=dark] .lcm-metric-icon{background:#263d30;color:#a1cb7d}
 html[data-theme=dark] .lcm-app .aud-panel-title h2,html[data-theme=dark] .lcm-app .aud-bar-label,html[data-theme=dark] .lcm-app .aud-legend-row,html[data-theme=dark] .lcm-app .mini-metric span{color:#c7d7e1}
