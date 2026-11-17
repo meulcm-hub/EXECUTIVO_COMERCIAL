@@ -23,7 +23,32 @@ concurrency:
   group: lcm-all-leads-publication
   cancel-in-progress: false
 jobs:
+  schedule_gate:
+    runs-on: ubuntu-24.04
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - name: Iniciar programação em 18/11/2026 no horário de Brasília
+        id: check
+        env:
+          SKIP_COLLECTION: ${{ contains(github.event.head_commit.message, '[skip leads collection]') }}
+        run: |
+          python - <<'PY'
+          import datetime as dt
+          import os
+          from zoneinfo import ZoneInfo
+          event = os.environ['GITHUB_EVENT_NAME']
+          today = dt.datetime.now(ZoneInfo('America/Sao_Paulo')).date()
+          enabled = not (event == 'schedule' and today < dt.date(2026, 11, 18))
+          if event == 'push' and os.environ['SKIP_COLLECTION'] == 'true':
+              enabled = False
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('enabled=' + str(enabled).lower() + '\n')
+          print('Coleta habilitada:', enabled)
+          PY
   collect:
+    needs: schedule_gate
+    if: needs.schedule_gate.outputs.enabled == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
