@@ -1,3 +1,4 @@
+# Nova validação após liberação de acesso ao aplicativo em 17/11/2026.
 # Diagnóstico novo: comparar v25 e v27 com o mesmo segredo atual.
 name: Meta Ads - Diagnostico seguro de permissoes
 on:
