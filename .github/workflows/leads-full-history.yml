@@ -10,6 +10,8 @@ on:
     paths:
       - scripts/leads_full_history.py
       - scripts/leads_commercial_dimensions.py
+      - scripts/leads_public_projection.py
+      - tests/test_leads_public_projection.py
       - tests/test_leads_full_history.py
       - tests/test_leads_commercial_dimensions.py
       - .github/workflows/leads-full-history.yml
@@ -31,6 +33,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_leads_full_history.py' -v
           python -m unittest discover -s tests -p 'test_leads_commercial_dimensions.py' -v
+          python -m unittest discover -s tests -p 'test_leads_public_projection.py' -v
       - name: Coletar histórico completo sem filtrar origem, situação ou empreendimento
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
@@ -53,20 +56,27 @@ jobs:
           for r in x['by_registration_project_origin_status']:
               assert set(r)=={'date','project','origin','origin_name','lead_media','lead_medias','visit_media','status','count'}
               assert isinstance(r['lead_medias'],list) and len(r['lead_medias'])>0
+          import sys
+          sys.path.insert(0,'scripts')
+          from leads_public_projection import validate
+          roster=json.loads(Path('data/leads-roster.json').read_text(encoding='utf-8'))
+          assert validate(roster) and roster['total']==x['unique_leads']
           print('Base completa validada:',x['unique_leads'],'leads, primeiro cadastro:',x['earliest_cadastro'])
           PY
-      - name: Publicar exclusivamente agregados (sem dados pessoais)
+      - name: Publicar agregados e carteira com nomes reduzidos autorizada
         run: |
           cp data/leads-all-summary.json "$RUNNER_TEMP/leads-all-summary.json"
+          cp data/leads-roster.json "$RUNNER_TEMP/leads-roster.json"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in 1 2 3; do
             git fetch origin main
             git reset --hard origin/main
             cp "$RUNNER_TEMP/leads-all-summary.json" data/leads-all-summary.json
-            git add data/leads-all-summary.json
+            cp "$RUNNER_TEMP/leads-roster.json" data/leads-roster.json
+            git add data/leads-all-summary.json data/leads-roster.json
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m 'data(leads): atualizar base histórica agregada integral CV CRM'
+            git commit -m 'data(leads): atualizar base integral e carteira com nomes reduzidos'
             if git push origin HEAD:main; then exit 0; fi
             sleep 5
           done

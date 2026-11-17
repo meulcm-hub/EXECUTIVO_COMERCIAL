@@ -124,7 +124,7 @@ def fetch_page(opener,base,email,token,page):
             time.sleep(min(45,2**attempt*3))
     raise RuntimeError("Requisição não concluída")
 
-def collect(fetch,as_of=None,commercial=None,commercial_meta=None):
+def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster=False):
     """No single page is silently accepted as complete if pagination says more."""
     as_of=as_of or CUTOFF
     leaders={}
@@ -187,6 +187,14 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None):
       "commercial_matched":sum(1 for key in leaders if key in (commercial or {})),
       "by_registration_project_origin_status":cells}
     assert sum(x["count"] for x in cells)==len(leaders)
+    if include_roster:
+        from leads_public_projection import project as public_project, validate
+        roster={"schema_version":1,"validated":True,"scope":"all_accessible_leads",
+                "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
+                "total":len(leaders),"leads":[public_project(item,(commercial or {}).get(key,{}))
+                    for key,item in sorted(leaders.items(),key=lambda kv:(kv[1]['date'],kv[0]),reverse=True)]}
+        validate(roster)
+        result['_public_roster']=roster
     return result
 
 def main():
@@ -194,10 +202,15 @@ def main():
     opener=urllib.request.build_opener(NoRedirect())
     # Na API comercial, origem e mídia são campos distintos do cadastro.
     # Coleta integral via limit/offset e cruzamento somente em memória por idlead.
-    commercial,commercial_meta=fetch_commercial_all(base,email,token)
+    commercial,commercial_meta=fetch_commercial_all(base,email,token,public_names=True)
     result=collect(lambda page:fetch_page(opener,base,email,token,page),
-                   commercial=commercial,commercial_meta=commercial_meta)
+                   commercial=commercial,commercial_meta=commercial_meta,include_roster=True)
+    roster=result.pop('_public_roster')
     OUT.parent.mkdir(parents=True,exist_ok=True)
+    roster_out=OUT.with_name('leads-roster.json')
+    roster_temp=roster_out.with_suffix('.json.tmp')
+    roster_temp.write_text(json.dumps(roster,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    roster_temp.replace(roster_out)
     temp=OUT.with_suffix(".json.tmp")
     temp.write_text(json.dumps(result,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
     temp.replace(OUT)
@@ -206,7 +219,7 @@ def main():
           "leads únicos",result["unique_leads"],
           "primeiro cadastro",result["earliest_cadastro"],
           "leads comerciais vinculados",result["commercial_matched"])
-    print("Nenhum ID, nome, telefone ou CPF publicado.")
+    print("Carteira autorizada: nomes reduzidos; nenhum ID, telefone, CPF ou e-mail publicado.")
 if __name__=="__main__":
     try:main()
     except (RuntimeError,ValueError,TypeError) as err:

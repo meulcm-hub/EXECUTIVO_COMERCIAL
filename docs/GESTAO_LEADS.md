@@ -71,3 +71,22 @@ A referência visual original não foi recuperada: composição segue o briefing
 `node --test tests/test_leads_management.cjs` e testes legados de classificação e
 conferência; `python -m unittest discover -s tests -p 'test_leads_operations.py'`;
 testes de rotas privadas requerem dependências de requirements.txt e httpx.
+
+
+## Atualização: carteira pública no GitHub (17/11/2026)
+
+Por orientação do usuário, a carteira também funciona sem servidor externo.
+O workflow leads-full-history coleta os dados com CVCRM_* em GitHub Secrets,
+reduz os nomes e publica `data/leads-roster.json` junto ao agregado, somente após
+validar todas as páginas. A projeção autoriza exclusivamente name, date, project,
+origin, origin_name, lead_media, status e owner. Nome e responsável têm no máximo
+dois termos. CPF, telefone, e-mail, ID interno, endereço e histórico livre nunca
+são gravados nesse arquivo. O arquivo é público: nome reduzido e vínculo comercial
+não são considerados anônimos. A autorização do usuário não foi interpretada como
+permissão para publicar contatos. O token permanece exclusivamente no Actions.
+
+A interface pública lê esse arquivo para lista, cartões, pesquisa, ordenação,
+paginação e exportação. Até a primeira coleta completa, informa carteira em
+atualização. O botão Atualizar carteira recarrega a última publicação; não inicia
+chamadas ao CV CRM pelo navegador e não altera etapas. A carteira é atualizada na
+mesma agenda já existente do histórico completo, sem nova infraestrutura.

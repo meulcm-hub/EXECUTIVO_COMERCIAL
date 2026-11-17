@@ -72,7 +72,7 @@ def page_get(opener,base,email,token,offset,limit=REQUEST_LIMIT):
             time.sleep(min(60,3*2**attempt))
     raise RuntimeError("Leitura comercial não concluída")
 
-def collect(fetch):
+def collect(fetch, *, public_names=False):
     """Valida que todas as páginas comercialmente acessíveis foram percorridas."""
     ids={}
     offset=0
@@ -95,6 +95,11 @@ def collect(fetch):
                 raise RuntimeError("Lead comercial sem ID confiável")
             key=str(raw)
             value={"origin_name":origin(row),"lead_media":media(row),"lead_medias":medias(row)}
+            if public_names:
+                from leads_public_projection import short_name
+                value['public_name']=short_name(row.get('nome'))
+                owner=row.get('corretor')
+                value['public_owner']=short_name(owner) if isinstance(owner,(dict,str)) and owner else None
             if key in ids and ids[key]!=value:
                 raise RuntimeError("IDs repetidos conflitantes no endpoint comercial")
             ids[key]=value
@@ -107,7 +112,7 @@ def collect(fetch):
                 "commercial_pages":pages,
                 "commercial_unique":len(ids)}
 
-def fetch_all(base,email,token):
+def fetch_all(base,email,token, *, public_names=False):
     opener=urllib.request.build_opener(
         type("NoRedirect",(urllib.request.HTTPRedirectHandler,),{
             "redirect_request":lambda self,*args,**kwargs:None})())
@@ -116,4 +121,4 @@ def fetch_all(base,email,token):
         # limite menor imposto pelo CRM é aceito; offset progride pelos itens recebidos.
         time.sleep(0.35)
         return data
-    return collect(fetch)
+    return collect(fetch, public_names=public_names)
