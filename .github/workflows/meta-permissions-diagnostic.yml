@@ -1,5 +1,4 @@
-# Nova execução para conferir o segredo atualizado às 09h de 17/11/2026.
-# Diagnóstico solicitado em 2026-11-17 após renovação do token.
+# Diagnóstico novo: comparar v25 e v27 com o mesmo segredo atual.
 name: Meta Ads - Diagnostico seguro de permissoes
 on:
   push:
@@ -24,4 +23,8 @@ jobs:
       - name: Consultar somente permissoes e metadados de acesso
         env:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
-        run: python scripts/meta_permissions_diagnostic.py
+        run: |
+          echo 'Diagnostico API v25.0'
+          META_API_VERSION=v25.0 python scripts/meta_permissions_diagnostic.py
+          echo 'Diagnostico API v27.0'
+          META_API_VERSION=v27.0 python scripts/meta_permissions_diagnostic.py
