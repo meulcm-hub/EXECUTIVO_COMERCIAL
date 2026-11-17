@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-12T18:21:38.931143+00:00",
+  "generated_at_utc": "2026-11-17T12:05:23.293057+00:00",
   "period": {
-    "since": "2026-10-14",
-    "until": "2026-11-12"
+    "since": "2026-10-19",
+    "until": "2026-11-17"
   },
   "status": "COMPLETO_META_CV_AGREGADO",
   "meta_accounts": [
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3348.46",
-      "impressions": 360669,
-      "clicks": 3337
+      "spend": "3290.49",
+      "impressions": 335651,
+      "clicks": 3214
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4077.70",
-      "impressions": 511630,
-      "clicks": 3254
+      "spend": "4168.09",
+      "impressions": 521946,
+      "clicks": 3340
     },
     {
       "account_id": "272429171879216",
@@ -60,56 +60,20 @@
       "account_id": "347253318197280",
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
-      "spend": "13002.11",
-      "impressions": 578630,
-      "clicks": 4498
+      "spend": "10209.82",
+      "impressions": 446249,
+      "clicks": 3475
     },
     {
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "2762.16",
-      "impressions": 276201,
-      "clicks": 1829
+      "spend": "2995.13",
+      "impressions": 273510,
+      "clicks": 1926
     }
   ],
   "cv_by_project_normalized": {
-    "spe arraial costa verde club": {
-      "leads_period": 57,
-      "meta_declarada": 56,
-      "meta_whatsapp_cv": 1,
-      "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 54,
-      "google_declarada": 0,
-      "outra_ou_nao_informada": 1
-    },
-    "residencial flores do cerrado jacaranda": {
-      "leads_period": 616,
-      "meta_declarada": 586,
-      "meta_whatsapp_cv": 26,
-      "meta_busca_compartilhada_cv": 4,
-      "meta_outros_cv": 556,
-      "google_declarada": 3,
-      "outra_ou_nao_informada": 27
-    },
-    "residencial extrema meu lar": {
-      "leads_period": 110,
-      "meta_declarada": 1,
-      "meta_whatsapp_cv": 1,
-      "meta_busca_compartilhada_cv": 0,
-      "meta_outros_cv": 0,
-      "google_declarada": 0,
-      "outra_ou_nao_informada": 109
-    },
-    "residencial village lagoas": {
-      "leads_period": 168,
-      "meta_declarada": 128,
-      "meta_whatsapp_cv": 6,
-      "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 120,
-      "google_declarada": 3,
-      "outra_ou_nao_informada": 37
-    },
     "residencial terra solis": {
       "leads_period": 20,
       "meta_declarada": 2,
@@ -119,14 +83,50 @@
       "google_declarada": 1,
       "outra_ou_nao_informada": 17
     },
+    "residencial extrema meu lar": {
+      "leads_period": 98,
+      "meta_declarada": 1,
+      "meta_whatsapp_cv": 1,
+      "meta_busca_compartilhada_cv": 0,
+      "meta_outros_cv": 0,
+      "google_declarada": 0,
+      "outra_ou_nao_informada": 97
+    },
     "residencial jatoba": {
-      "leads_period": 108,
-      "meta_declarada": 97,
+      "leads_period": 104,
+      "meta_declarada": 93,
       "meta_whatsapp_cv": 14,
-      "meta_busca_compartilhada_cv": 32,
+      "meta_busca_compartilhada_cv": 28,
       "meta_outros_cv": 51,
-      "google_declarada": 2,
-      "outra_ou_nao_informada": 9
+      "google_declarada": 1,
+      "outra_ou_nao_informada": 10
+    },
+    "residencial flores do cerrado jacaranda": {
+      "leads_period": 508,
+      "meta_declarada": 477,
+      "meta_whatsapp_cv": 23,
+      "meta_busca_compartilhada_cv": 3,
+      "meta_outros_cv": 451,
+      "google_declarada": 3,
+      "outra_ou_nao_informada": 28
+    },
+    "residencial village lagoas": {
+      "leads_period": 170,
+      "meta_declarada": 132,
+      "meta_whatsapp_cv": 6,
+      "meta_busca_compartilhada_cv": 2,
+      "meta_outros_cv": 124,
+      "google_declarada": 3,
+      "outra_ou_nao_informada": 35
+    },
+    "spe arraial costa verde club": {
+      "leads_period": 49,
+      "meta_declarada": 49,
+      "meta_whatsapp_cv": 0,
+      "meta_busca_compartilhada_cv": 1,
+      "meta_outros_cv": 48,
+      "google_declarada": 0,
+      "outra_ou_nao_informada": 0
     }
   },
   "cv_counts_validated": true,
