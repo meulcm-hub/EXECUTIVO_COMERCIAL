@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Recoleta solicitada após renovação do token Meta (2026-11-17).
 """LCM Meta Ads: coleta somente leitura, sem publicação automática de dados.
 Requisitos: Python 3.10+ (biblioteca padrão). Nunca imprima ou envie o token.
 """
