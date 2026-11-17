@@ -67,7 +67,7 @@ jobs:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
           CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
           CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
-        run: python scripts/leads_full_history.py
+        run: python -u scripts/leads_full_history.py
       - name: Validar integridade antes de publicar agregados
         run: |
           python - <<'PY'
@@ -78,9 +78,9 @@ jobs:
           assert x['schema_version']==3 and x['validated'] and x['scope']=='all_accessible_leads'
           assert sum(v['count'] for v in x['by_registration_project_origin_status'])==x['unique_leads']
           assert x['unique_leads']>0 and x['pages_scanned']>0
-          assert x['commercial_details']['commercial_total']>0
-          assert x['commercial_details']['commercial_unique']>0
-          assert x['commercial_matched']>0
+          assert x['dimension_source']=='cvdw'
+          assert x['cvdw_detail_leads']==x['unique_leads']
+          assert x['reference_cutoff']
           for r in x['by_registration_project_origin_status']:
               assert set(r)=={'date','project','origin','origin_name','lead_media','lead_medias','visit_media','status','count'}
               assert isinstance(r['lead_medias'],list) and len(r['lead_medias'])>0

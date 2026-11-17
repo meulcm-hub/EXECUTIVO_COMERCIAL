@@ -70,4 +70,25 @@ class LeadsAllHistoryTests(unittest.TestCase):
         out=m.collect(lambda page:(p,1,{}))
         origins={x["origin"] for x in out["by_registration_project_origin_status"]}
         self.assertEqual(origins,{"Google","Facebook","Indicação","GE"})
+class CvdwStableDimensions(unittest.TestCase):
+    def test_cvdw_names_and_dimensions_use_latest_snapshot_without_live_listing(self):
+        import leads_public_projection as public
+        rows=[{'idlead':1,'data_cad':'2018-01-01','nome':'Maria Silva Antiga','corretor':'João Souza Santos','origem':'FB','origem_nome':'Facebook','midia_original':'Formulário','midia_ultimo':'WhatsApp','situacao':'CONTATO','referencia_data':'2026-11-16 10:00:00'},
+              {'idlead':1,'data_cad':'2018-01-01','nome':'Maria Souza Nova','corretor':'Ana Lima Santos','origem':'FB','origem_nome':'Facebook','midia_original':'Formulário','midia_ultimo':'WhatsApp','situacao':'CONTATO','referencia_data':'2026-11-17 10:00:00'}]
+        result=m.collect(lambda page:(rows,1,{'total_de_registros':2}),dt.date(2026,11,17),include_roster=True,use_cvdw_details=True)
+        self.assertEqual(result['dimension_source'],'cvdw')
+        self.assertEqual(result['cvdw_detail_leads'],1)
+        roster=result['_public_roster'];self.assertTrue(public.validate(roster))
+        self.assertEqual(roster['leads'][0]['name'],'Maria Souza')
+        self.assertEqual(roster['leads'][0]['owner'],'Ana Lima')
+        self.assertEqual(result['by_registration_project_origin_status'][0]['origin_name'],'Facebook')
+        self.assertEqual(result['by_registration_project_origin_status'][0]['lead_medias'],['Formulário','WhatsApp'])
+        self.assertNotIn('Antiga',str(result));self.assertNotIn('Santos',str(result))
+    def test_cvdw_totals_still_fail_closed(self):
+        row={'idlead':1,'data_cad':'2026-11-01','nome':'Maria Silva','referencia_data':'2026-11-17'}
+        with self.assertRaises(RuntimeError):
+            m.collect(lambda page:([dict(row,idlead=page)],2,{'total_de_registros':2 if page==1 else 3}),dt.date(2026,11,17),use_cvdw_details=True)
+        with self.assertRaises(RuntimeError):
+            m.collect(lambda page:([row],1,{'total_de_registros':2}),dt.date(2026,11,17),use_cvdw_details=True)
+
 if __name__=="__main__":unittest.main()

@@ -116,3 +116,23 @@ indisponíveis até existirem regras e dados suficientes.
 A publicação valida a correspondência entre a quantidade de eventos por lead
 e seus arquivos históricos. A carteira anterior permanece no site até a
 coleta integral e todas as verificações terminarem.
+
+
+### Correção da carga com CRM em movimentação (17/11/2026)
+
+A Gestão de Leads utiliza os campos documentados da própria fonte CVDW
+(nome, corretor, origem_nome, midia_original e midia_ultimo). A varredura da
+listagem comercial viva por offset foi retirada do caminho de publicação,
+pois seu total mudou durante a leitura e interrompeu a carga em 17/11.
+O coletor comercial anterior permanece disponível para seus demais usos.
+
+A base e os quatro históricos recebem o mesmo limite ate_data_referencia.
+Nomes permanecem reduzidos a dois termos. As mídias conhecidas nesta fonte
+são a original e a última; não se declara que representem todas as mídias
+que possam estar vinculadas ao lead no endpoint comercial. O metadado
+explicitamente informa dimension_source=cvdw; as contagens legadas da
+consulta comercial não são preenchidas com números de outra fonte.
+
+Totais, paginação, IDs, datas e vínculo da carteira com os históricos
+continuam validados antes da publicação. A consulta inicial comprova os
+campos CVDW e o total antes de iniciar a leitura dos históricos.

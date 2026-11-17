@@ -2,7 +2,7 @@
 """Coleta histórica integral de leads CV CRM, sem filtrar origem ou empreendimento.
 
 API CVDW /api/v1/cvdw/leads. Registros com IDs são processados SOMENTE em
-memória do GitHub runner; no Pages publica-se APENAS agregados sem PII.
+memória do GitHub runner; o Pages recebe somente a projeção pública autorizada.
 Sem total/paginação comprovada, a publicação é interrompida (fail closed).
 """
 import collections
@@ -18,7 +18,6 @@ import urllib.request
 from pathlib import Path
 
 from cvcrm_project_address_audit import credentials, NoRedirect
-from leads_commercial_dimensions import fetch_all as fetch_commercial_all
 
 API="/api/v1/cvdw/leads"
 OUT=Path("data/leads-all-summary.json")
@@ -97,8 +96,10 @@ def pick_date(row):
 def ref(row):
     return str(row.get("referencia_data") or "")
 
-def fetch_page(opener,base,email,token,page):
-    qs=urllib.parse.urlencode({"pagina":page,"registros_por_pagina":PAGE_SIZE})
+def fetch_page(opener,base,email,token,page,end_reference=None):
+    params={"pagina":page,"registros_por_pagina":PAGE_SIZE}
+    if end_reference:params["ate_data_referencia"]=end_reference
+    qs=urllib.parse.urlencode(params)
     req=urllib.request.Request(base+API+"?"+qs,headers={"email":email,"token":token,"Accept":"application/json"})
     for attempt in range(5):
         try:
@@ -124,10 +125,12 @@ def fetch_page(opener,base,email,token,page):
             time.sleep(min(45,2**attempt*3))
     raise RuntimeError("Requisição não concluída")
 
-def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster=False,operations=None,operations_meta=None,history_secret=None):
+def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster=False,operations=None,operations_meta=None,history_secret=None,use_cvdw_details=False):
     """No single page is silently accepted as complete if pagination says more."""
     as_of=as_of or CUTOFF
     leaders={}
+    roster_details={}
+    total_expected=None
     scanned=0
     missing=0
     invalid_date=0
@@ -135,6 +138,10 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster
     signatures=set()
     for page in range(1,MAX_PAGES+1):
         rows,n,payload=fetch(page)
+        if use_cvdw_details:
+            count=int(payload["total_de_registros"])
+            if total_expected is None:total_expected=count
+            if count!=total_expected:raise RuntimeError("Total CVDW mudou dentro do corte de referência; nenhuma publicação")
         if pages_total is None:pages_total=n
         if pages_total!=n:raise RuntimeError("Paginação alterou durante a coleta; reiniciar")
         if page>n:break
@@ -153,6 +160,13 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster
                 invalid_date+=1;continue
             old=leaders.get(key)
             detail=(commercial or {}).get(key,{})
+            if use_cvdw_details:
+                from leads_public_projection import short_name
+                known_medias=list(dict.fromkeys(text_value(item.get(k)) for k in ('midia_original','midia_ultimo') if text_value(item.get(k))))
+                detail={'origin_name':origin_name(item),'lead_media':media_original(item),
+                        'lead_medias':known_medias or ['NÃO INFORMADA'],
+                        'public_name':short_name(item.get('nome')),
+                        'public_owner':short_name(item.get('corretor')) if item.get('corretor') else None}
             snapshot={"date":day,"reference":ref(item),"project":project(item),
                        "origin":origin(item),
                        "origin_name":detail.get("origin_name") or origin_name(item),
@@ -161,12 +175,15 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster
                        "visit_media":visit_media(item),"status":status(item)}
             if old is None or snapshot["reference"]>old["reference"]:
                 leaders[key]=snapshot
+                roster_details[key]=detail
             elif snapshot["reference"]==old["reference"] and snapshot!=old:
                 raise RuntimeError("Snapshots conflitantes do mesmo ID sem ordem segura")
+        if page%25==0:print("Base CVDW: páginas",page,"de",n,flush=True)
         if page>=n:break
     if pages_total is None or len(signatures)!=pages_total:raise RuntimeError("Coleta incompleta")
     if missing or invalid_date:raise RuntimeError("IDs/datas ausentes: coleta íntegra não comprovada")
     if not leaders:raise RuntimeError("API retornou nenhum lead")
+    if use_cvdw_details and scanned!=total_expected:raise RuntimeError("Total de snapshots CVDW não conferiu")
     from collections import Counter
     cube=Counter()
     earliest=min(x["date"] for x in leaders.values())
@@ -187,11 +204,14 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster
       "commercial_matched":sum(1 for key in leaders if key in (commercial or {})),
       "by_registration_project_origin_status":cells}
     assert sum(x["count"] for x in cells)==len(leaders)
+    if use_cvdw_details:
+        result["dimension_source"]="cvdw"
+        result["cvdw_detail_leads"]=len(roster_details)
     if include_roster:
         from leads_public_projection import project as public_project, validate
         roster={"schema_version":1,"validated":True,"scope":"all_accessible_leads",
                 "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
-                "total":len(leaders),"leads":[public_project(item,(commercial or {}).get(key,{}))
+                "total":len(leaders),"leads":[public_project(item,roster_details.get(key,{}))
                     for key,item in sorted(leaders.items(),key=lambda kv:(kv[1]['date'],kv[0]),reverse=True)]}
         if operations is not None:
             import uuid
@@ -217,14 +237,21 @@ def collect(fetch,as_of=None,commercial=None,commercial_meta=None,include_roster
 def main():
     base,email,token=credentials(os.environ)
     opener=urllib.request.build_opener(NoRedirect())
-    # Na API comercial, origem e mídia são campos distintos do cadastro.
-    # Coleta integral via limit/offset e cruzamento somente em memória por idlead.
-    commercial,commercial_meta=fetch_commercial_all(base,email,token,public_names=True)
+    # Uma única janela CVDW, com os campos documentados e sem listagem offset viva.
+    from zoneinfo import ZoneInfo
+    cutoff=dt.datetime.now(ZoneInfo('America/Sao_Paulo'))
+    end_reference=cutoff.strftime('%Y-%m-%d %H:%M:%S')
+    print("Início da janela CVDW:",end_reference,"· horário de Brasília",flush=True)
+    first_page=fetch_page(opener,base,email,token,1,end_reference)
+    if not first_page[0] or not any("nome" in row and "corretor" in row and "origem_nome" in row for row in first_page[0]):
+        raise RuntimeError("Campos documentados CVDW ausentes; nenhuma base foi alterada")
+    print("Campos CVDW confirmados; snapshots previstos:",first_page[2].get("total_de_registros"),flush=True)
     from leads_operational_history import fetch_all as fetch_operations
-    operations,operations_meta=fetch_operations(base,email,token)
-    result=collect(lambda page:fetch_page(opener,base,email,token,page),
-                   commercial=commercial,commercial_meta=commercial_meta,include_roster=True,
+    operations,operations_meta=fetch_operations(base,email,token,end_reference=end_reference)
+    result=collect(lambda page:first_page if page==1 else fetch_page(opener,base,email,token,page,end_reference),
+                   as_of=cutoff.date(),include_roster=True,use_cvdw_details=True,
                    operations=operations,operations_meta=operations_meta,history_secret=token)
+    result['reference_cutoff']=end_reference
     roster=result.pop('_public_roster')
     shards=result.pop('_history_shards')
     import shutil
@@ -246,7 +273,7 @@ def main():
           "snapshots",result["snapshots_scanned"],
           "leads únicos",result["unique_leads"],
           "primeiro cadastro",result["earliest_cadastro"],
-          "leads comerciais vinculados",result["commercial_matched"])
+          "leads com dimensões CVDW",result.get("cvdw_detail_leads",0))
     print("Carteira autorizada: nomes reduzidos; nenhum ID, telefone, CPF ou e-mail publicado.")
 if __name__=="__main__":
     try:main()

@@ -105,9 +105,9 @@ def assemble(sources,secret):
     return {lead:sorted(values.values(),key=lambda x:(x['date'],x['kind'],x['type']),reverse=True)
             for lead,values in grouped.items()}
 
-def fetch_all(base,email,token):
+def fetch_all(base,email,token,*,end_reference=None):
     from zoneinfo import ZoneInfo
-    end_reference=dt.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%Y-%m-%d %H:%M:%S')
+    end_reference=end_reference or dt.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%Y-%m-%d %H:%M:%S')
     sources={};metadata={}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         futures={pool.submit(collect_source,kind,lambda page,p='/api/v1/cvdw/leads/'+route:request(base,email,token,p,page,end_reference)):kind for kind,route in ROUTES.items()}
