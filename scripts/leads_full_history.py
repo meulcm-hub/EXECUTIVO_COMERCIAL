@@ -8,6 +8,7 @@ Sem total/paginação comprovada, a publicação é interrompida (fail closed).
 import collections
 import datetime as dt
 import json
+import http.client
 import os
 import re
 import sys
@@ -127,8 +128,9 @@ def fetch_page(opener,base,email,token,page,end_reference=None):
             if err.code not in (500,502,503,504) or attempt>=5:
                 raise RuntimeError("API leads HTTP "+str(err.code)) from None
             time.sleep(min(45,2**attempt*3))
-        except (TimeoutError,urllib.error.URLError):
+        except (OSError,http.client.HTTPException,json.JSONDecodeError):
             if attempt>=5:raise RuntimeError("CV CRM sem resposta após tentativas") from None
+            print("CV CRM: resposta interrompida ou inválida; repetindo página",page,"da base · tentativa",attempt+2,flush=True)
             time.sleep(min(45,2**attempt*3))
     raise RuntimeError("Requisição não concluída")
 

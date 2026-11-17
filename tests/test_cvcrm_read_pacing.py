@@ -1,5 +1,6 @@
 import datetime as dt
 import io
+import http.client
 import json
 from pathlib import Path
 import sys
@@ -67,4 +68,34 @@ class PacingTests(unittest.TestCase):
         with patch.object(ops,'PACER'),patch.object(ops.urllib.request,'build_opener',return_value=opener):
             with self.assertRaisesRegex(RuntimeError,'HTTP 401'):ops.request('https://lcm.cvcrm.com.br','email','token','/api/v1/cvdw/leads/visitas',1)
         self.assertEqual(opener.open.call_count,1)
+class InterruptedResponse(Response):
+    def read(self,*args):raise http.client.IncompleteRead(b'private response bytes')
+
+class InterruptedTransportTests(unittest.TestCase):
+    def test_partial_interaction_response_is_discarded_and_same_page_retried(self):
+        clock=Clock();p=ReadPacer(clock=clock.clock,sleep=clock.sleep)
+        opener=unittest.mock.Mock()
+        expected={'dados':[{'idinteracao':123}],'total_de_paginas':3,'total_de_registros':1001}
+        opener.open.side_effect=[InterruptedResponse({}),Response(expected)]
+        with patch.object(ops,'PACER',p),patch.object(ops.time,'sleep',side_effect=clock.sleep),patch.object(ops.urllib.request,'build_opener',return_value=opener):
+            result=ops.request('https://lcm.cvcrm.com.br','email','token','/api/v1/cvdw/leads/interacoes',430,'2026-11-17 16:00:00')
+        self.assertEqual(result,expected)
+        self.assertEqual(opener.open.call_args_list[0].args[0].full_url,opener.open.call_args_list[1].args[0].full_url)
+        self.assertNotIn('private response bytes',str(result))
+    def test_partial_lead_response_is_retried_without_losing_cutoff(self):
+        clock=Clock();p=ReadPacer(clock=clock.clock,sleep=clock.sleep)
+        opener=unittest.mock.Mock();opener.open.side_effect=[InterruptedResponse({}),Response({'dados':[{'idlead':123}],'total_de_paginas':5})]
+        with patch.object(full,'PACER',p),patch.object(full.time,'sleep',side_effect=clock.sleep):
+            rows,pages,_=full.fetch_page(opener,'https://lcm.cvcrm.com.br','email','token',3,'2026-11-17 16:00:00')
+        self.assertEqual(pages,5);self.assertEqual(len(rows),1)
+        urls=[call.args[0].full_url for call in opener.open.call_args_list]
+        self.assertEqual(urls[0],urls[1]);self.assertIn('ate_data_referencia',urls[1])
+    def test_persistent_transport_failure_still_blocks_publication(self):
+        opener=unittest.mock.Mock();opener.open.side_effect=http.client.RemoteDisconnected('private upstream response')
+        with patch.object(ops,'PACER'),patch.object(ops.time,'sleep'),patch.object(ops.urllib.request,'build_opener',return_value=opener):
+            with self.assertRaisesRegex(RuntimeError,'Fonte operacional indisponível') as error:
+                ops.request('https://lcm.cvcrm.com.br','email','token','/api/v1/cvdw/leads/interacoes',430)
+        self.assertEqual(opener.open.call_count,6)
+        self.assertNotIn('private upstream response',str(error.exception))
+
 if __name__=='__main__':unittest.main()

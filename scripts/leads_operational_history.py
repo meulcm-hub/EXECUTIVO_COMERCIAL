@@ -3,6 +3,7 @@ import datetime as dt
 import hashlib
 import hmac
 import json
+import http.client
 import time
 import urllib.error
 import urllib.parse
@@ -48,8 +49,9 @@ def request(base,email,token,path,page,end_reference=None):
                 continue
             if error.code not in (500,502,503,504) or attempt>=5:
                 raise RuntimeError('Fonte operacional '+path+': HTTP '+str(error.code)) from None
-        except (TimeoutError,urllib.error.URLError,ValueError):
+        except (OSError,http.client.HTTPException,json.JSONDecodeError):
             if attempt>=5:raise RuntimeError('Fonte operacional indisponível: '+path) from None
+            print('CV CRM: resposta interrompida ou inválida; repetindo página',page,'da fonte',path,'· tentativa',attempt+2,flush=True)
         time.sleep(min(60,3*2**attempt))
     raise RuntimeError('Fonte operacional não concluída: '+path)
 

@@ -154,3 +154,13 @@ externas que usem a mesma cota ainda podem provocar bloqueios; a publicação
 continua condicionada à coleta completa e à validação de integridade.
 
 Fonte: https://desenvolvedor.cvcrm.com.br/docs/getting-started
+
+
+### Respostas HTTP interrompidas
+
+A leitura integral também pode receber uma transferência HTTP chunked
+interrompida (http.client.IncompleteRead) ou uma conexão encerrada. Base e
+históricos descartam a página parcial e repetem a mesma requisição, com o
+mesmo corte de referência e respeitando a fila de consultas. Falhas de
+transporte persistentes continuam impedindo a publicação; bytes parciais e
+mensagens brutas do servidor nunca entram na base nem nos logs públicos.
