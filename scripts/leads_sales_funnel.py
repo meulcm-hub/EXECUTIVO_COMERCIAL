@@ -74,12 +74,17 @@ def build(roster,histories,conversions,precads,reservations,secret,tasks=None):
                 returned = day(e['date'])
                 if destination and destination != 'DESCARTADO' and returned and returned >= rows[key]['registered']:
                     rows[key]['entries'].add(returned)
-            # Tarefas de visita são agendamentos explícitos. Tarefa genérica não comprova visita.
-            if e['kind'] in ('task','visit') and (e['kind']=='visit' or e['type']=='Visita') and e['state']!='Cancelada':
-                event(key,day(e['date']),1,'task')
-                if e['state']=='Concluída':event(key,day(e['date']),2,'visit')
+            if e['kind'] == 'stage' and norm(e.get('to')) == 'ANALISE DE CREDITO':
+                event(key, day(e['date']), 3, 'credit_stage')
+            if e['kind'] in ('task', 'visit', 'interaction') and (e['kind'] == 'visit' or e['type'] == 'Visita'):
+                source = 'visit_cancelled' if e['state'] == 'Cancelada' else 'visit_scheduled'
+                event(key, day(e['date']), 1, source)
+                if e['state'] == 'Concluída':
+                    event(key, day(e['date']), 2, 'visit')
     for row in (tasks or {}).values():
         if norm(row.get('ativo','S'))!='S' or norm(row.get('situacao')) not in ('P','A','C'):continue
+        if norm(row.get('tipo_interacao')) == 'V':
+            event(opaque(secret, 'lead', row.get('idlead')), day(row.get('data_cad')), 1, 'visit_scheduled')
         title=norm(' '.join(str(row.get(k) or '') for k in ('nome','descricao','tipo_tarefa')))
         if 'AGEND' not in title:continue
         date=day(row.get('data_cad'))
@@ -115,7 +120,7 @@ def build(roster,histories,conversions,precads,reservations,secret,tasks=None):
     for key,r in sorted(rows.items()):
         result.append({'key':key,'registered':r['registered'],'entries':sorted(r['entries']),
                        'events':[{'date':d,'level':l,'source':s} for d,l,s in sorted(r['events'])]})
-    return {'schema_version':1,'validated':True,'history_generation':roster['history_generation'],
+    return {'schema_version':1,'visit_rules_version':2,'validated':True,'history_generation':roster['history_generation'],
             'generated_at_utc':dt.datetime.now(dt.timezone.utc).isoformat(),
             'return_date_basis':'cvdw_conversion_reference_date','leads':result,'audit':dict(audit)}
 
@@ -128,7 +133,7 @@ def validate(data,roster):
         seen.add(row['key'])
         if day(row['registered'])!=row['registered'] or not row['entries'] or any(day(d)!=d for d in row['entries']):raise RuntimeError('Datas do funil inválidas')
         for e in row['events']:
-            if set(e)!={'date','level','source'} or day(e['date'])!=e['date'] or e['level'] not in (1,2,3,4) or e['source'] not in ('task','visit','pre_registration','reservation_rule','reservation_sale'):raise RuntimeError('Evento público inválido')
+            if set(e)!={'date','level','source'} or day(e['date'])!=e['date'] or e['level'] not in (1,2,3,4) or e['source'] not in ('task','visit','visit_scheduled','visit_cancelled','credit_stage','pre_registration','reservation_rule','reservation_sale'):raise RuntimeError('Evento público inválido')
     return True
 
 def main():

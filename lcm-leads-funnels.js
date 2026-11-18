@@ -18,9 +18,24 @@ function cohort(records, rows, filters) {
  });
 }
 function sales(records,rows,filters){const counts=[0,0,0,0,0],inferred=[0,0,0,0,0];let returns=0;
- for(const {record:r,first} of cohort(records,rows,filters)){counts[0]++;if(r.registered<filters.since)returns++;const direct=new Set(),viaReservation=new Set();
-  for(const e of r.events){if(e.date<first||e.date>filters.until)continue;for(let i=1;i<=e.level;i++){(e.source==='reservation_rule'||(e.source==='reservation_sale'&&i<4)?viaReservation:direct).add(i);}}
-  for(let i=1;i<5;i++)if(direct.has(i)||viaReservation.has(i)){counts[i]++;if(!direct.has(i)&&viaReservation.has(i))inferred[i]++;}
+ for(const {record:r,first} of cohort(records,rows,filters)){counts[0]++;if(r.registered<filters.since)returns++;const direct = new Set();
+  const inferredStages = new Set();
+  const events = r.events.filter(e => e.date >= first && e.date <= filters.until);
+  const hasVisitRecord = events.some(e => ['visit_scheduled', 'visit_cancelled', 'visit'].includes(e.source));
+  for (const e of events) {
+   if (e.source === 'visit_cancelled') continue;
+   if (e.source === 'reservation_rule' || e.source === 'reservation_sale') inferredStages.add(3);
+   if (e.source !== 'reservation_rule') direct.add(e.level);
+   if (e.level === 2) direct.add(1);
+  }
+  if (!hasVisitRecord && (direct.has(3) || inferredStages.has(3))) {
+   inferredStages.add(1);
+   inferredStages.add(2);
+  }
+  for (let level = 1; level <= 4; level++) {
+   if (direct.has(level) || inferredStages.has(level)) counts[level]++;
+   if (!direct.has(level) && inferredStages.has(level)) inferred[level]++;
+  }
  }return {stages:['Prospect','Agendamento','Visita','Análise de Crédito','Venda Realizada'].map((label,i)=>({label,value:counts[i],inferred:inferred[i]})),returns};}
 const api={current,sales,cohort};root.LcmLeadsFunnels=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:window);
