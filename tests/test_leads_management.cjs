@@ -20,12 +20,14 @@ test('status de tarefas distingue ausência confirmada, prazo, falta de data e f
 });
 
 test('pipeline segue as seis etapas comerciais e limites das cadências',()=>{
- assert.deepEqual(M.stages,['Novo Lead','Em Atendimento','Agendamento','Visita','Análise de Crédito','Venda']);
- for(const status of ['PROSPECÇÃO','NOVO LEAD'])assert.equal(M.stage(status),'Novo Lead');
- for(let i=1;i<=7;i++)assert.equal(M.stage('CAD/C '+i),'Em Atendimento');
- for(let i=1;i<=20;i++)assert.equal(M.stage('CAD/A '+i),'Agendamento');
- assert.equal(M.stage('AGENDAMENTO'),'Agendamento');assert.equal(M.stage('Visita'),'Visita');
- assert.equal(M.stage('ANÁLISE DE CRÉDITO'),'Análise de Crédito');assert.equal(M.stage('VENDA REALIZADA'),'Venda');
- for(const status of ['CAD/A 0','CAD/A 21','CAD/C 8','QUALIFICADO','PRÉ-CADASTRO','APROVADO','RESERVA','VENDA'])assert.equal(M.stage(status),null);
- assert.equal(M.stage('DESCARTADO'),'Perdido');
+ assert.deepEqual(M.pipelineStages,['Novo Lead','Em Atendimento','Agendamento','Visita','Análise de Crédito','Venda']);
+ for(const status of ['PROSPECÇÃO','NOVO LEAD'])assert.equal(M.pipelineStage(status),'Novo Lead');
+ for(let i=1;i<=7;i++)assert.equal(M.pipelineStage('CAD/C '+i),'Em Atendimento');
+ for(let i=1;i<=20;i++)assert.equal(M.pipelineStage('CAD/A '+i),'Agendamento');
+ assert.equal(M.pipelineStage('AGENDAMENTO'),'Agendamento');assert.equal(M.pipelineStage('Visita'),'Visita');
+ assert.equal(M.pipelineStage('ANÁLISE DE CRÉDITO'),'Análise de Crédito');assert.equal(M.pipelineStage('VENDA REALIZADA'),'Venda');
+ for(const status of ['CAD/A 0','CAD/A 21','CAD/C 8','QUALIFICADO','PRÉ-CADASTRO','APROVADO','RESERVA','VENDA'])assert.equal(M.pipelineStage(status),null);
+ assert.equal(M.pipelineStage('DESCARTADO'),'Perdido');
 });
+
+test('classificação do Pipeline não altera a classificação das outras abas',()=>{assert.equal(M.stage('CAD/A 20'),'Qualificado');assert.equal(M.pipelineStage('CAD/A 20'),'Agendamento');assert.equal(M.stage('RESERVA'),'Reserva');assert.equal(M.pipelineStage('RESERVA'),null);});
