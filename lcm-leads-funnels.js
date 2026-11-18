@@ -17,10 +17,26 @@ function cohort(records, rows, filters) {
   return first ? [{record, row, first}] : [];
  });
 }
-function sales(records,rows,filters){const counts=[0,0,0,0,0],inferred=[0,0,0,0,0];let returns=0;
+function sales(records,rows,filters,legacy=false){const counts=[0,0,0,0,0],inferred=[0,0,0,0,0];let returns=0;
  for(const {record:r,first} of cohort(records,rows,filters)){counts[0]++;if(r.registered<filters.since)returns++;const direct = new Set();
   const inferredStages = new Set();
   const events = r.events.filter(e => e.date >= first && e.date <= filters.until);
+  if (legacy) {
+   const recorded = new Set();
+   const inferredOnly = new Set();
+   for (const event of events) {
+    for (let level = 1; level <= event.level; level++) {
+     const inferredByReservation = event.source === 'reservation_rule' ||
+      (event.source === 'reservation_sale' && level < 4);
+     (inferredByReservation ? inferredOnly : recorded).add(level);
+    }
+   }
+   for (let level = 1; level <= 4; level++) {
+    if (recorded.has(level) || inferredOnly.has(level)) counts[level]++;
+    if (!recorded.has(level) && inferredOnly.has(level)) inferred[level]++;
+   }
+   continue;
+  }
   const hasVisitRecord = events.some(e => ['visit_scheduled', 'visit_cancelled', 'visit'].includes(e.source));
   for (const e of events) {
    if (e.source === 'visit_cancelled') continue;
