@@ -27,6 +27,11 @@ class Sales(unittest.TestCase):
   r,m=read_pages(payload,'idreserva');self.assertEqual(len(r),2)
   with self.assertRaises(RuntimeError):read_pages(lambda p:payload(1),'idreserva')
   with self.assertRaises(RuntimeError):read_pages(lambda p:{**payload(p),'total_de_registros':p},'idreserva')
+ def test_explicit_scheduling_tasks_and_completed_without_appointment(self):
+  key,roster=self.fixture()
+  tasks={'1':{'idlead':120,'data_cad':'2026-11-01','descricao':'SEM AGENDAMENTO','situacao':'C','data_conclusao':'2026-11-02'},'2':{'idlead':120,'data_cad':'2026-11-02','descricao':'AGENDAMENTO','situacao':'CA'},'3':{'idlead':120,'data_cad':'2026-11-03','descricao':'Ligar amanhã','situacao':'P'}}
+  r=build(roster,{key:[]},{},{},{},'secret',tasks=tasks)
+  self.assertEqual([(e['date'],e['level']) for e in r['leads'][0]['events']],[('2026-11-01',1),('2026-11-02',2)])
  def test_public_projection_rejects_extra_fields(self):
   key,roster=self.fixture();r=build(roster,{key:[]},{},{},{},'secret');self.assertTrue(validate(r,roster));r['leads'][0]['email']='private'
   with self.assertRaises(RuntimeError):validate(r,roster)

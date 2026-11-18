@@ -196,8 +196,10 @@ atuais da carteira; a entrada considera cadastro original ou referência de conv
 posterior ao cadastro. A referência CVDW de conversão é a base temporal de retorno
 já disponível na integração, não um comprovante de atendimento.
 
-Agendamento vem de tarefa explicitamente de visita, incluindo visita sem data
-agendada; visita exige conclusão. Pré-cadastro não cancelado marca análise de
+Agendamento vem de tarefa explicitamente de visita ou com classificação de
+agendamento no título/descrição, incluindo SEM AGENDAMENTO. A tarefa SEM AGENDAMENTO
+concluída também marca visita, conforme a regra aprovada; demais visitas exigem conclusão.
+O texto de tarefa é lido somente na memória e não é exportado. Pré-cadastro não cancelado marca análise de
 crédito. Reserva ativa não cancelada vinculada marca o avanço até análise pela
 regra aprovada, sem afirmar que houve agendamento ou visita registrados.
 Venda exige uma das seis situações exatas aprovadas: Vendida, Contrato Assinado por

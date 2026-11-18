@@ -60,7 +60,7 @@ def read_pages(fetch,identity,*,precad=False):
     if scanned!=expected or len(seen)!=pages:raise RuntimeError('Total da fonte do funil não conferiu')
     return {key:value[1] for key,value in latest.items()},{'records':scanned,'pages':pages}
 
-def build(roster,histories,conversions,precads,reservations,secret):
+def build(roster,histories,conversions,precads,reservations,secret,tasks=None):
     validate_roster(roster)
     rows={r['history_key']:{'key':r['history_key'],'registered':r['date'],'entries':{r['date']},'events':set()} for r in roster['leads']}
     audit=collections.Counter()
@@ -73,6 +73,15 @@ def build(roster,histories,conversions,precads,reservations,secret):
             if e['kind'] in ('task','visit') and (e['kind']=='visit' or e['type']=='Visita') and e['state']!='Cancelada':
                 event(key,day(e['date']),1,'task')
                 if e['state']=='Concluída':event(key,day(e['date']),2,'visit')
+    for row in (tasks or {}).values():
+        if norm(row.get('ativo','S'))!='S' or norm(row.get('situacao')) not in ('P','A','C'):continue
+        title=norm(' '.join(str(row.get(k) or '') for k in ('nome','descricao','tipo_tarefa')))
+        if 'AGEND' not in title:continue
+        date=day(row.get('data_cad'))
+        key=opaque(secret,'lead',row.get('idlead'))
+        event(key,date,1,'task')
+        if 'SEM AGEND' in title and norm(row.get('situacao'))=='C':
+            event(key,day(row.get('data_conclusao')) or date,2,'visit')
     for row in conversions.values():
         if norm(row.get('ativo','S'))!='S':continue
         key=opaque(secret,'lead',row.get('idlead'));date=day(row.get('referencia_data'))
@@ -132,9 +141,11 @@ def main():
     # REST pré-cadastro usa pagina/limite, e não registros_por_pagina.
     from leads_sales_precad_request import request_pre
     precads,pm=read_pages(lambda p:request_pre(base,email,token,p),'idprecadastro',precad=True)
-    result=build(roster,histories,conversions,precads,reservations,token)
+    from leads_operational_history import collect_source
+    tasks,tm=collect_source('task',lambda p:request(base,email,token,'/api/v1/cvdw/leads/tarefas',p,cutoff))
+    result=build(roster,histories,conversions,precads,reservations,token,tasks={k:v['raw'] for k,v in tasks.items()})
     validate(result,roster)
-    result['source_reference_cutoff']=cutoff;result['sources']={'conversions':cm,'reservations':rm,'pre_registrations':{**pm,'reference_cutoff_supported':False}}
+    result['source_reference_cutoff']=cutoff;result['sources']={'conversions':cm,'reservations':rm,'tasks':tm,'pre_registrations':{**pm,'reference_cutoff_supported':False}}
     out=root/'leads-sales-funnel.json';temp=out.with_suffix('.json.tmp');temp.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':')));temp.replace(out)
     print('Funil validado:',len(result['leads']),'leads. Fontes:',result['sources'],flush=True)
 if __name__=='__main__':
