@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-18T02:49:37.883097+00:00",
+  "generated_at_utc": "2026-11-18T17:56:10.615970+00:00",
   "period": {
     "since": "2026-11-12",
     "until": "2026-11-18"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "898.38",
-      "impressions": 76511,
-      "clicks": 883
+      "spend": "968.80",
+      "impressions": 81233,
+      "clicks": 931
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "913.13",
-      "impressions": 114434,
-      "clicks": 700
+      "spend": "983.35",
+      "impressions": 123016,
+      "clicks": 739
     },
     {
       "account_id": "272429171879216",
@@ -68,36 +68,36 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "800.54",
-      "impressions": 59942,
-      "clicks": 507
+      "spend": "862.26",
+      "impressions": 63802,
+      "clicks": 538
     }
   ],
   "cv_by_project_normalized": {
     "residencial village lagoas": {
-      "leads_period": 32,
-      "meta_declarada": 26,
-      "meta_whatsapp_cv": 1,
+      "leads_period": 33,
+      "meta_declarada": 27,
+      "meta_whatsapp_cv": 2,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 25,
       "google_declarada": 0,
       "outra_ou_nao_informada": 6
     },
     "residencial jatoba": {
-      "leads_period": 31,
-      "meta_declarada": 27,
+      "leads_period": 33,
+      "meta_declarada": 29,
       "meta_whatsapp_cv": 3,
-      "meta_busca_compartilhada_cv": 6,
+      "meta_busca_compartilhada_cv": 8,
       "meta_outros_cv": 18,
       "google_declarada": 0,
       "outra_ou_nao_informada": 4
     },
     "spe arraial costa verde club": {
-      "leads_period": 15,
-      "meta_declarada": 15,
+      "leads_period": 16,
+      "meta_declarada": 16,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 0,
-      "meta_outros_cv": 15,
+      "meta_outros_cv": 16,
       "google_declarada": 0,
       "outra_ou_nao_informada": 0
     },
