@@ -69,6 +69,11 @@ def build(roster,histories,conversions,precads,reservations,secret,tasks=None):
     for key,events in histories.items():
         if key not in rows:raise RuntimeError('Histórico não pertence à carteira')
         for e in events:
+            if e['kind'] == 'stage' and norm(e.get('from')) == 'DESCARTADO':
+                destination = norm(e.get('to'))
+                returned = day(e['date'])
+                if destination and destination != 'DESCARTADO' and returned and returned >= rows[key]['registered']:
+                    rows[key]['entries'].add(returned)
             # Tarefas de visita são agendamentos explícitos. Tarefa genérica não comprova visita.
             if e['kind'] in ('task','visit') and (e['kind']=='visit' or e['type']=='Visita') and e['state']!='Cancelada':
                 event(key,day(e['date']),1,'task')
