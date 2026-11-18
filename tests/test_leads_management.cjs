@@ -18,3 +18,14 @@ test('status de tarefas distingue ausência confirmada, prazo, falta de data e f
  assert.equal(fn({},[task('2026-11-17T12:00:00Z'),task('2026-11-19T12:00:00Z')],now),'Possui tarefa atrasada');
  assert.equal(fn({next_action_at:'2026-11-17T12:00:00Z'},undefined,now),'Possui tarefa atrasada');
 });
+
+test('pipeline segue as seis etapas comerciais e limites das cadências',()=>{
+ assert.deepEqual(M.stages,['Novo Lead','Em Atendimento','Agendamento','Visita','Análise de Crédito','Venda']);
+ for(const status of ['PROSPECÇÃO','NOVO LEAD'])assert.equal(M.stage(status),'Novo Lead');
+ for(let i=1;i<=7;i++)assert.equal(M.stage('CAD/C '+i),'Em Atendimento');
+ for(let i=1;i<=20;i++)assert.equal(M.stage('CAD/A '+i),'Agendamento');
+ assert.equal(M.stage('AGENDAMENTO'),'Agendamento');assert.equal(M.stage('Visita'),'Visita');
+ assert.equal(M.stage('ANÁLISE DE CRÉDITO'),'Análise de Crédito');assert.equal(M.stage('VENDA REALIZADA'),'Venda');
+ for(const status of ['CAD/A 0','CAD/A 21','CAD/C 8','QUALIFICADO','PRÉ-CADASTRO','APROVADO','RESERVA','VENDA'])assert.equal(M.stage(status),null);
+ assert.equal(M.stage('DESCARTADO'),'Perdido');
+});
