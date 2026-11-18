@@ -65,4 +65,29 @@ class HistoryTests(unittest.TestCase):
         for forbidden in ('idlead','idinteracao','descricao','audioServidor','real@example.com','111.222.333-44','secret'):
             self.assertNotIn(forbidden,text)
         self.assertNotEqual(ops.opaque('secret','lead',12),ops.opaque('other','lead',12))
+class ReportedPaginationMismatch(unittest.TestCase):
+    def test_inflated_counter_requires_partial_page_and_two_empty_confirmations(self):
+        calls=[]
+        data={1:[row(idinteracao=1),row(idinteracao=2)],2:[row(idinteracao=3)],3:[],4:[]}
+        def fetch(p):
+            calls.append(p);return {'dados':data[p],'total_de_registros':4,'total_de_paginas':3,'registros':2}
+        result,meta=ops.collect_source('interaction',fetch)
+        self.assertEqual(calls,[1,2,3,4]);self.assertEqual(len(result),3)
+        self.assertEqual(meta['records'],3);self.assertEqual(meta['reported_records'],4)
+        self.assertEqual(meta['count_difference'],1)
+    def test_gap_or_full_page_does_not_silently_override_counts(self):
+        def fetch(p):
+            rows={1:[row(idinteracao=1),row(idinteracao=2)],2:[],3:[]}
+            return {'dados':rows[p],'total_de_registros':4,'total_de_paginas':3,'registros':2}
+        with self.assertRaisesRegex(RuntimeError,'incompleta'):ops.collect_source('interaction',fetch)
+        with self.assertRaisesRegex(RuntimeError,'não conferiu'):
+            ops.collect_source('interaction',lambda p:{'dados':[row(idinteracao=1),row(idinteracao=2)],'total_de_registros':3,'total_de_paginas':1,'registros':2})
+    def test_later_data_or_changing_metadata_rejects_terminal_proof(self):
+        for changed in (False,True):
+            def fetch(p):
+                rows=[row(idinteracao=1),row(idinteracao=2)] if p==1 else [row(idinteracao=3)] if p==2 else []
+                if p==4 and not changed:rows=[row(idinteracao=4)]
+                return {'dados':rows,'total_de_registros':5 if p==4 and changed else 4,'total_de_paginas':3,'registros':2}
+            with self.assertRaisesRegex(RuntimeError,'não comprovado'):ops.collect_source('interaction',fetch)
+
 if __name__=='__main__':unittest.main()

@@ -56,7 +56,7 @@ def request(base,email,token,path,page,end_reference=None):
     raise RuntimeError('Fonte operacional não concluída: '+path)
 
 def collect_source(kind,fetch):
-    latest={};signatures=set();expected=None;pages=None;scanned=0
+    latest={};signatures=set();expected=None;pages=None;scanned=0;capacity=None
     for page in range(1,10001):
         payload=fetch(page)
         if not isinstance(payload,dict) or not isinstance(payload.get('dados'),list):raise RuntimeError('Esquema operacional inválido')
@@ -64,6 +64,7 @@ def collect_source(kind,fetch):
         if expected is None:expected,pages=count,n
         if (count,n)!=(expected,pages):raise RuntimeError('Fonte operacional mudou durante a coleta; publicação interrompida')
         batch=payload['dados']
+        if capacity is None:capacity=int(payload.get('registros') or len(batch) or 500)
         if count==0 and n==0 and not batch:return {},{'records':0,'pages':0}
         if not batch or not 1<=n<=10000:raise RuntimeError('Paginação operacional incompleta')
         signature=hashlib.sha256(json.dumps(batch,sort_keys=True).encode()).hexdigest()
@@ -80,6 +81,22 @@ def collect_source(kind,fetch):
             old=latest.get(identity)
             if old and old['reference']==reference and old['raw']!=row:raise RuntimeError('Snapshot operacional conflitante')
             if not old or reference>old['reference']:latest[identity]={'lead':lead,'reference':reference,'raw':row}
+        if len(batch)<capacity and scanned!=expected:
+            # O CV pode contar registros que sua listagem não disponibiliza.
+            # Só aceitar o fim acessível após página parcial e duas páginas vazias.
+            for terminal_page in (page+1,page+2):
+                tail=fetch(terminal_page)
+                if (not isinstance(tail,dict) or not isinstance(tail.get('dados'),list)
+                        or tail['dados'] or int(tail.get('total_de_registros',-1))!=expected
+                        or int(tail.get('total_de_paginas',-1))!=pages):
+                    raise RuntimeError('Fim do histórico não comprovado; nenhuma publicação')
+            difference=expected-scanned
+            if difference<0:raise RuntimeError('Histórico excedeu total informado')
+            print('Fim acessível confirmado:',kind,'registros lidos',scanned,
+                  'total informado',expected,'diferença',difference,flush=True)
+            return latest,{'records':scanned,'pages':page,'reported_records':expected,
+                           'reported_pages':pages,'count_difference':difference,
+                           'completeness':'partial_page_and_two_empty_pages'}
         if page==n:break
         if page%50==0:print('Histórico:',kind,'páginas',page,'de',n,flush=True)
         time.sleep(.15)

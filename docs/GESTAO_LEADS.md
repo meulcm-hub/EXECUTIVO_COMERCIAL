@@ -164,3 +164,19 @@ históricos descartam a página parcial e repetem a mesma requisição, com o
 mesmo corte de referência e respeitando a fila de consultas. Falhas de
 transporte persistentes continuam impedindo a publicação; bytes parciais e
 mensagens brutas do servidor nunca entram na base nem nos logs públicos.
+
+
+### Contador maior que a listagem disponível no histórico de etapas
+
+Em 17/11 o diagnóstico real confirmou uma diferença de 174 registros entre
+os metadados do histórico de situações e os registros retornáveis, tanto
+com corte de referência quanto sem filtro. A última página anunciada estava
+vazia; a anterior continha menos registros que a capacidade da página.
+
+A prova alternativa de completude exige uma página parcial seguida de duas
+páginas vazias, com metadados consistentes. Uma página vazia intermediária,
+repetida, com dados posteriores ou com contador alterado continua bloqueando
+a carga. A diferença não é escondida: history_sources preserva records,
+pages, reported_records, reported_pages, count_difference e completeness.
+Os dados publicados correspondem aos registros realmente disponíveis na
+API; não são fabricados registros para atingir o contador anunciado.
