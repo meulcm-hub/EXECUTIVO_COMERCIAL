@@ -1,0 +1,40 @@
+name: LCM - Diagnosticar limite de paginas do historico CV
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/cv-history-pagination-diagnostic.yml]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Conferir metadados e paginas finais sem expor registros
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: |
+          python -u - <<'PY'
+          import sys,json,os
+          sys.path.insert(0,'scripts')
+          from cvcrm_project_address_audit import credentials
+          from leads_operational_history import request
+          base,email,token=credentials(os.environ)
+          path='/api/v1/cvdw/leads/historico/situacoes'
+          for cutoff in ('2026-11-17 17:55:14',None):
+              first=request(base,email,token,path,1,cutoff)
+              n=int(first.get('total_de_paginas',0))
+              batches=[(1,first)]
+              for page in sorted(set([max(1,n-1),n,n+1])):
+                  if page!=1:batches.append((page,request(base,email,token,path,page,cutoff)))
+              for page,payload in batches:
+                  rows=payload.get('dados',[])
+                  print(json.dumps({'cutoff':cutoff,'requested_page':page,'pagina':payload.get('pagina'),'registros':payload.get('registros'),'total_de_registros':payload.get('total_de_registros'),'total_de_paginas':payload.get('total_de_paginas'),'rows_received':len(rows),'distinct_references':len({str(row.get('referencia')) for row in rows}),'references_after_cutoff':sum(str(row.get('referencia_data',''))>cutoff for row in rows) if cutoff else None},ensure_ascii=False),flush=True)
+          PY
