@@ -19,3 +19,5 @@ body.lcm-app.lcm-leads-page{--bg:#07111f;--muted:#8da3b7;margin:0;background:var
 .history-event{padding:14px 0;border-bottom:1px solid #244153}.history-event strong{font-size:.85rem}.history-event p{margin:6px 0}
 
 .kanban-scroll-top{overflow-x:auto;overflow-y:hidden;height:20px;margin-bottom:12px;scrollbar-color:#829ba9 #142b40}.kanban-scroll-top>div{height:1px}.kanban{scrollbar-color:#829ba9 #142b40}
+
+.lead-funnels{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}.lead-funnels .commercial-funnel-band{height:42px;margin:4px 0;display:flex;align-items:center;justify-content:center;gap:12px;color:#061824;font-size:11px;text-align:center;padding:0 26%}.commercial-funnel-band span{font-weight:800;font-size:15px;white-space:nowrap}.funnel-discarded{text-align:right;margin:16px 0 0;color:#f3a3a3;font-weight:700}.lcm-leads-page .chart-grid{grid-template-columns:1.4fr 1fr}@media(max-width:800px){.lead-funnels,.lcm-leads-page .chart-grid{grid-template-columns:1fr}}

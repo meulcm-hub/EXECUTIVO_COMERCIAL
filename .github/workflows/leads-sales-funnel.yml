@@ -1,0 +1,65 @@
+name: LCM - Funil de Vendas - CV CRM
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['LCM - Gestao de Leads - Base Completa CV CRM']
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - scripts/leads_sales_funnel.py
+      - scripts/leads_sales_precad_request.py
+      - tests/test_leads_sales_funnel.py
+      - .github/workflows/leads-sales-funnel.yml
+permissions:
+  contents: write
+concurrency:
+  group: lcm-all-leads-publication
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Testar regras comerciais e privacidade
+        run: |
+          python -m unittest discover -s tests -p 'test_leads_sales_funnel.py' -v
+          node --test tests/test_leads_funnels.cjs
+      - name: Coletar retornos, pré-cadastros e reservas
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python -u scripts/leads_sales_funnel.py
+      - name: Publicar apenas funil validado da mesma geração
+        run: |
+          cp data/leads-sales-funnel.json "$RUNNER_TEMP/leads-sales-funnel.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            python - <<'PY'
+          import json,os
+          from pathlib import Path
+          funnel=json.loads((Path(os.environ['RUNNER_TEMP'])/'leads-sales-funnel.json').read_text())
+          roster=json.loads(Path('data/leads-roster.json').read_text())
+          assert funnel['validated'] and funnel['history_generation']==roster['history_generation'], 'Carteira atualizada durante coleta; funil anterior preservado'
+          assert len(funnel['leads'])==roster['total']
+          PY
+            cp "$RUNNER_TEMP/leads-sales-funnel.json" data/leads-sales-funnel.json
+            git add data/leads-sales-funnel.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'data(leads): publicar funil de vendas validado'
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 5
+          done
+          exit 1

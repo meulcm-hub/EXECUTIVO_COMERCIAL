@@ -180,3 +180,33 @@ a carga. A diferença não é escondida: history_sources preserva records,
 pages, reported_records, reported_pages, count_difference e completeness.
 Os dados publicados correspondem aos registros realmente disponíveis na
 API; não são fabricados registros para atingir o contador anunciado.
+
+
+## Dois funis independentes (18/11/2026)
+
+O Funil Situações Atuais usa os status originais do Workflow de Leads, por cadastro
+no período, sem agrupar cadências. Exibe somente status com leads; DESCARTADO fica
+fora do desenho, no canto inferior direito. As larguras são ilustrativas.
+
+O Funil de Vendas usa a carteira completa e históricos já validados, além de
+CVDW leads/conversoes, CVDW reservas e REST comercial/precadastro. Os identificadores
+são cruzados em memória por HMAC e não são publicados. Cada lead conta uma vez por
+etapa, mesmo com múltiplas entradas ou reservas. Os filtros comerciais são os dados
+atuais da carteira; a entrada considera cadastro original ou referência de conversão
+posterior ao cadastro. A referência CVDW de conversão é a base temporal de retorno
+já disponível na integração, não um comprovante de atendimento.
+
+Agendamento vem de tarefa explicitamente de visita, incluindo visita sem data
+agendada; visita exige conclusão. Pré-cadastro não cancelado marca análise de
+crédito. Reserva ativa não cancelada vinculada marca o avanço até análise pela
+regra aprovada, sem afirmar que houve agendamento ou visita registrados.
+Venda exige uma das seis situações exatas aprovadas: Vendida, Contrato Assinado por
+Todos, Aguardando Assinatura Interna, Boleto/Pix, Enviado para UAU, Contrato Assinado
+Cliente(s). A data usa data_venda, ou data_ultima_alteracao_situacao quando disponível.
+
+A coleta complementar é serializada com a coleta integral, respeita a mesma cadência
+conservadora e publica somente se todas as fontes passarem na validação. O arquivo
+precisa pertencer à mesma geração da carteira. Enquanto não houver uma geração
+completa correspondente, a interface informa atualização, nunca um zero estimado.
+A listagem REST de pré-cadastros não oferece corte de referência; isso é identificado
+na proveniência, enquanto totais e paginação são conferidos em todas as páginas.
