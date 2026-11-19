@@ -26,6 +26,7 @@ const root=body.dataset.lcmPage==='executive';
 const menu=[
 ['overview','Visão Geral','index.html#overview','home'],
 ['leads','Gestão de Leads','leads.html','people'],
+['precadastro','Pré-Cadastro','precadastro.html','audit'],
 ['exec','Gestão de Reservas','index.html#exec','sales'],
 ['marketing','Marketing','marketing.html','marketing'],
 ['audience','Público Comprador','index.html#audience','people']
@@ -63,7 +64,7 @@ themeButton.onclick=()=>{manualTheme=document.documentElement.dataset.theme==='d
 preference.addEventListener('change',()=>{if(!manualTheme)setTheme(preference.matches?'dark':'light')});
 function active(){
  const hash=location.hash.slice(1);
- const key=root?(['overview','exec','audience'].includes(hash)?hash:'overview'):(body.dataset.lcmPage==='leads'?'leads':'marketing');
+ const key=root?(['overview','exec','audience'].includes(hash)?hash:'overview'):(['leads','precadastro'].includes(body.dataset.lcmPage)?body.dataset.lcmPage:'marketing');
  if(root){document.querySelector('main>nav button[data-view="'+key+'"]')?.click();document.body.classList.toggle('lcm-show-overview',key==='overview')}
  sidebar.querySelectorAll('a[data-lcm-view]').forEach(link=>{if(link.dataset.lcmView===key)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
  document.getElementById('lcmBreadcrumb').textContent='LCM / '+menu.find(x=>x[0]===key)[1];

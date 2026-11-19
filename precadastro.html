@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pré-Cadastro | LCM</title><link rel="stylesheet" href="lcm-shell.css"><link rel="stylesheet" href="lcm-precadastro.css"></head>
+<body data-lcm-page="precadastro">
+<main class="pc-workspace">
+<header><div><h1>Pré-Cadastro</h1><p>Gestão de pastas, análise documental e aprovação de crédito</p></div><div class="pc-period"><label>De<input type="date" id="pc-from"></label><label>Até<input type="date" id="pc-to"></label></div></header>
+<nav id="pc-tabs" aria-label="Pré-Cadastro" role="tablist"></nav>
+<form id="pc-filters"><div id="pc-selects"></div><button class="pc-primary">Filtrar</button><button type="button" id="pc-export">Exportar</button><button type="reset">Limpar</button></form>
+<p id="pc-status" role="status">Carregando base CV CRM…</p>
+<section id="pc-content" role="tabpanel"></section>
+<dialog id="pc-detail"><button class="pc-close" aria-label="Fechar">×</button><h2>Detalhes da pasta</h2><div id="pc-detail-content"></div></dialog>
+</main>
+<script src="lcm-shell.js?v=precadastro-1" defer></script><script src="lcm-precadastro.js?v=1" defer></script>
+</body></html>
