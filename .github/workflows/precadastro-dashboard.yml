@@ -1,0 +1,43 @@
+name: LCM - Pré-Cadastro
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 11 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: lcm-all-leads-publication
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Coletar pré-cadastros
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python scripts/precadastro_dashboard.py
+      - name: Publicar projeção validada
+        run: |
+          cp data/precadastro.json "$RUNNER_TEMP/precadastro.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$RUNNER_TEMP/precadastro.json" data/precadastro.json
+            git add data/precadastro.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'data(precadastro): atualizar painel validado'
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 5
+          done
+          exit 1
