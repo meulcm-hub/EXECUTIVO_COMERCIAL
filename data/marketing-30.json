@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-18T17:56:38.529683+00:00",
+  "generated_at_utc": "2026-11-19T02:28:53.030937+00:00",
   "period": {
-    "since": "2026-10-20",
-    "until": "2026-11-18"
+    "since": "2026-10-21",
+    "until": "2026-11-19"
   },
   "status": "COMPLETO_META_CV_AGREGADO",
   "meta_accounts": [
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3350.35",
-      "impressions": 332746,
-      "clicks": 3197
+      "spend": "3287.27",
+      "impressions": 324418,
+      "clicks": 3138
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4232.31",
-      "impressions": 527057,
-      "clicks": 3384
+      "spend": "4187.89",
+      "impressions": 522248,
+      "clicks": 3348
     },
     {
       "account_id": "272429171879216",
@@ -60,71 +60,71 @@
       "account_id": "347253318197280",
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
-      "spend": "9623.63",
-      "impressions": 415935,
-      "clicks": 3278
+      "spend": "9057.96",
+      "impressions": 391711,
+      "clicks": 3067
     },
     {
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "3088.98",
-      "impressions": 277849,
-      "clicks": 1963
+      "spend": "3063.37",
+      "impressions": 273006,
+      "clicks": 1952
     }
   ],
   "cv_by_project_normalized": {
     "residencial extrema meu lar": {
-      "leads_period": 94,
+      "leads_period": 92,
       "meta_declarada": 1,
       "meta_whatsapp_cv": 1,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 0,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 93
+      "outra_ou_nao_informada": 91
+    },
+    "residencial flores do cerrado jacaranda": {
+      "leads_period": 456,
+      "meta_declarada": 425,
+      "meta_whatsapp_cv": 22,
+      "meta_busca_compartilhada_cv": 3,
+      "meta_outros_cv": 400,
+      "google_declarada": 3,
+      "outra_ou_nao_informada": 28
     },
     "residencial terra solis": {
-      "leads_period": 17,
+      "leads_period": 16,
       "meta_declarada": 2,
       "meta_whatsapp_cv": 2,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 0,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 14
-    },
-    "residencial village lagoas": {
-      "leads_period": 166,
-      "meta_declarada": 130,
-      "meta_whatsapp_cv": 7,
-      "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 121,
-      "google_declarada": 3,
-      "outra_ou_nao_informada": 33
-    },
-    "residencial flores do cerrado jacaranda": {
-      "leads_period": 489,
-      "meta_declarada": 457,
-      "meta_whatsapp_cv": 23,
-      "meta_busca_compartilhada_cv": 3,
-      "meta_outros_cv": 431,
-      "google_declarada": 3,
-      "outra_ou_nao_informada": 29
+      "outra_ou_nao_informada": 13
     },
     "residencial jatoba": {
-      "leads_period": 102,
-      "meta_declarada": 91,
+      "leads_period": 101,
+      "meta_declarada": 90,
       "meta_whatsapp_cv": 13,
-      "meta_busca_compartilhada_cv": 28,
+      "meta_busca_compartilhada_cv": 27,
       "meta_outros_cv": 50,
       "google_declarada": 1,
       "outra_ou_nao_informada": 10
     },
+    "residencial village lagoas": {
+      "leads_period": 167,
+      "meta_declarada": 132,
+      "meta_whatsapp_cv": 6,
+      "meta_busca_compartilhada_cv": 2,
+      "meta_outros_cv": 124,
+      "google_declarada": 3,
+      "outra_ou_nao_informada": 32
+    },
     "spe arraial costa verde club": {
-      "leads_period": 48,
-      "meta_declarada": 48,
+      "leads_period": 46,
+      "meta_declarada": 46,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 47,
+      "meta_outros_cv": 45,
       "google_declarada": 0,
       "outra_ou_nao_informada": 0
     }
