@@ -71,6 +71,27 @@ class LeadsAllHistoryTests(unittest.TestCase):
         origins={x["origin"] for x in out["by_registration_project_origin_status"]}
         self.assertEqual(origins,{"Google","Facebook","Indicação","GE"})
 class CvdwStableDimensions(unittest.TestCase):
+    def test_main_starts_lead_pagination_after_operational_collection(self):
+        from unittest.mock import patch
+        import leads_operational_history as ops
+        calls=[]
+        sample=([{"nome":"Maria Silva","corretor":"Ana Lima","origem_nome":"Facebook"}],1,{"total_de_registros":1})
+        def operations(*args,end_reference):
+            calls.append(("operations",end_reference))
+            return {},{}
+        def page(opener,base,email,token,number,end_reference):
+            calls.append(("page",end_reference))
+            self.assertEqual(number,1)
+            return sample
+        def collect(fetch,**kwargs):
+            self.assertEqual(fetch(1),sample)
+            raise RuntimeError("stop before publication")
+        with patch.object(m,"credentials",return_value=("base","email","token")), patch.object(ops,"fetch_all",side_effect=operations), patch.object(m,"fetch_page",side_effect=page), patch.object(m,"collect",side_effect=collect):
+            with self.assertRaisesRegex(RuntimeError,"stop before publication"):
+                m.main()
+        self.assertEqual([kind for kind,_ in calls],["operations","page"])
+        self.assertEqual(calls[0][1],calls[1][1])
+
     def test_cvdw_names_and_dimensions_use_latest_snapshot_without_live_listing(self):
         import leads_public_projection as public
         rows=[{'idlead':1,'data_cad':'2018-01-01','nome':'Maria Silva Antiga','corretor':'João Souza Santos','origem':'FB','origem_nome':'Facebook','midia_original':'Formulário','midia_ultimo':'WhatsApp','situacao':'CONTATO','referencia_data':'2026-11-16 10:00:00'},

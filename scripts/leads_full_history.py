@@ -251,12 +251,14 @@ def main():
     cutoff=dt.datetime.now(ZoneInfo('America/Sao_Paulo'))
     end_reference=cutoff.strftime('%Y-%m-%d %H:%M:%S')
     print("Início da janela CVDW:",end_reference,"· horário de Brasília",flush=True)
+    # A coleta operacional pode levar horas. Não reutilizar uma primeira página
+    # antiga como referência de total para uma paginação iniciada só depois.
+    from leads_operational_history import fetch_all as fetch_operations
+    operations,operations_meta=fetch_operations(base,email,token,end_reference=end_reference)
     first_page=fetch_page(opener,base,email,token,1,end_reference)
     if not first_page[0] or not any("nome" in row and "corretor" in row and "origem_nome" in row for row in first_page[0]):
         raise RuntimeError("Campos documentados CVDW ausentes; nenhuma base foi alterada")
     print("Campos CVDW confirmados; snapshots previstos:",first_page[2].get("total_de_registros"),flush=True)
-    from leads_operational_history import fetch_all as fetch_operations
-    operations,operations_meta=fetch_operations(base,email,token,end_reference=end_reference)
     result=collect(lambda page:first_page if page==1 else fetch_page(opener,base,email,token,page,end_reference),
                    as_of=cutoff.date(),include_roster=True,use_cvdw_details=True,
                    operations=operations,operations_meta=operations_meta,history_secret=token)
