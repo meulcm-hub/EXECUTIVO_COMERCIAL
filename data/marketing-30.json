@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-21T02:05:25.822963+00:00",
+  "generated_at_utc": "2026-11-21T16:44:08.510912+00:00",
   "period": {
     "since": "2026-10-23",
     "until": "2026-11-21"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3307.46",
-      "impressions": 321288,
-      "clicks": 3153
+      "spend": "3377.85",
+      "impressions": 326892,
+      "clicks": 3214
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4247.16",
-      "impressions": 525591,
-      "clicks": 3367
+      "spend": "4326.36",
+      "impressions": 533884,
+      "clicks": 3429
     },
     {
       "account_id": "272429171879216",
@@ -68,9 +68,9 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "3190.57",
-      "impressions": 273818,
-      "clicks": 1979
+      "spend": "3271.72",
+      "impressions": 278733,
+      "clicks": 2018
     }
   ],
   "cv_by_project_normalized": {
@@ -93,22 +93,22 @@
       "outra_ou_nao_informada": 26
     },
     "residencial jatoba": {
-      "leads_period": 104,
-      "meta_declarada": 93,
+      "leads_period": 110,
+      "meta_declarada": 99,
       "meta_whatsapp_cv": 9,
-      "meta_busca_compartilhada_cv": 34,
-      "meta_outros_cv": 50,
+      "meta_busca_compartilhada_cv": 38,
+      "meta_outros_cv": 52,
       "google_declarada": 1,
       "outra_ou_nao_informada": 10
     },
     "residencial village lagoas": {
-      "leads_period": 159,
-      "meta_declarada": 133,
+      "leads_period": 164,
+      "meta_declarada": 136,
       "meta_whatsapp_cv": 7,
       "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 125,
+      "meta_outros_cv": 128,
       "google_declarada": 3,
-      "outra_ou_nao_informada": 23
+      "outra_ou_nao_informada": 25
     },
     "residencial terra solis": {
       "leads_period": 13,
