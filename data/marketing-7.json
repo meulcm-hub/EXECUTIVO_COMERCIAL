@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-20T17:41:57.586281+00:00",
+  "generated_at_utc": "2026-11-21T02:05:08.787230+00:00",
   "period": {
-    "since": "2026-11-14",
-    "until": "2026-11-20"
+    "since": "2026-11-15",
+    "until": "2026-11-21"
   },
   "status": "COMPLETO_META_CV_AGREGADO",
   "meta_accounts": [
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "1024.67",
-      "impressions": 80224,
-      "clicks": 919
+      "spend": "942.86",
+      "impressions": 72147,
+      "clicks": 797
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "1023.45",
-      "impressions": 123488,
-      "clicks": 755
+      "spend": "948.05",
+      "impressions": 113380,
+      "clicks": 693
     },
     {
       "account_id": "272429171879216",
@@ -68,45 +68,45 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "895.37",
-      "impressions": 63972,
-      "clicks": 513
+      "spend": "838.12",
+      "impressions": 59382,
+      "clicks": 482
     }
   ],
   "cv_by_project_normalized": {
     "residencial extrema meu lar": {
-      "leads_period": 14,
+      "leads_period": 13,
       "meta_declarada": 0,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 0,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 14
+      "outra_ou_nao_informada": 13
     },
     "spe arraial costa verde club": {
-      "leads_period": 17,
-      "meta_declarada": 14,
+      "leads_period": 14,
+      "meta_declarada": 11,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 13,
+      "meta_outros_cv": 10,
       "google_declarada": 0,
       "outra_ou_nao_informada": 3
     },
     "residencial village lagoas": {
-      "leads_period": 37,
-      "meta_declarada": 32,
+      "leads_period": 34,
+      "meta_declarada": 29,
       "meta_whatsapp_cv": 3,
       "meta_busca_compartilhada_cv": 0,
-      "meta_outros_cv": 29,
+      "meta_outros_cv": 26,
       "google_declarada": 0,
       "outra_ou_nao_informada": 5
     },
     "residencial jatoba": {
-      "leads_period": 35,
-      "meta_declarada": 33,
+      "leads_period": 36,
+      "meta_declarada": 34,
       "meta_whatsapp_cv": 3,
       "meta_busca_compartilhada_cv": 18,
-      "meta_outros_cv": 12,
+      "meta_outros_cv": 13,
       "google_declarada": 0,
       "outra_ou_nao_informada": 2
     }
