@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-22T01:08:25.719334+00:00",
+  "generated_at_utc": "2026-11-22T17:02:46.875870+00:00",
   "period": {
     "since": "2026-10-24",
     "until": "2026-11-22"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3294.75",
-      "impressions": 318546,
-      "clicks": 3117
+      "spend": "3380.40",
+      "impressions": 325751,
+      "clicks": 3183
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4272.25",
-      "impressions": 528298,
-      "clicks": 3392
+      "spend": "4375.55",
+      "impressions": 540301,
+      "clicks": 3452
     },
     {
       "account_id": "272429171879216",
@@ -68,9 +68,9 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "3255.14",
-      "impressions": 274223,
-      "clicks": 2005
+      "spend": "3350.33",
+      "impressions": 280870,
+      "clicks": 2069
     }
   ],
   "cv_by_project_normalized": {
@@ -84,20 +84,20 @@
       "outra_ou_nao_informada": 25
     },
     "residencial jatoba": {
-      "leads_period": 108,
-      "meta_declarada": 97,
+      "leads_period": 114,
+      "meta_declarada": 102,
       "meta_whatsapp_cv": 9,
-      "meta_busca_compartilhada_cv": 36,
-      "meta_outros_cv": 52,
+      "meta_busca_compartilhada_cv": 39,
+      "meta_outros_cv": 54,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 10
+      "outra_ou_nao_informada": 11
     },
     "residencial village lagoas": {
-      "leads_period": 160,
-      "meta_declarada": 133,
+      "leads_period": 162,
+      "meta_declarada": 135,
       "meta_whatsapp_cv": 6,
-      "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 126,
+      "meta_busca_compartilhada_cv": 2,
+      "meta_outros_cv": 127,
       "google_declarada": 3,
       "outra_ou_nao_informada": 24
     },
@@ -111,11 +111,11 @@
       "outra_ou_nao_informada": 78
     },
     "spe arraial costa verde club": {
-      "leads_period": 51,
-      "meta_declarada": 48,
+      "leads_period": 52,
+      "meta_declarada": 49,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 46,
+      "meta_outros_cv": 47,
       "google_declarada": 0,
       "outra_ou_nao_informada": 3
     },
