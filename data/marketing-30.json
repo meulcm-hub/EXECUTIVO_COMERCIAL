@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-22T17:02:46.875870+00:00",
+  "generated_at_utc": "2026-11-23T01:30:55.222358+00:00",
   "period": {
-    "since": "2026-10-24",
-    "until": "2026-11-22"
+    "since": "2026-10-25",
+    "until": "2026-11-23"
   },
   "status": "COMPLETO_META_CV_AGREGADO",
   "meta_accounts": [
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3380.40",
-      "impressions": 325751,
-      "clicks": 3183
+      "spend": "3341.47",
+      "impressions": 319386,
+      "clicks": 3107
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4375.55",
-      "impressions": 540301,
-      "clicks": 3452
+      "spend": "4355.02",
+      "impressions": 536960,
+      "clicks": 3436
     },
     {
       "account_id": "272429171879216",
@@ -60,62 +60,62 @@
       "account_id": "347253318197280",
       "account_name": "LCM - Jacarandá",
       "currency": "BRL",
-      "spend": "7474.01",
-      "impressions": 325827,
-      "clicks": 2503
+      "spend": "6967.71",
+      "impressions": 303055,
+      "clicks": 2267
     },
     {
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "3350.33",
-      "impressions": 280870,
-      "clicks": 2069
+      "spend": "3359.41",
+      "impressions": 279105,
+      "clicks": 2070
     }
   ],
   "cv_by_project_normalized": {
     "residencial flores do cerrado jacaranda": {
-      "leads_period": 377,
-      "meta_declarada": 349,
+      "leads_period": 353,
+      "meta_declarada": 326,
       "meta_whatsapp_cv": 14,
       "meta_busca_compartilhada_cv": 3,
-      "meta_outros_cv": 332,
-      "google_declarada": 3,
-      "outra_ou_nao_informada": 25
-    },
-    "residencial jatoba": {
-      "leads_period": 114,
-      "meta_declarada": 102,
-      "meta_whatsapp_cv": 9,
-      "meta_busca_compartilhada_cv": 39,
-      "meta_outros_cv": 54,
-      "google_declarada": 1,
-      "outra_ou_nao_informada": 11
-    },
-    "residencial village lagoas": {
-      "leads_period": 162,
-      "meta_declarada": 135,
-      "meta_whatsapp_cv": 6,
-      "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 127,
+      "meta_outros_cv": 309,
       "google_declarada": 3,
       "outra_ou_nao_informada": 24
     },
     "residencial extrema meu lar": {
-      "leads_period": 78,
+      "leads_period": 79,
       "meta_declarada": 0,
       "meta_whatsapp_cv": 0,
       "meta_busca_compartilhada_cv": 0,
       "meta_outros_cv": 0,
       "google_declarada": 0,
-      "outra_ou_nao_informada": 78
+      "outra_ou_nao_informada": 79
+    },
+    "residencial village lagoas": {
+      "leads_period": 162,
+      "meta_declarada": 135,
+      "meta_whatsapp_cv": 6,
+      "meta_busca_compartilhada_cv": 1,
+      "meta_outros_cv": 128,
+      "google_declarada": 3,
+      "outra_ou_nao_informada": 24
+    },
+    "residencial jatoba": {
+      "leads_period": 115,
+      "meta_declarada": 103,
+      "meta_whatsapp_cv": 9,
+      "meta_busca_compartilhada_cv": 37,
+      "meta_outros_cv": 57,
+      "google_declarada": 1,
+      "outra_ou_nao_informada": 11
     },
     "spe arraial costa verde club": {
-      "leads_period": 52,
-      "meta_declarada": 49,
+      "leads_period": 46,
+      "meta_declarada": 43,
       "meta_whatsapp_cv": 0,
-      "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 47,
+      "meta_busca_compartilhada_cv": 1,
+      "meta_outros_cv": 42,
       "google_declarada": 0,
       "outra_ou_nao_informada": 3
     },
