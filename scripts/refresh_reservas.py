@@ -35,6 +35,23 @@ def name(value):
     return result
 
 
+def read_conditions(fetch, needed):
+    # Campo oficial do CVDW: idreservascondicoes (plural).
+    conditions, _ = read_pages(fetch, 'idreservascondicoes')
+    grouped = {k: [] for k in needed}
+    for row in conditions.values():
+        k = str(row.get('idreserva', ''))
+        if k in grouped and str(row.get('ativo', 'S')).upper() == 'S':
+            if row.get('valor') in (None, '') or not row.get('serie'):
+                raise ValueError('Condições financeiras incompletas para venda recente')
+            # O schema CVDW descreve valor como valor da condição, não valor
+            # unitário da parcela. Preserva o valor sem multiplicá-lo.
+            grouped[k].append({'serie': row['serie'], 'idserie': row.get('idserie'), 'valor': row['valor']})
+    if any(not cond for cond in grouped.values()):
+        raise ValueError('Condições financeiras ausentes para venda recente')
+    return grouped
+
+
 def dimension(row, aliases):
     value = pick(row, aliases, '')
     if isinstance(value, dict):
@@ -149,21 +166,8 @@ def main():
               and (day(row.get('data_venda')) or day(row.get('data_ultima_alteracao_situacao')) or '') >= START
               and not payment_summary(row)['_has_conditions']}
     if needed:
-        payload = request(base,email,token,'/api/v1/cvdw/reservas/condicoes',1,cutoff)
-        batch = payload.get('dados', [])
-        identity = next((k for k in ('idreserva_condicao','idreservacondicao','idcondicao','idreserva_serie','id')
-                         if batch and all(isinstance(r,dict) and r.get(k) is not None for r in batch)),None)
-        if not identity:
-            raise ValueError('Condições sem identidade verificável')
-        conditions, _ = read_pages(lambda p:payload if p==1 else request(base,email,token,'/api/v1/cvdw/reservas/condicoes',p,cutoff),identity)
-        grouped = {k:[] for k in needed}
-        for row in conditions.values():
-            k = str(row.get('idreserva',''))
-            if k in grouped and str(row.get('ativo','S')).upper() == 'S':
-                grouped[k].append(row)
+        grouped = read_conditions(lambda p:request(base,email,token,'/api/v1/cvdw/reservas/condicoes',p,cutoff), needed)
         for k,cond in grouped.items():
-            if not cond:
-                raise ValueError('Condições financeiras ausentes para venda recente')
             rows[k] = {**rows[k], 'condicao':cond}
     path = ROOT/'index.html'
     html, count = update_html(path.read_text(), rows.values(), dt.datetime.now(dt.timezone.utc).isoformat())
@@ -179,7 +183,7 @@ if __name__ == '__main__':
     except Exception as exc:
         # Não imprimir respostas, parâmetros ou valores da API.
         print('Atualização de reservas interrompida; base anterior preservada. Classe:', type(exc).__name__,file=sys.stderr)
-        safe_prefixes = ('Venda recente sem', 'Venda confirmada sem', 'Inventário com', 'Mais de uma venda recente', 'Novembro ainda não conciliado', 'Venda anteriormente publicada', 'Condições sem identidade', 'Condições financeiras ausentes', 'Valor financeiro inválido', 'Fonte operacional /api/v1/cvdw/reservas: HTTP ', 'Fonte operacional /api/v1/cvdw/reservas/condicoes: HTTP ')
+        safe_prefixes = ('Venda recente sem', 'Venda confirmada sem', 'Inventário com', 'Mais de uma venda recente', 'Novembro ainda não conciliado', 'Venda anteriormente publicada', 'Condições financeiras ausentes', 'Condições financeiras incompletas', 'Valor financeiro inválido', 'Fonte operacional /api/v1/cvdw/reservas: HTTP ', 'Fonte operacional /api/v1/cvdw/reservas/condicoes: HTTP ', 'Identidade ausente na fonte', 'Fonte do funil mudou', 'Total da fonte do funil', 'Página repetida', 'Página incompleta', 'Snapshot conflitante')
         reason = str(exc)
         if any(reason.startswith(p) for p in safe_prefixes) and len(reason) < 180:
             print(reason,file=sys.stderr)
