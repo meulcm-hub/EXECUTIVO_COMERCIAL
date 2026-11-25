@@ -3,11 +3,11 @@ import datetime as dt
 import json
 import os
 from pathlib import Path
-from leads_sales_funnel import read_pages, norm
+from leads_sales_funnel import read_pages, norm, links
 from leads_sales_precad_request import request_pre
 from leads_operational_history import opaque, timestamp, request
 from leads_full_history import credentials
-from leads_public_projection import safe_text, short_name
+from leads_public_projection import safe_text, short_name, validate as validate_roster
 
 def label(value):
     if isinstance(value, dict):
@@ -29,7 +29,35 @@ def classify(value):
     }
     return mapping.get(status)
 
-def project(rows, history, secret, now):
+def origin_index(roster):
+    validate_roster(roster)
+    if roster['schema_version'] != 2:
+        raise RuntimeError('Carteira histórica de leads necessária para cruzar origens')
+    index = {}
+    for lead in roster['leads']:
+        key = lead['history_key']
+        if key in index:
+            raise RuntimeError('Vínculo duplicado na carteira de leads')
+        name = label(lead.get('origin_name'))
+        if norm(name) in ('', 'ND', 'NÃO INFORMADA', 'NAO INFORMADA', 'NÃO INFORMADO', 'NAO INFORMADO', 'SEM ORIGEM'):
+            name = None
+        index[key] = name
+    return index
+
+
+def folder_origin(row, secret, index):
+    ids = links(row)
+    keys = {opaque(secret, 'lead', identity) for identity in ids}
+    matched = keys & index.keys()
+    names = {norm(index[k]): index[k] for k in sorted(matched) if index[k]}
+    if len(names) > 1:
+        return 'Origens múltiplas', 'multiple'
+    if len(names) == 1:
+        return next(iter(names.values())), 'identified'
+    return 'Origem não identificada', 'matched_without_origin' if matched else ('unmatched' if ids else 'no_link')
+
+
+def project(rows, history, secret, now, index):
     grouped = {}
     for row in history.values():
         key = str(row.get('idprecadastro') or '')
@@ -57,6 +85,7 @@ def project(rows, history, secret, now):
         age = max(0, (now - dt.datetime.fromisoformat(last)).total_seconds()/3600) if last else None
         # Apenas nomes reduzidos e dimensões comerciais explicitamente permitidas.
         client = row.get('cliente') or row.get('nome')
+        origin, _ = folder_origin(row, secret, index)
         folders.append({
             'key': opaque(secret, 'precadastro', identity),
             'client': short_name(client) if client else None,
@@ -66,7 +95,7 @@ def project(rows, history, secret, now):
             'agency': label(row.get('imobiliaria')),
             'correspondent': short_name(row['correspondente']) if row.get('correspondente') else None,
             'manager': short_name(row['gestor']) if row.get('gestor') else None,
-            'origin': label(row.get('origem')),
+            'origin': origin,
             'date': date[:10], 'last_move': last, 'status': status,
             'approval': classify(status), 'age_hours': round(age, 1) if age is not None else None,
             'analysis_hours': round(analysis_hours, 2) if analysis_hours is not None and analysis_hours >= 0 else None,
@@ -81,16 +110,23 @@ def main():
         raise RuntimeError('Fonte vazia; publicação preservada')
     now = dt.datetime.now(dt.timezone.utc)
     history, history_meta = read_pages(lambda p: request(base,email,token,'/api/v1/cvdw/precadastro/historico/situacoes',p,now.strftime('%Y-%m-%d %H:%M:%S')), 'idhistorico')
-    folders = project(rows,history,token,now.replace(tzinfo=None))
+    roster = json.loads(Path('data/leads-roster.json').read_text())
+    index = origin_index(roster)
+    from collections import Counter
+    counts = Counter(folder_origin(row, token, index)[1] for row in rows.values())
+    if not (counts['identified'] or counts['multiple'] or counts['matched_without_origin']):
+        raise RuntimeError('Nenhum vínculo com a carteira de leads; publicação preservada')
+    folders = project(rows,history,token,now.replace(tzinfo=None),index)
     if not any(r['status'] for r in folders):
         raise RuntimeError('Situação não reconhecida na fonte')
     payload = {'schema_version':1,'validated':True,'generated_at_utc':now.isoformat(),
-               'folders':folders,'sources':{'folders':meta,'history':history_meta}}
+               'folders':folders,'sources':{'folders':meta,'history':history_meta,'origin_links':dict(counts)}}
     out = Path('data/precadastro.json')
     temp = out.with_suffix('.tmp')
     temp.write_text(json.dumps(payload,ensure_ascii=False,separators=(',',':')))
     temp.replace(out)
     print('Pré-cadastros publicados:',len(folders))
+    print('Origem das pastas:', json.dumps(dict(counts), sort_keys=True))
 
 if __name__ == '__main__':
     main()

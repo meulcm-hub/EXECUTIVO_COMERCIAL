@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '30 11 * * *'
+  push:
+    branches: [main]
+    paths:
+      - scripts/precadastro_dashboard.py
+      - tests/test_precadastro_origin.py
 permissions:
   contents: write
 concurrency:
@@ -19,6 +24,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Validar cruzamento de origens
+        run: python -m unittest discover -s tests -p 'test_precadastro_origin.py' -v
       - name: Coletar pré-cadastros
         env:
           CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}

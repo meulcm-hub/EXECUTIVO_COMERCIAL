@@ -12,7 +12,7 @@ const empty=msg=>'<div class="pc-empty">'+esc(msg||'Dados ainda não disponívei
 const card=(title,body)=>'<article class="pc-card"><h2>'+esc(title)+'</h2>'+body+'</article>';
 const kpis=items=>'<div class="pc-kpis">'+items.map(([k,v])=>'<article class="pc-kpi"><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></article>').join('')+'</div>';
 const group=(rs,key)=>Object.entries(rs.reduce((a,r)=>{const k=r[key]||'Não informado';a[k]=(a[k]||0)+1;return a},Object.create(null))).sort((a,b)=>b[1]-a[1]);
-const bars=items=>items.length?items.slice(0,15).map(([k,v])=>'<div class="pc-row"><span>'+esc(k)+'</span><span class="pc-track"><i style="width:'+Math.max(1,v/Math.max(...items.map(x=>x[1]),1)*100)+'%"></i></span><b>'+fmt(v)+'</b></div>').join(''):empty('Sem registros no período');
+const bars=(items,limit=15)=>items.length?items.slice(0,limit).map(([k,v])=>'<div class="pc-row"><span>'+esc(k)+'</span><span class="pc-track"><i style="width:'+Math.max(1,v/Math.max(...items.map(x=>x[1]),1)*100)+'%"></i></span><b>'+fmt(v)+'</b></div>').join(''):empty('Sem registros no período');
 const mean=vs=>vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
 const approved=r=>['Aprovado integral','Aprovado condicionado','Aprovado em outro CCA','Aprovado'].includes(r.approval);
 const analyzed=r=>approved(r)||r.approval==='Reprovado';
@@ -29,7 +29,7 @@ function monthly(){const groups={};for(const r of rows){if(!r.date||!analyzed(r)
 function overview(){
  const a=count(analyzed),ap=count(approved);
  const funnel=data?'<div class="pc-funnel">'+[['Pastas',rows.length,100],['Analisados',a,85],['Aprovados',ap,65]].map(([k,v,w])=>'<div style="width:'+w+'%">'+fmt(v)+' · '+k+'</div>').join('')+'</div>':empty();
- return kpis(metrics())+'<div class="pc-grid">'+card('Funil de Aprovação',funnel)+card('Pipeline Atual do Pré-Cadastro',data?bars(group(rows,'status')):empty())+card('Tempo Médio Histórico das Etapas (h)',stageTimes().length?bars(stageTimes()):empty())+card('Taxa de Aprovação Mensal (%)',data?bars(monthly()):empty())+card('Origem das Pastas',data&&rows.some(r=>r.origin)?bars(group(rows,'origin')):empty())+card('SLA de Análise',empty('Meta de SLA ainda não definida'))+['project','agency','broker'].map(k=>card('Desempenho por '+dims[k],data?bars(group(rows.filter(approved),k)):empty())).join('')+'</div>';
+ return kpis(metrics())+'<div class="pc-grid">'+card('Funil de Aprovação',funnel)+card('Pipeline Atual do Pré-Cadastro',data?bars(group(rows,'status')):empty())+card('Tempo Médio Histórico das Etapas (h)',stageTimes().length?bars(stageTimes()):empty())+card('Taxa de Aprovação Mensal (%)',data?bars(monthly()):empty())+card('Origem das Pastas',data&&rows.some(r=>r.origin)?bars(group(rows,'origin'),Infinity):empty())+card('SLA de Análise',empty('Meta de SLA ainda não definida'))+['project','agency','broker'].map(k=>card('Desempenho por '+dims[k],data?bars(group(rows.filter(approved),k)):empty())).join('')+'</div>';
 }
 function table(rs,fields){
  const visible=rs.filter(r=>Object.values(r).filter(v=>typeof v==='string').join(' ').toLowerCase().includes(query.toLowerCase()));
