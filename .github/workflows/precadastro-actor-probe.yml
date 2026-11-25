@@ -1,0 +1,26 @@
+name: LCM - Diagnóstico autoria Pré-Cadastro
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/precadastro_actor_probe.py
+permissions:
+  contents: read
+concurrency:
+  group: lcm-all-leads-publication
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Consultar histórico e emitir apenas contagens
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: python -u scripts/precadastro_actor_probe.py
