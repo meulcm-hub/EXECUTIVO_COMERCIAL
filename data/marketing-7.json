@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-27T03:35:24.828478+00:00",
+  "generated_at_utc": "2026-11-27T18:49:44.504291+00:00",
   "period": {
     "since": "2026-11-21",
     "until": "2026-11-27"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "851.77",
-      "impressions": 65507,
-      "clicks": 629
+      "spend": "899.52",
+      "impressions": 67890,
+      "clicks": 647
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "970.08",
-      "impressions": 113080,
-      "clicks": 681
+      "spend": "1087.55",
+      "impressions": 122459,
+      "clicks": 740
     },
     {
       "account_id": "272429171879216",
@@ -68,9 +68,9 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "865.77",
-      "impressions": 58394,
-      "clicks": 530
+      "spend": "926.48",
+      "impressions": 61705,
+      "clicks": 565
     }
   ],
   "cv_by_project_normalized": {
@@ -84,20 +84,20 @@
       "outra_ou_nao_informada": 3
     },
     "residencial village lagoas": {
-      "leads_period": 44,
-      "meta_declarada": 36,
+      "leads_period": 51,
+      "meta_declarada": 41,
       "meta_whatsapp_cv": 5,
       "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 29,
+      "meta_outros_cv": 34,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 7
+      "outra_ou_nao_informada": 9
     },
     "residencial jatoba": {
-      "leads_period": 47,
-      "meta_declarada": 38,
+      "leads_period": 51,
+      "meta_declarada": 42,
       "meta_whatsapp_cv": 2,
-      "meta_busca_compartilhada_cv": 20,
-      "meta_outros_cv": 16,
+      "meta_busca_compartilhada_cv": 23,
+      "meta_outros_cv": 17,
       "google_declarada": 1,
       "outra_ou_nao_informada": 8
     }

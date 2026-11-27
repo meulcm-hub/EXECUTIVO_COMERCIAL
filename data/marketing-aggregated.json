@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-27T03:35:43.333762+00:00",
+  "generated_at_utc": "2026-11-27T18:50:03.886268+00:00",
   "period": {
     "since": "2026-10-29",
     "until": "2026-11-27"
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "3391.95",
-      "impressions": 296840,
-      "clicks": 2919
+      "spend": "3439.70",
+      "impressions": 299223,
+      "clicks": 2937
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "4448.52",
-      "impressions": 535229,
-      "clicks": 3501
+      "spend": "4565.99",
+      "impressions": 544608,
+      "clicks": 3560
     },
     {
       "account_id": "272429171879216",
@@ -68,9 +68,9 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "3564.31",
-      "impressions": 275101,
-      "clicks": 2196
+      "spend": "3625.02",
+      "impressions": 278412,
+      "clicks": 2231
     }
   ],
   "cv_by_project_normalized": {
@@ -93,13 +93,13 @@
       "outra_ou_nao_informada": 18
     },
     "residencial village lagoas": {
-      "leads_period": 177,
-      "meta_declarada": 146,
+      "leads_period": 184,
+      "meta_declarada": 151,
       "meta_whatsapp_cv": 11,
       "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 133,
+      "meta_outros_cv": 138,
       "google_declarada": 3,
-      "outra_ou_nao_informada": 28
+      "outra_ou_nao_informada": 30
     },
     "spe arraial costa verde club": {
       "leads_period": 45,
@@ -111,11 +111,11 @@
       "outra_ou_nao_informada": 6
     },
     "residencial jatoba": {
-      "leads_period": 131,
-      "meta_declarada": 113,
+      "leads_period": 135,
+      "meta_declarada": 117,
       "meta_whatsapp_cv": 8,
-      "meta_busca_compartilhada_cv": 43,
-      "meta_outros_cv": 62,
+      "meta_busca_compartilhada_cv": 46,
+      "meta_outros_cv": 63,
       "google_declarada": 2,
       "outra_ou_nao_informada": 16
     }
