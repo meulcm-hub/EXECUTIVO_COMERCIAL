@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "source": "CV CRM CVDW /api/v1/cvdw/unidades/precos",
-  "as_of": "2026-11-26",
+  "as_of": "2026-11-27",
   "projects": [
     {
       "project_id": 2,
