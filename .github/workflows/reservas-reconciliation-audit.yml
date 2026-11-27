@@ -41,6 +41,7 @@ jobs:
               rows,meta=read_pages(lambda p:request(base,email,token,'/api/v1/cvdw/reservas',p,cutoff),'idreserva')
               candidates=defaultdict(list)
               current=set()
+              current_dates={}
               for row in rows.values():
                   k=key(dimension(row,['empreendimento','nome_empreendimento']),dimension(row,['bloco','nome_bloco']),dimension(row,['unidade','nome_unidade','numero_unidade']))
                   d=day(row.get('data_venda')) or day(row.get('data_ultima_alteracao_situacao'))
@@ -58,7 +59,9 @@ jobs:
                   if not d: reasons.append('data_ausente')
                   elif d<START: reasons.append('data_anterior_ao_periodo')
                   candidates[k].append(reasons)
-                  if not reasons: current.add(k)
+                  if not reasons:
+                      current.add(k)
+                      current_dates[k]=d
               missing=set(prior)-current
               print('Vendas recentes antes publicadas:',len(prior))
               print('Unidades elegiveis agora:',len(current))
@@ -67,10 +70,11 @@ jobs:
               counts=Counter()
               for k in sorted(missing):
                   s=prior[k]
-                  print('Referencia publica ausente:', public_id(s))
+                  print('Referencia publica ausente:', public_id(s), '|', s['project'], '|', s['block'], '|', s['unit'], '| data publicada:', s['date'])
                   if not candidates[k]: counts['unidade_nao_encontrada']=counts['unidade_nao_encontrada']+1
                   else:
                       for flags in candidates[k]: counts.update(flags)
+              print('Datas das novas candidatas:',json.dumps(Counter(current_dates[k] for k in current-set(prior)),sort_keys=True))
               print('Motivos agregados:',json.dumps(counts,ensure_ascii=True,sort_keys=True))
               print('Auditoria concluida sem alteracao da base publicada.')
           except Exception as e:
