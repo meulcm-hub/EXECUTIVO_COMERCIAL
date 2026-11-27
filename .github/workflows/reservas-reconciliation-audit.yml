@@ -1,0 +1,79 @@
+name: LCM - Auditoria de conciliacao de reservas
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/reservas-reconciliation-audit.yml
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Comparar apenas referencias ja publicadas e contagens de diagnostico
+        env:
+          CVCRM_DOMINIO: ${{ secrets.CVCRM_DOMINIO }}
+          CVCRM_EMAIL: ${{ secrets.CVCRM_EMAIL }}
+          CVCRM_TOKEN: ${{ secrets.CVCRM_TOKEN }}
+        run: |
+          python - <<'PY'
+          import sys, os, json, datetime as dt
+          from collections import Counter, defaultdict
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          from refresh_reservas import key, dimension, public_id, START, credentials, request, read_pages, day, is_sold, status_text
+          from server import compact
+          try:
+              html=Path('index.html').read_text()
+              data,_=json.JSONDecoder().raw_decode(html.split('const D=',1)[1])
+              prior={key(s['project'],s['block'],s['unit']):s for s in data['sales'] if s['date']>=START}
+              base,email,token=credentials(os.environ)
+              cutoff=dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+              rows,meta=read_pages(lambda p:request(base,email,token,'/api/v1/cvdw/reservas',p,cutoff),'idreserva')
+              candidates=defaultdict(list)
+              current=set()
+              for row in rows.values():
+                  k=key(dimension(row,['empreendimento','nome_empreendimento']),dimension(row,['bloco','nome_bloco']),dimension(row,['unidade','nome_unidade','numero_unidade']))
+                  d=day(row.get('data_venda')) or day(row.get('data_ultima_alteracao_situacao'))
+                  active=str(row.get('ativo','S')).upper()=='S'
+                  cancelled=bool(row.get('data_cancelamento'))
+                  rescinded=bool(row.get('data_distrato'))
+                  sold=is_sold(status_text(row))
+                  alternate=any(is_sold(status_text({field:row[field]})) for field in ('situacao','status','situacao_unidade','status_unidade','disponibilidade','nome_situacao','status_reserva','situacao_reserva') if field in row)
+                  reasons=[]
+                  if not active: reasons.append('inativo')
+                  if cancelled: reasons.append('cancelamento_preenchido')
+                  if rescinded: reasons.append('distrato_preenchido')
+                  if not sold: reasons.append('situacao_nao_reconhecida')
+                  if not sold and alternate: reasons.append('situaçao_alternativa_reconhecida')
+                  if not d: reasons.append('data_ausente')
+                  elif d<START: reasons.append('data_anterior_ao_periodo')
+                  candidates[k].append(reasons)
+                  if not reasons: current.add(k)
+              missing=set(prior)-current
+              print('Vendas recentes antes publicadas:',len(prior))
+              print('Unidades elegiveis agora:',len(current))
+              print('Unidades publicadas ausentes:',len(missing))
+              print('Unidades novas candidatas (nao validadas financeiramente):',len(current-set(prior)))
+              counts=Counter()
+              for k in sorted(missing):
+                  s=prior[k]
+                  print('Referencia publica ausente:', public_id(s))
+                  if not candidates[k]: counts['unidade_nao_encontrada']=counts['unidade_nao_encontrada']+1
+                  else:
+                      for flags in candidates[k]: counts.update(flags)
+              print('Motivos agregados:',json.dumps(counts,ensure_ascii=True,sort_keys=True))
+              print('Auditoria concluida sem alteracao da base publicada.')
+          except Exception as e:
+              print('Auditoria interrompida:',type(e).__name__)
+              sys.exit(1)
+          PY
