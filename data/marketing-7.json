@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "cv_channel_rules_version": 2,
-  "generated_at_utc": "2026-11-27T18:49:44.504291+00:00",
+  "generated_at_utc": "2026-11-28T03:12:14.951449+00:00",
   "period": {
-    "since": "2026-11-21",
-    "until": "2026-11-27"
+    "since": "2026-11-22",
+    "until": "2026-11-28"
   },
   "status": "COMPLETO_META_CV_AGREGADO",
   "meta_accounts": [
@@ -28,17 +28,17 @@
       "account_id": "332967835423799",
       "account_name": "LCM - Arraial Costa Verde",
       "currency": "BRL",
-      "spend": "899.52",
-      "impressions": 67890,
-      "clicks": 647
+      "spend": "808.80",
+      "impressions": 59508,
+      "clicks": 558
     },
     {
       "account_id": "626593228944023",
       "account_name": "LCM - Village Sete Lagoas",
       "currency": "BRL",
-      "spend": "1087.55",
-      "impressions": 122459,
-      "clicks": 740
+      "spend": "1029.74",
+      "impressions": 113154,
+      "clicks": 687
     },
     {
       "account_id": "272429171879216",
@@ -68,36 +68,27 @@
       "account_id": "1183301460107081",
       "account_name": "LCM - Jatobá",
       "currency": "BRL",
-      "spend": "926.48",
-      "impressions": 61705,
-      "clicks": 565
+      "spend": "847.61",
+      "impressions": 56468,
+      "clicks": 525
     }
   ],
   "cv_by_project_normalized": {
-    "spe arraial costa verde club": {
-      "leads_period": 11,
-      "meta_declarada": 7,
-      "meta_whatsapp_cv": 0,
-      "meta_busca_compartilhada_cv": 1,
-      "meta_outros_cv": 6,
-      "google_declarada": 1,
-      "outra_ou_nao_informada": 3
-    },
     "residencial village lagoas": {
-      "leads_period": 51,
-      "meta_declarada": 41,
-      "meta_whatsapp_cv": 5,
+      "leads_period": 48,
+      "meta_declarada": 39,
+      "meta_whatsapp_cv": 6,
       "meta_busca_compartilhada_cv": 2,
-      "meta_outros_cv": 34,
+      "meta_outros_cv": 31,
       "google_declarada": 1,
-      "outra_ou_nao_informada": 9
+      "outra_ou_nao_informada": 8
     },
     "residencial jatoba": {
-      "leads_period": 51,
-      "meta_declarada": 42,
+      "leads_period": 46,
+      "meta_declarada": 37,
       "meta_whatsapp_cv": 2,
-      "meta_busca_compartilhada_cv": 23,
-      "meta_outros_cv": 17,
+      "meta_busca_compartilhada_cv": 19,
+      "meta_outros_cv": 16,
       "google_declarada": 1,
       "outra_ou_nao_informada": 8
     }
